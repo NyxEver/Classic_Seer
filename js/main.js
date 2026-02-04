@@ -10,12 +10,13 @@ const gameConfig = {
     height: 600,
     parent: 'game-container',
     backgroundColor: '#1a1a2e',
-    
+
     // Scene list - order matters for initial scene
     scene: [
-        BootScene
+        BootScene,
+        ElfBagScene
     ],
-    
+
     // Physics configuration (if needed later)
     physics: {
         default: 'arcade',
@@ -24,7 +25,7 @@ const gameConfig = {
             debug: false
         }
     },
-    
+
     // Scale configuration for responsive display
     scale: {
         mode: Phaser.Scale.FIT,

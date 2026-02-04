@@ -52,6 +52,7 @@
 | 文件 | Scene Key | 作用 |
 |------|-----------|------|
 | `BootScene.js` | `BootScene` | 启动场景，调用 DataLoader 加载数据，执行验证测试 |
+| `ElfBagScene.js` | `ElfBagScene` | 精灵背包 UI，左侧列表 + 右侧详情面板 |
 
 ### 系统层 (`js/systems/`)
 
@@ -60,6 +61,8 @@
 | `DataLoader.js` | 同步加载数据，提供 `getElf()`、`getSkill()`、`getTypeEffectiveness()` 方法 |
 | `SaveSystem.js` | LocalStorage 存档管理，提供 `save()`、`load()`、`hasSave()`、`deleteSave()` 方法 |
 | `PlayerData.js` | 玩家数据管理器，管理精灵、物品、货币，提供 `createNew()`、`loadFromSave()`、`saveToStorage()` 方法 |
+| `Elf.js` | 精灵类，结合基础数据和实例数据，属性计算、经验升级、EV 管理、技能使用 |
+| `ElfBag.js` | 精灵背包管理器，`getAll()`、`add()`、`remove()`、`swap()`、`getFirstAvailable()`、`allFainted()` |
 
 ### 工具层 (`js/utils/`)
 
@@ -93,6 +96,6 @@
 
 | 目录 | 计划内容 |
 |------|----------|
-| `js/systems/` | Elf, ElfBag, BattleManager, DamageCalculator, CatchSystem, QuestManager 等 |
-| `js/scenes/` | MainMenuScene, SpaceshipScene, CaptainRoomScene, TeleportScene, KloseScene, BattleScene, ElfBagScene 等 |
+| `js/systems/` | BattleManager, DamageCalculator, CatchSystem, QuestManager, EncounterSystem 等 |
+| `js/scenes/` | MainMenuScene, SpaceshipScene, CaptainRoomScene, TeleportScene, KloseScene, BattleScene 等 |
 | `data/` | ItemsData.js, QuestsData.js |
