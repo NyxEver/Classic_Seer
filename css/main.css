@@ -1,0 +1,43 @@
+/* Project Seer - Main Stylesheet */
+
+/* Reset */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+/* Body styling */
+body {
+    margin: 0;
+    padding: 0;
+    background-color: #000000;
+    overflow: hidden;
+    /* Prevent text selection for game experience */
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+    /* Prevent pull-to-refresh on mobile */
+    overscroll-behavior: none;
+}
+
+/* Game container - centered display */
+#game-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100vw;
+    height: 100vh;
+}
+
+/* Ensure canvas doesn't have outline when focused */
+#game-container canvas {
+    outline: none;
+}
+
+/* Prevent touch callout on mobile */
+#game-container canvas {
+    -webkit-touch-callout: none;
+    -webkit-tap-highlight-color: transparent;
+}
