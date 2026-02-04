@@ -12,11 +12,17 @@
 │   │   └── phaser.js   # Phaser 3.90.0 游戏引擎
 │   ├── main.js         # 游戏主配置与入口
 │   ├── scenes/         # 游戏场景
-│   │   └── BootScene.js
+│   │   ├── BootScene.js
+│   │   ├── ElfBagScene.js
+│   │   └── BattleScene.js
 │   ├── systems/        # 核心系统
 │   │   ├── DataLoader.js
 │   │   ├── SaveSystem.js
-│   │   └── PlayerData.js
+│   │   ├── PlayerData.js
+│   │   ├── Elf.js
+│   │   ├── ElfBag.js
+│   │   ├── DamageCalculator.js
+│   │   └── BattleManager.js
 │   └── utils/          # 工具类
 │       └── SceneManager.js
 ├── data/               # 游戏数据（JavaScript 模块）
@@ -53,6 +59,7 @@
 |------|-----------|------|
 | `BootScene.js` | `BootScene` | 启动场景，调用 DataLoader 加载数据，执行验证测试 |
 | `ElfBagScene.js` | `ElfBagScene` | 精灵背包 UI，左侧列表 + 右侧详情面板 |
+| `BattleScene.js` | `BattleScene` | 战斗场景，赛尔号风格 UI（顶部状态栏 + 中央战斗区 + 底部控制区） |
 
 ### 系统层 (`js/systems/`)
 
@@ -60,9 +67,11 @@
 |------|------|
 | `DataLoader.js` | 同步加载数据，提供 `getElf()`、`getSkill()`、`getTypeEffectiveness()` 方法 |
 | `SaveSystem.js` | LocalStorage 存档管理，提供 `save()`、`load()`、`hasSave()`、`deleteSave()` 方法 |
-| `PlayerData.js` | 玩家数据管理器，管理精灵、物品、货币，提供 `createNew()`、`loadFromSave()`、`saveToStorage()` 方法 |
-| `Elf.js` | 精灵类，结合基础数据和实例数据，属性计算、经验升级、EV 管理、技能使用 |
-| `ElfBag.js` | 精灵背包管理器，`getAll()`、`add()`、`remove()`、`swap()`、`getFirstAvailable()`、`allFainted()` |
+| `PlayerData.js` | 玩家数据管理器，管理精灵、物品、货币 |
+| `Elf.js` | 精灵类，属性计算、经验升级、EV 管理、技能使用 |
+| `ElfBag.js` | 精灵背包管理器，提供增删改查和遍历方法 |
+| `DamageCalculator.js` | 伤害计算系统，处理暴击、STAB、克制、命中检定 |
+| `BattleManager.js` | 战斗管理器，回合阶段、行动执行、逃跑、结果处理 |
 
 ### 工具层 (`js/utils/`)
 
@@ -96,6 +105,6 @@
 
 | 目录 | 计划内容 |
 |------|----------|
-| `js/systems/` | BattleManager, DamageCalculator, CatchSystem, QuestManager, EncounterSystem 等 |
-| `js/scenes/` | MainMenuScene, SpaceshipScene, CaptainRoomScene, TeleportScene, KloseScene, BattleScene 等 |
+| `js/systems/` | CatchSystem, QuestManager, EncounterSystem 等 |
+| `js/scenes/` | MainMenuScene, SpaceshipScene, CaptainRoomScene, TeleportScene, KloseScene 等 |
 | `data/` | ItemsData.js, QuestsData.js |

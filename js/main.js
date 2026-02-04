@@ -14,7 +14,8 @@ const gameConfig = {
     // Scene list - order matters for initial scene
     scene: [
         BootScene,
-        ElfBagScene
+        ElfBagScene,
+        BattleScene
     ],
 
     // Physics configuration (if needed later)

@@ -167,16 +167,52 @@ class BootScene extends Phaser.Scene {
                 console.log('野生皮皮技能:', wildElf.getSkillDetails().map(s => s.name));
             }
 
+            // === 第四阶段验证：战斗系统 ===
+            console.log('=== 第四阶段验证：战斗系统 ===');
+
+            // 验证 DamageCalculator
+            console.log('--- DamageCalculator 验证 ---');
+            console.log('DamageCalculator 对象:', typeof DamageCalculator);
+            console.log('truncate4(0.12345678):', DamageCalculator.truncate4(0.12345678), '(应为 0.1234)');
+            console.log('randomInt(1, 10) 测试:', DamageCalculator.randomInt(1, 10), '(应在1-10之间)');
+
+            // 测试伤害计算
+            const testPlayerElf = ElfBag.getByIndex(0);
+            if (testPlayerElf && wildElf) {
+                // 获取一个技能进行测试
+                const testSkill = DataLoader.getSkill(1); // 拍打
+                if (testSkill) {
+                    const damageResult = DamageCalculator.calculate(testPlayerElf, wildElf, testSkill);
+                    console.log('伤害计算测试:');
+                    console.log('  技能:', testSkill.name);
+                    console.log('  伤害:', damageResult.damage);
+                    console.log('  暴击:', damageResult.isCritical);
+                    console.log('  克制:', damageResult.effectiveness);
+                    console.log('  同系加成:', damageResult.stab);
+                }
+            }
+
+            // 验证 BattleManager
+            console.log('--- BattleManager 验证 ---');
+            console.log('BattleManager 类:', typeof BattleManager);
+            console.log('BattleManager.PHASE:', BattleManager.PHASE);
+            console.log('BattleManager.ACTION:', BattleManager.ACTION);
+
+            // 验证 BattleScene
+            console.log('--- BattleScene 验证 ---');
+            console.log('BattleScene 类:', typeof BattleScene);
+
             // 更新显示
             this.loadingText.setText('加载完成');
-            this.statusText.setText('请打开控制台查看验证结果\n点击下方按钮进入精灵背包');
+            this.statusText.setText('请打开控制台查看验证结果\\n点击下方按钮测试功能');
 
             // 停止动画
             this.tweens.killTweensOf(this.loadingText);
             this.loadingText.setAlpha(1);
 
-            // 创建进入背包按钮
+            // 创建测试按钮
             this.createElfBagButton();
+            this.createBattleTestButton();
 
         } catch (error) {
             console.error('数据加载失败:', error);
@@ -191,16 +227,16 @@ class BootScene extends Phaser.Scene {
      */
     createElfBagButton() {
         const centerX = this.cameras.main.width / 2;
-        const btnY = this.cameras.main.height - 80;
+        const btnY = this.cameras.main.height - 140;
 
         // 按钮背景
-        const btnBg = this.add.rectangle(centerX, btnY, 180, 50, 0x4a6aaa);
+        const btnBg = this.add.rectangle(centerX - 100, btnY, 180, 45, 0x4a6aaa);
         btnBg.setStrokeStyle(3, 0x6a8acc);
         btnBg.setInteractive({ useHandCursor: true });
 
         // 按钮文字
-        const btnText = this.add.text(centerX, btnY, '打开精灵背包', {
-            fontSize: '18px',
+        const btnText = this.add.text(centerX - 100, btnY, '打开精灵背包', {
+            fontSize: '16px',
             fontFamily: 'Arial',
             color: '#ffffff',
             fontStyle: 'bold'
@@ -223,6 +259,65 @@ class BootScene extends Phaser.Scene {
         btnBg.on('pointerdown', () => {
             console.log('[BootScene] 跳转到精灵背包');
             SceneManager.changeScene(this, 'ElfBagScene', { returnScene: 'BootScene' });
+        });
+    }
+
+    /**
+     * 创建战斗测试按钮
+     */
+    createBattleTestButton() {
+        const centerX = this.cameras.main.width / 2;
+        const btnY = this.cameras.main.height - 140;
+
+        // 按钮背景
+        const btnBg = this.add.rectangle(centerX + 100, btnY, 180, 45, 0xaa6a4a);
+        btnBg.setStrokeStyle(3, 0xcc8a6a);
+        btnBg.setInteractive({ useHandCursor: true });
+
+        // 按钮文字
+        const btnText = this.add.text(centerX + 100, btnY, '测试战斗', {
+            fontSize: '16px',
+            fontFamily: 'Arial',
+            color: '#ffffff',
+            fontStyle: 'bold'
+        }).setOrigin(0.5);
+
+        // 悬停效果
+        btnBg.on('pointerover', () => {
+            btnBg.setFillStyle(0xba7a5a);
+            btnBg.setScale(1.05);
+            btnText.setScale(1.05);
+        });
+
+        btnBg.on('pointerout', () => {
+            btnBg.setFillStyle(0xaa6a4a);
+            btnBg.setScale(1);
+            btnText.setScale(1);
+        });
+
+        // 点击开始战斗
+        btnBg.on('pointerdown', () => {
+            console.log('[BootScene] 开始测试战斗');
+
+            // 获取玩家精灵
+            const playerElf = ElfBag.getFirstAvailable();
+            if (!playerElf) {
+                console.error('没有可用的精灵');
+                return;
+            }
+
+            // 创建野生皮皮
+            const wildElf = Elf.createWild(2, 3); // Lv.3 皮皮
+
+            // 启动战斗场景
+            this.scene.start('BattleScene', {
+                playerElf: playerElf,
+                enemyElf: wildElf,
+                battleType: 'wild',
+                canEscape: true,
+                canCatch: true,
+                returnScene: 'BootScene'
+            });
         });
     }
 
