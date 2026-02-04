@@ -1,24 +1,37 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Project Seer</title>
     <link rel="stylesheet" href="css/main.css">
 </head>
+
 <body>
     <div id="game-container"></div>
-    
+
     <!-- Phaser 3 Game Engine -->
     <script src="js/lib/phaser.js"></script>
-    
+
+    <!-- Data (must load before systems) -->
+    <script src="data/ElvesData.js"></script>
+    <script src="data/SkillsData.js"></script>
+    <script src="data/TypeChartData.js"></script>
+
     <!-- Utils -->
     <script src="js/utils/SceneManager.js"></script>
-    
+
+    <!-- Systems -->
+    <script src="js/systems/DataLoader.js"></script>
+    <script src="js/systems/SaveSystem.js"></script>
+    <script src="js/systems/PlayerData.js"></script>
+
     <!-- Scenes -->
     <script src="js/scenes/BootScene.js"></script>
-    
+
     <!-- Main Entry -->
     <script src="js/main.js"></script>
 </body>
+
 </html>
