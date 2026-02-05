@@ -14,6 +14,11 @@ const gameConfig = {
     // Scene list - order matters for initial scene
     scene: [
         BootScene,
+        MainMenuScene,
+        SpaceshipScene,
+        CaptainRoomScene,
+        TeleportScene,
+        KloseScene,
         ElfBagScene,
         BattleScene
     ],
