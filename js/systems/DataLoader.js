@@ -9,6 +9,7 @@ const DataLoader = {
     skills: null,
     typeChart: null,
     typeNames: null,
+    items: null,
 
     // 加载状态
     isLoaded: false,
@@ -46,11 +47,21 @@ const DataLoader = {
             this.typeChart = TypeChartData.typeChart;
             this.typeNames = TypeChartData.typeNames;
 
+            // 从全局对象读取物品数据
+            if (typeof ItemsData === 'undefined') {
+                throw new Error('ItemsData 未定义，请确保 ItemsData.js 已加载');
+            }
+            this.items = {};
+            ItemsData.items.forEach(item => {
+                this.items[item.id] = item;
+            });
+
             this.isLoaded = true;
             console.log('[DataLoader] 数据加载完成');
             console.log('[DataLoader] 精灵数据:', this.elves);
             console.log('[DataLoader] 技能数据:', this.skills);
             console.log('[DataLoader] 属性克制表:', this.typeChart);
+            console.log('[DataLoader] 物品数据:', this.items);
 
             return true;
 
@@ -118,6 +129,19 @@ const DataLoader = {
             return type;
         }
         return this.typeNames[type] || type;
+    },
+
+    /**
+     * 根据 ID 获取物品数据
+     * @param {number} itemId - 物品 ID
+     * @returns {Object|null} - 物品数据或 null
+     */
+    getItem(itemId) {
+        if (!this.isLoaded) {
+            console.warn('[DataLoader] 数据尚未加载');
+            return null;
+        }
+        return this.items[itemId] || null;
     }
 };
 

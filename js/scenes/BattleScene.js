@@ -371,10 +371,13 @@ class BattleScene extends Phaser.Scene {
 
         this.actionContainer = this.add.container(0, 0);
 
+        // 检查是否有多只精灵可切换
+        const hasMultipleElves = PlayerData.elves.length > 1;
+
         const buttons = [
             { label: '战斗', action: () => { }, disabled: true },
-            { label: '背包', action: () => this.addLog('背包功能尚未开放'), disabled: true },
-            { label: '精灵', action: () => this.addLog('精灵切换尚未开放'), disabled: true },
+            { label: '道具', action: () => this.showItemPanel(), disabled: false },
+            { label: '精灵', action: () => this.showElfSwitchPanel(), disabled: !hasMultipleElves },
             { label: '逃跑', action: () => this.doEscape(), disabled: false }
         ];
 
@@ -488,6 +491,815 @@ class BattleScene extends Phaser.Scene {
         this.popupContainer.setVisible(true);
     }
 
+    // ========== 胶囊选择面板 ==========
+    showCapsulePanel() {
+        if (!this.canCatch) {
+            this.addLog('无法在此战斗中捕捉！');
+            return;
+        }
+
+        const capsules = ItemBag.getCapsules();
+        if (capsules.length === 0) {
+            this.addLog('没有可用的精灵胶囊！');
+            return;
+        }
+
+        // 创建胶囊选择弹窗
+        this.capsulePanelContainer = this.add.container(this.W / 2, this.H / 2);
+        this.capsulePanelContainer.setDepth(90);
+
+        const w = 350, h = 250;
+
+        // 背景遮罩
+        const mask = this.add.rectangle(0, 0, this.W, this.H, 0x000000, 0.5).setOrigin(0.5);
+        mask.setInteractive(); // 阻止点击穿透
+        this.capsulePanelContainer.add(mask);
+
+        // 面板背景
+        const bg = this.add.graphics();
+        bg.fillStyle(0x1a2a4a, 1);
+        bg.fillRoundedRect(-w / 2, -h / 2, w, h, 12);
+        bg.lineStyle(3, 0x4a8aca);
+        bg.strokeRoundedRect(-w / 2, -h / 2, w, h, 12);
+        this.capsulePanelContainer.add(bg);
+
+        // 标题
+        const title = this.add.text(0, -h / 2 + 25, '选择胶囊', {
+            fontSize: '18px', fontFamily: 'Arial', color: '#ffffff', fontStyle: 'bold'
+        }).setOrigin(0.5);
+        this.capsulePanelContainer.add(title);
+
+        // 胶囊列表
+        const startY = -h / 2 + 60;
+        const itemH = 50;
+        capsules.forEach((capsuleInfo, index) => {
+            const itemY = startY + index * (itemH + 10);
+            const itemContainer = this.add.container(0, itemY);
+
+            // 胶囊按钮背景
+            const itemBg = this.add.graphics();
+            itemBg.fillStyle(0x2a4a7a, 1);
+            itemBg.fillRoundedRect(-w / 2 + 20, 0, w - 40, itemH, 6);
+            itemBg.lineStyle(2, 0x4a7aba);
+            itemBg.strokeRoundedRect(-w / 2 + 20, 0, w - 40, itemH, 6);
+            itemContainer.add(itemBg);
+
+            // 胶囊名称
+            const nameText = this.add.text(-w / 2 + 35, itemH / 2, capsuleInfo.itemData.name, {
+                fontSize: '16px', fontFamily: 'Arial', color: '#ffffff'
+            }).setOrigin(0, 0.5);
+            itemContainer.add(nameText);
+
+            // 数量
+            const countText = this.add.text(w / 2 - 35, itemH / 2, `x${capsuleInfo.count}`, {
+                fontSize: '14px', fontFamily: 'Arial', color: '#aaddaa'
+            }).setOrigin(1, 0.5);
+            itemContainer.add(countText);
+
+            // 点击区域
+            const hit = this.add.rectangle(0, itemH / 2, w - 40, itemH).setInteractive({ useHandCursor: true });
+            itemContainer.add(hit);
+
+            hit.on('pointerover', () => {
+                itemBg.clear();
+                itemBg.fillStyle(0x3a6aaa, 1);
+                itemBg.fillRoundedRect(-w / 2 + 20, 0, w - 40, itemH, 6);
+                itemBg.lineStyle(2, 0x5a9ada);
+                itemBg.strokeRoundedRect(-w / 2 + 20, 0, w - 40, itemH, 6);
+            });
+
+            hit.on('pointerout', () => {
+                itemBg.clear();
+                itemBg.fillStyle(0x2a4a7a, 1);
+                itemBg.fillRoundedRect(-w / 2 + 20, 0, w - 40, itemH, 6);
+                itemBg.lineStyle(2, 0x4a7aba);
+                itemBg.strokeRoundedRect(-w / 2 + 20, 0, w - 40, itemH, 6);
+            });
+
+            hit.on('pointerdown', () => {
+                this.closeCapsulePanel();
+                this.doCatch(capsuleInfo.itemData);
+            });
+
+            this.capsulePanelContainer.add(itemContainer);
+        });
+
+        // 取消按钮
+        const cancelY = h / 2 - 35;
+        const cancelBg = this.add.graphics();
+        cancelBg.fillStyle(0x5a3a3a, 1);
+        cancelBg.fillRoundedRect(-50, cancelY - 15, 100, 30, 6);
+        this.capsulePanelContainer.add(cancelBg);
+
+        const cancelText = this.add.text(0, cancelY, '取消', {
+            fontSize: '14px', fontFamily: 'Arial', color: '#ffffff'
+        }).setOrigin(0.5);
+        this.capsulePanelContainer.add(cancelText);
+
+        const cancelHit = this.add.rectangle(0, cancelY, 100, 30).setInteractive({ useHandCursor: true });
+        this.capsulePanelContainer.add(cancelHit);
+        cancelHit.on('pointerdown', () => this.closeCapsulePanel());
+    }
+
+    closeCapsulePanel() {
+        if (this.capsulePanelContainer) {
+            this.capsulePanelContainer.destroy();
+            this.capsulePanelContainer = null;
+        }
+    }
+
+    doCatch(capsule) {
+        this.disableMenu();
+        this.battleManager.setPlayerAction(BattleManager.ACTION.CATCH, { capsule });
+        this.executeTurn();
+    }
+
+    // ========== 道具面板 ==========
+    showItemPanel() {
+        this.closeItemPanel();
+        this.closeElfSwitchPanel();
+        this.closeCapsulePanel();
+
+        // 隐藏技能面板
+        if (this.skillContainer) {
+            this.skillContainer.setVisible(false);
+        }
+
+        // 面板容器（放置在中间技能区域位置）
+        const panelY = 430;
+        this.itemPanelContainer = this.add.container(310, panelY + 10);
+        this.itemPanelContainer.setDepth(50);
+
+        const panelW = 330, panelH = 140;
+
+        // 背景（与技能面板一致）
+        const bg = this.add.graphics();
+        bg.fillStyle(0x0a1a2a, 0.95);
+        bg.fillRoundedRect(0, 0, panelW, panelH, 8);
+        bg.lineStyle(2, 0x3a5a7a);
+        bg.strokeRoundedRect(0, 0, panelW, panelH, 8);
+        this.itemPanelContainer.add(bg);
+
+        // 当前分类
+        this.itemCategory = 'all';
+        this.itemScrollOffset = 0;
+
+        // ========== 右侧分类栏 ==========
+        const categories = [
+            { key: 'hp', label: '血药', icon: '❤️' },
+            { key: 'pp', label: 'PP药', icon: '💧' },
+            { key: 'capsule', label: '胶囊', icon: '🔴' }
+        ];
+
+        const catX = panelW - 55;
+        const catY = 5;
+        const catBtnW = 50, catBtnH = 40;
+
+        this.categoryButtons = [];
+        categories.forEach((cat, i) => {
+            const btn = this.createCategoryButton(catX, catY + i * (catBtnH + 5), catBtnW, catBtnH, cat);
+            this.itemPanelContainer.add(btn);
+            this.categoryButtons.push(btn);
+        });
+
+        // ========== 主物品网格区 ==========
+        this.itemGridContainer = this.add.container(10, 10);
+        this.itemPanelContainer.add(this.itemGridContainer);
+
+        // 加载物品
+        this.updateItemGrid();
+    }
+
+    createCategoryButton(x, y, w, h, cat) {
+        const container = this.add.container(x, y);
+
+        const bg = this.add.graphics();
+        bg.fillStyle(this.itemCategory === cat.key ? 0x3a6a9a : 0x2a4a6a, 1);
+        bg.fillRoundedRect(0, 0, w, h, 5);
+        bg.lineStyle(1, 0x4a7aaa);
+        bg.strokeRoundedRect(0, 0, w, h, 5);
+        container.add(bg);
+
+        const icon = this.add.text(w / 2, h / 2 - 6, cat.icon, {
+            fontSize: '16px'
+        }).setOrigin(0.5);
+        container.add(icon);
+
+        const label = this.add.text(w / 2, h / 2 + 10, cat.label, {
+            fontSize: '10px', fontFamily: 'Arial', color: '#aaddcc'
+        }).setOrigin(0.5);
+        container.add(label);
+
+        const hit = this.add.rectangle(w / 2, h / 2, w, h).setInteractive({ useHandCursor: true });
+        container.add(hit);
+
+        hit.on('pointerdown', () => {
+            this.itemCategory = cat.key;
+            this.itemScrollOffset = 0;
+            this.updateCategoryHighlight();
+            this.updateItemGrid();
+        });
+
+        container._bg = bg;
+        container._cat = cat;
+
+        return container;
+    }
+
+    updateCategoryHighlight() {
+        this.categoryButtons.forEach(btn => {
+            const bg = btn._bg;
+            const cat = btn._cat;
+            bg.clear();
+            bg.fillStyle(this.itemCategory === cat.key ? 0x3a6a9a : 0x2a4a6a, 1);
+            bg.fillRoundedRect(0, 0, 55, 45, 5);
+            bg.lineStyle(1, this.itemCategory === cat.key ? 0x6a9aca : 0x4a7aaa);
+            bg.strokeRoundedRect(0, 0, 55, 45, 5);
+        });
+    }
+
+    updateItemGrid() {
+        this.itemGridContainer.removeAll(true);
+
+        // 获取物品列表
+        const allItems = ItemBag.getAll();
+        let items = [];
+
+        Object.entries(allItems).forEach(([itemId, count]) => {
+            if (count <= 0) return;
+            const itemData = DataLoader.getItem(parseInt(itemId));
+            if (!itemData) return;
+
+            // 根据分类过滤
+            let category = 'other';
+            if (itemData.type === 'capsule') category = 'capsule';
+            else if (itemData.type === 'hpPotion') category = 'hp';
+            else if (itemData.type === 'ppPotion') category = 'pp';
+
+            if (this.itemCategory === 'all' || this.itemCategory === category) {
+                items.push({ itemId: parseInt(itemId), itemData, count, category });
+            }
+        });
+
+        // 4列 x 2行 网格（适应较小面板）
+        const cols = 4, rows = 2;
+        const slotW = 55, slotH = 55;
+        const gapX = 6, gapY = 6;
+        const visibleItems = items.slice(this.itemScrollOffset, this.itemScrollOffset + cols * rows);
+
+        visibleItems.forEach((item, i) => {
+            const col = i % cols;
+            const row = Math.floor(i / cols);
+            const x = col * (slotW + gapX);
+            const y = row * (slotH + gapY);
+
+            const slot = this.createItemSlot(x, y, slotW, slotH, item);
+            this.itemGridContainer.add(slot);
+        });
+
+        // 如果没有物品显示提示
+        if (visibleItems.length === 0) {
+            const emptyText = this.add.text(150, 60, '没有此类道具', {
+                fontSize: '14px', fontFamily: 'Arial', color: '#888888'
+            }).setOrigin(0.5);
+            this.itemGridContainer.add(emptyText);
+        }
+
+        // 简单滚动指示（如果物品超过10个）
+        if (items.length > cols * rows) {
+            const scrollInfo = this.add.text(350, 140, `▲ ▼ (${this.itemScrollOffset / (cols * rows) + 1}/${Math.ceil(items.length / (cols * rows))})`, {
+                fontSize: '12px', fontFamily: 'Arial', color: '#aaaaaa'
+            }).setOrigin(0.5);
+            this.itemGridContainer.add(scrollInfo);
+        }
+    }
+
+    createItemSlot(x, y, w, h, item) {
+        const container = this.add.container(x, y);
+
+        // 背景
+        const bg = this.add.graphics();
+        bg.fillStyle(0x2a4a6a, 1);
+        bg.fillRoundedRect(0, 0, w, h, 6);
+        bg.lineStyle(1, 0x4a7aaa);
+        bg.strokeRoundedRect(0, 0, w, h, 6);
+        container.add(bg);
+
+        // 物品图标（用首字母或类型图标表示）
+        let iconChar = '📦';
+        if (item.category === 'capsule') iconChar = '🔴';
+        else if (item.category === 'hp') iconChar = '❤️';
+        else if (item.category === 'pp') iconChar = '💧';
+
+        const icon = this.add.text(w / 2, h / 2 - 5, iconChar, {
+            fontSize: '24px'
+        }).setOrigin(0.5);
+        container.add(icon);
+
+        // 数量徽章（右下角）
+        const countBg = this.add.graphics();
+        countBg.fillStyle(0x1a1a2a, 0.9);
+        countBg.fillRoundedRect(w - 22, h - 18, 20, 16, 3);
+        container.add(countBg);
+
+        const countText = this.add.text(w - 12, h - 10, `${item.count}`, {
+            fontSize: '11px', fontFamily: 'Arial', color: '#ffffff'
+        }).setOrigin(0.5);
+        container.add(countText);
+
+        // 交互
+        const hit = this.add.rectangle(w / 2, h / 2, w, h).setInteractive({ useHandCursor: true });
+        container.add(hit);
+
+        hit.on('pointerover', () => {
+            bg.clear();
+            bg.fillStyle(0x3a6a9a, 1);
+            bg.fillRoundedRect(0, 0, w, h, 6);
+            bg.lineStyle(2, 0x6a9aca);
+            bg.strokeRoundedRect(0, 0, w, h, 6);
+        });
+
+        hit.on('pointerout', () => {
+            bg.clear();
+            bg.fillStyle(0x2a4a6a, 1);
+            bg.fillRoundedRect(0, 0, w, h, 6);
+            bg.lineStyle(1, 0x4a7aaa);
+            bg.strokeRoundedRect(0, 0, w, h, 6);
+        });
+
+        hit.on('pointerdown', () => {
+            this.useItem(item);
+        });
+
+        return container;
+    }
+
+    useItem(item) {
+        const itemData = item.itemData;
+
+        if (itemData.type === 'capsule') {
+            // 胶囊用于捕捉
+            if (!this.canCatch) {
+                this.addLog('无法在此战斗中使用胶囊！');
+                return;
+            }
+            this.closeItemPanel();
+            this.doCatch(itemData);
+        } else if (itemData.type === 'hpPotion' && itemData.effect) {
+            // HP恢复药剂
+            const healAmount = itemData.effect.hpRestore || 20;
+            const maxHp = this.playerElf.getMaxHp();
+            const oldHp = this.playerElf.currentHp;
+            this.playerElf.currentHp = Math.min(maxHp, oldHp + healAmount);
+            const healed = this.playerElf.currentHp - oldHp;
+
+            if (healed > 0) {
+                // 消耗物品
+                ItemBag.removeItem(item.itemId, 1);
+                this.addLog(`使用了 ${itemData.name}，恢复了 ${healed} HP！`);
+
+                // 更新 UI
+                this.updateStatusHp('player');
+                this.playerElf._syncInstanceData();
+                PlayerData.saveToStorage();
+
+                this.closeItemPanel();
+                // 使用物品消耗回合
+                this.disableMenu();
+                this.battleManager.setPlayerAction(BattleManager.ACTION.ITEM, { itemId: item.itemId });
+                this.executeTurn();
+            } else {
+                this.addLog(`${this.playerElf.getDisplayName()} 的 HP 已满！`);
+            }
+        } else if (itemData.type === 'ppPotion' && itemData.effect) {
+            // PP恢复逻辑（简化：恢复所有技能PP）
+            const restoreAmount = itemData.effect.ppRestore || 5;
+            const skills = this.playerElf.getSkillDetails();
+            let restored = false;
+
+            skills.forEach(skill => {
+                if (this.playerElf.skillPP[skill.id] < skill.pp) {
+                    this.playerElf.skillPP[skill.id] = Math.min(skill.pp, this.playerElf.skillPP[skill.id] + restoreAmount);
+                    restored = true;
+                }
+            });
+
+            if (restored) {
+                ItemBag.removeItem(item.itemId, 1);
+                this.addLog(`使用了 ${itemData.name}，恢复了技能 PP！`);
+                this.updateSkillPP();
+                this.playerElf._syncInstanceData();
+                PlayerData.saveToStorage();
+
+                this.closeItemPanel();
+                this.disableMenu();
+                this.battleManager.setPlayerAction(BattleManager.ACTION.ITEM, { itemId: item.itemId });
+                this.executeTurn();
+            } else {
+                this.addLog('所有技能 PP 已满！');
+            }
+        }
+    }
+
+    closeItemPanel() {
+        if (this.itemPanelContainer) {
+            this.itemPanelContainer.destroy();
+            this.itemPanelContainer = null;
+        }
+        // 恢复技能面板
+        if (this.skillContainer) {
+            this.skillContainer.setVisible(true);
+        }
+    }
+
+    // ========== 精灵切换面板 ==========
+    showElfSwitchPanel(forceSwitch = false) {
+        this.closeElfSwitchPanel();
+        this.closeCapsulePanel();
+
+        // 面板容器（覆盖中间技能区域）
+        const panelY = 430;
+        this.elfSwitchContainer = this.add.container(0, panelY);
+        this.elfSwitchContainer.setDepth(80);
+
+        const panelW = 700, panelH = 165;
+        const panelX = 300;
+
+        // 背景
+        const bg = this.add.graphics();
+        bg.fillStyle(0x1a2a4a, 0.98);
+        bg.fillRoundedRect(panelX, 5, panelW, panelH, 10);
+        bg.lineStyle(2, 0x4a7aaa);
+        bg.strokeRoundedRect(panelX, 5, panelW, panelH, 10);
+        this.elfSwitchContainer.add(bg);
+
+        // ========== 顶部精灵选择栏 ==========
+        const topBarY = 12;
+        const slotSize = 40;
+        const slotGap = 8;
+        const elves = PlayerData.elves;
+
+        this.elfSlots = [];
+        this.selectedSwitchIndex = 0; // 默认选中第一只（跳过出战精灵）
+
+        // 找到第一只不是当前出战精灵的
+        for (let i = 0; i < elves.length; i++) {
+            const slot = this.createElfSlot(panelX + 15 + i * (slotSize + slotGap), topBarY, slotSize, elves[i], i);
+            this.elfSwitchContainer.add(slot);
+            this.elfSlots.push(slot);
+        }
+
+        // ========== 左侧信息区 ==========
+        this.elfInfoContainer = this.add.container(panelX + 15, topBarY + slotSize + 15);
+        this.elfSwitchContainer.add(this.elfInfoContainer);
+
+        // ========== 右侧技能区 ==========
+        this.elfSkillContainer = this.add.container(panelX + 250, topBarY + slotSize + 15);
+        this.elfSwitchContainer.add(this.elfSkillContainer);
+
+        // 选中第一只不是当前出战的精灵
+        for (let i = 0; i < elves.length; i++) {
+            if (elves[i] !== this.playerElf._instanceData) {
+                this.selectSwitchElf(i);
+                break;
+            }
+        }
+
+        // 关闭按钮（如果不是强制切换）
+        if (!forceSwitch) {
+            const closeBtn = this.add.text(panelX + panelW - 15, 15, '✕', {
+                fontSize: '20px', color: '#ff6666'
+            }).setOrigin(1, 0).setInteractive({ useHandCursor: true });
+            closeBtn.on('pointerdown', () => this.closeElfSwitchPanel());
+            this.elfSwitchContainer.add(closeBtn);
+        }
+
+        this.forceSwitchMode = forceSwitch;
+    }
+
+    createElfSlot(x, y, size, elfData, index) {
+        const container = this.add.container(x, y);
+        const baseData = DataLoader.getElf(elfData.elfId);
+        if (!baseData) return container;
+
+        const elf = new Elf(baseData, elfData);
+        const isCurrent = elfData === this.playerElf._instanceData;
+        const canFight = elfData.currentHp > 0;
+
+        // 背景
+        const bg = this.add.graphics();
+        const bgColor = isCurrent ? 0x4a6a8a : (canFight ? 0x2a4a6a : 0x3a3a3a);
+        bg.fillStyle(bgColor, 1);
+        bg.fillRoundedRect(0, 0, size, size, 6);
+        if (isCurrent) {
+            bg.lineStyle(3, 0xffdd44);
+        } else {
+            bg.lineStyle(2, canFight ? 0x4a8aca : 0x555555);
+        }
+        bg.strokeRoundedRect(0, 0, size, size, 6);
+        container.add(bg);
+
+        // 精灵图标（首字母）
+        const iconText = this.add.text(size / 2, size / 2, baseData.name.charAt(0), {
+            fontSize: '18px', fontFamily: 'Arial',
+            color: canFight ? '#ffffff' : '#666666', fontStyle: 'bold'
+        }).setOrigin(0.5);
+        container.add(iconText);
+
+        // 等级标签
+        const lvText = this.add.text(size - 2, size - 2, `${elf.level}`, {
+            fontSize: '10px', fontFamily: 'Arial', color: '#aaddaa'
+        }).setOrigin(1, 1);
+        container.add(lvText);
+
+        // 交互
+        if (!isCurrent && canFight) {
+            const hit = this.add.rectangle(size / 2, size / 2, size, size).setInteractive({ useHandCursor: true });
+            container.add(hit);
+            hit.on('pointerdown', () => this.selectSwitchElf(index));
+        }
+
+        container._bg = bg;
+        container._index = index;
+        container._elfData = elfData;
+        container._isCurrent = isCurrent;
+
+        return container;
+    }
+
+    selectSwitchElf(index) {
+        this.selectedSwitchIndex = index;
+
+        // 更新槽位高亮
+        this.elfSlots.forEach((slot, i) => {
+            const bg = slot._bg;
+            if (!bg) return;
+            const isCurrent = slot._isCurrent;
+            const canFight = slot._elfData.currentHp > 0;
+            const isSelected = i === index;
+
+            bg.clear();
+            const bgColor = isCurrent ? 0x4a6a8a : (isSelected ? 0x3a6a9a : (canFight ? 0x2a4a6a : 0x3a3a3a));
+            bg.fillStyle(bgColor, 1);
+            bg.fillRoundedRect(0, 0, 40, 40, 6);
+            if (isCurrent) {
+                bg.lineStyle(3, 0xffdd44);
+            } else if (isSelected) {
+                bg.lineStyle(3, 0x88ccff);
+            } else {
+                bg.lineStyle(2, canFight ? 0x4a8aca : 0x555555);
+            }
+            bg.strokeRoundedRect(0, 0, 40, 40, 6);
+        });
+
+        // 更新左侧信息和右侧技能
+        this.updateElfSwitchInfo(index);
+    }
+
+    updateElfSwitchInfo(index) {
+        // 清空
+        this.elfInfoContainer.removeAll(true);
+        this.elfSkillContainer.removeAll(true);
+
+        const elfData = PlayerData.elves[index];
+        const baseData = DataLoader.getElf(elfData.elfId);
+        if (!baseData) return;
+
+        const elf = new Elf(baseData, elfData);
+        const canFight = elfData.currentHp > 0;
+        const isCurrent = elfData === this.playerElf._instanceData;
+
+        // ========== 左侧信息 ==========
+        const w = 220, h = 90;
+
+        // 名字
+        const name = elfData.nickname || baseData.name;
+        const nameText = this.add.text(0, 0, name, {
+            fontSize: '16px', fontFamily: 'Arial', color: '#ffffff', fontStyle: 'bold'
+        });
+        this.elfInfoContainer.add(nameText);
+
+        // HP 文字
+        const hpLabel = this.add.text(0, 25, `HP: ${elfData.currentHp}/${elf.getMaxHp()}`, {
+            fontSize: '14px', fontFamily: 'Arial', color: '#88ddaa'
+        });
+        this.elfInfoContainer.add(hpLabel);
+
+        // HP 条
+        const hpBarW = 180, hpBarH = 12;
+        const hpBg = this.add.graphics();
+        hpBg.fillStyle(0x222222, 1);
+        hpBg.fillRoundedRect(0, 45, hpBarW, hpBarH, 4);
+        this.elfInfoContainer.add(hpBg);
+
+        const hpPct = elfData.currentHp / elf.getMaxHp();
+        if (hpPct > 0) {
+            const hpBar = this.add.graphics();
+            let hpColor = 0x44dd44;
+            if (hpPct <= 0.2) hpColor = 0xdd4444;
+            else if (hpPct <= 0.5) hpColor = 0xddaa44;
+            hpBar.fillStyle(hpColor, 1);
+            hpBar.fillRoundedRect(2, 47, (hpBarW - 4) * hpPct, hpBarH - 4, 3);
+            this.elfInfoContainer.add(hpBar);
+        }
+
+        // 出战按钮
+        const btnY = 65;
+        const btnW = 80, btnH = 30;
+        const btnEnabled = canFight && !isCurrent;
+
+        const btnBg = this.add.graphics();
+        btnBg.fillStyle(btnEnabled ? 0x44aa66 : 0x444444, 1);
+        btnBg.fillRoundedRect(0, btnY, btnW, btnH, 6);
+        this.elfInfoContainer.add(btnBg);
+
+        const btnText = this.add.text(btnW / 2, btnY + btnH / 2, '出战', {
+            fontSize: '14px', fontFamily: 'Arial',
+            color: btnEnabled ? '#ffffff' : '#888888', fontStyle: 'bold'
+        }).setOrigin(0.5);
+        this.elfInfoContainer.add(btnText);
+
+        if (btnEnabled) {
+            const btnHit = this.add.rectangle(btnW / 2, btnY + btnH / 2, btnW, btnH).setInteractive({ useHandCursor: true });
+            this.elfInfoContainer.add(btnHit);
+            btnHit.on('pointerdown', () => this.doSwitch(index));
+        }
+
+        // ========== 右侧技能 (2x2) ==========
+        const skillW = 210, skillH = 40;
+        const skillGapX = 5, skillGapY = 5;
+
+        for (let i = 0; i < 4; i++) {
+            const col = i % 2;
+            const row = Math.floor(i / 2);
+            const sx = col * (skillW + skillGapX);
+            const sy = row * (skillH + skillGapY);
+
+            if (i < elfData.skills.length) {
+                const skillId = elfData.skills[i];
+                const skillData = DataLoader.getSkill(skillId);
+                const currentPP = elfData.skillPP[skillId] || 0;
+
+                if (skillData) {
+                    const skillCard = this.createSwitchSkillCard(sx, sy, skillW, skillH, skillData, currentPP);
+                    this.elfSkillContainer.add(skillCard);
+                }
+            } else {
+                // 空技能槽
+                const emptyCard = this.add.graphics();
+                emptyCard.fillStyle(0x222222, 0.5);
+                emptyCard.fillRoundedRect(sx, sy, skillW, skillH, 4);
+                this.elfSkillContainer.add(emptyCard);
+
+                const dash = this.add.text(sx + skillW / 2, sy + skillH / 2, '-', {
+                    fontSize: '16px', color: '#444444'
+                }).setOrigin(0.5);
+                this.elfSkillContainer.add(dash);
+            }
+        }
+    }
+
+    createSwitchSkillCard(x, y, w, h, skill, currentPP) {
+        const container = this.add.container(x, y);
+
+        const bg = this.add.graphics();
+        bg.fillStyle(0x2a4a6a, 1);
+        bg.fillRoundedRect(0, 0, w, h, 4);
+        bg.lineStyle(1, 0x4a6a8a);
+        bg.strokeRoundedRect(0, 0, w, h, 4);
+        container.add(bg);
+
+        // 技能名
+        const nameText = this.add.text(8, 5, skill.name, {
+            fontSize: '13px', fontFamily: 'Arial', color: '#ffffff', fontStyle: 'bold'
+        });
+        container.add(nameText);
+
+        // 威力 + PP
+        const metaText = this.add.text(8, 23, `威力${skill.power}  PP${currentPP}/${skill.pp}`, {
+            fontSize: '11px', fontFamily: 'Arial', color: '#88aacc'
+        });
+        container.add(metaText);
+
+        // 属性图标
+        const typeName = DataLoader.getTypeName(skill.type);
+        const typeText = this.add.text(w - 8, h / 2, typeName, {
+            fontSize: '10px', fontFamily: 'Arial', color: '#aaddaa'
+        }).setOrigin(1, 0.5);
+        container.add(typeText);
+
+        return container;
+    }
+
+    closeElfSwitchPanel() {
+        if (this.elfSwitchContainer) {
+            this.elfSwitchContainer.destroy();
+            this.elfSwitchContainer = null;
+        }
+        this.forceSwitchMode = false;
+    }
+
+    doSwitch(elfIndex) {
+        const elfData = PlayerData.elves[elfIndex];
+        const baseData = DataLoader.getElf(elfData.elfId);
+        if (!baseData || elfData.currentHp <= 0) return;
+
+        // 创建新的精灵实例
+        const newElf = new Elf(baseData, elfData);
+
+        this.closeElfSwitchPanel();
+        this.disableMenu();
+
+        // 添加切换日志
+        this.addLog(`${this.playerElf.getDisplayName()}，回来吧！`);
+        this.addLog(`去吧，${newElf.getDisplayName()}！`);
+
+        // 更新玩家精灵
+        this.playerElf = newElf;
+        this.battleManager.playerElf = newElf;
+
+        // 更新 UI
+        this.updatePlayerSpriteAndStatus();
+
+        // 如果是强制切换（精灵倒下），不触发敌方攻击
+        if (this.forceSwitchMode) {
+            this.showLogs(() => {
+                this.enableMenu();
+                this.startTurnTimer();
+            });
+        } else {
+            // 正常切换，敌方可以攻击
+            this.battleManager.setPlayerAction(BattleManager.ACTION.SWITCH, { elfIndex });
+            this.executeTurn();
+        }
+    }
+
+    updatePlayerSpriteAndStatus() {
+        // 更新玩家精灵显示
+        if (this.playerSprite) {
+            this.playerSprite.destroy();
+        }
+        this.playerSprite = this.createCharacterSprite(200, 230, this.playerElf, true);
+
+        // 重建玩家状态栏
+        if (this.playerStatus && this.playerStatus.container) {
+            this.playerStatus.container.destroy();
+        }
+        this.createStatusBar(this.playerElf, 20, 10, true);
+
+        // 重建技能面板
+        this.rebuildSkillPanel();
+    }
+
+    rebuildSkillPanel() {
+        // 清除旧技能按钮
+        if (this.skillContainer) {
+            this.skillContainer.removeAll(true);
+        }
+
+        // 重新创建技能按钮（使用与 createMiddleSkillPanel 相同的坐标）
+        const skills = this.playerElf.getSkillDetails();
+        const panelY = 430;
+        const x = 310, y = panelY + 10;
+        const skillBtnW = 175, skillBtnH = 55;
+        const startX = x + 15, startY = y + 20;
+        const gapX = 10, gapY = 10;
+
+        this.skillButtons = [];
+        for (let i = 0; i < 4; i++) {
+            const col = i % 2;
+            const row = Math.floor(i / 2);
+            const btnX = startX + col * (skillBtnW + gapX);
+            const btnY = startY + row * (skillBtnH + gapY);
+
+            if (i < skills.length) {
+                const skill = skills[i];
+                const btn = this.createSkillButton(btnX, btnY, skillBtnW, skillBtnH, skill, i);
+                this.skillButtons.push(btn);
+                this.skillContainer.add(btn);
+            } else {
+                const emptyBtn = this.createEmptySkillSlot(btnX, btnY, skillBtnW, skillBtnH);
+                this.skillButtons.push(emptyBtn);
+                this.skillContainer.add(emptyBtn);
+            }
+        }
+    }
+
+    // 强制切换（精灵倒下时）
+    showForceSwitchPanel() {
+        // 检查是否有其他能战斗的精灵
+        const availableElves = PlayerData.elves.filter(e => e.currentHp > 0);
+
+        if (availableElves.length === 0) {
+            // 没有精灵可战斗，战斗失败
+            return false;
+        }
+
+        this.addLog('必须选择一只精灵出战！');
+        this.showElfSwitchPanel(true);
+        return true;
+    }
+
     // ========== 日志系统 ==========
     addLog(msg) {
         if (msg && msg.trim()) {
@@ -599,6 +1411,20 @@ class BattleScene extends Phaser.Scene {
     async executeTurn() {
         const result = await this.battleManager.executeTurn();
 
+        // 检查是否是捕捉操作
+        if (result.catchAttempt) {
+            await this.playCatchAnimation(result.catchResult);
+
+            if (result.catchResult.success) {
+                // 捕捉成功
+                this.showPopup('🎉 捕捉成功！', `成功捕捉了 ${this.enemyElf.getDisplayName()}！`);
+                return;
+            } else {
+                // 捕捉失败，敌方攻击
+                this.addLog(`${this.enemyElf.getDisplayName()} 挣脱了胶囊！`);
+            }
+        }
+
         // 动画
         for (const event of result.events) {
             if (event.type === 'attack' && event.hit && event.damage > 0) {
@@ -625,11 +1451,196 @@ class BattleScene extends Phaser.Scene {
             return;
         }
 
+        // 检查是否需要强制切换（玩家精灵倒下但还有其他精灵）
+        if (result.needSwitch) {
+            // 同步更新存档中的精灵 HP
+            this.playerElf._instanceData.currentHp = 0;
+            PlayerData.saveToStorage();
+
+            this.addLog(`${this.playerElf.getDisplayName()} 倒下了！`);
+            await new Promise(resolve => this.showLogs(resolve));
+            this.showForceSwitchPanel();
+            return;
+        }
+
         // 继续战斗
         if (!this.battleEnded) {
             this.enableMenu();
             this.startTurnTimer();
         }
+    }
+
+    // ========== 捕捉动画 ==========
+    playCatchAnimation(catchResult) {
+        return new Promise(resolve => {
+            const shakes = catchResult.shakes;
+            const success = catchResult.success;
+
+            // 创建胶囊精灵
+            const capsule = this.add.graphics();
+            const capsuleX = this.playerSprite.x + 50;
+            const capsuleY = this.playerSprite.y - 50;
+            const targetX = this.enemySprite.x;
+            const targetY = this.enemySprite.y - 30;
+
+            // 绘制胶囊（红白色精灵球样式）
+            capsule.fillStyle(0xee4444, 1);
+            capsule.fillCircle(0, -8, 15);
+            capsule.fillStyle(0xffffff, 1);
+            capsule.fillCircle(0, 8, 15);
+            capsule.fillStyle(0x222222, 1);
+            capsule.fillRect(-18, -3, 36, 6);
+            capsule.fillStyle(0xffffff, 1);
+            capsule.fillCircle(0, 0, 6);
+            capsule.setPosition(capsuleX, capsuleY);
+            capsule.setDepth(50);
+
+            // 投掷动画（抛物线）
+            this.tweens.add({
+                targets: capsule,
+                x: targetX,
+                y: targetY,
+                duration: 500,
+                ease: 'Quad.easeOut',
+                onComplete: () => {
+                    // 精灵缩小进入胶囊
+                    this.tweens.add({
+                        targets: this.enemySprite,
+                        scaleX: 0,
+                        scaleY: 0,
+                        alpha: 0,
+                        duration: 300,
+                        ease: 'Back.easeIn',
+                        onComplete: () => {
+                            // 胶囊落地
+                            this.tweens.add({
+                                targets: capsule,
+                                y: targetY + 50,
+                                duration: 200,
+                                ease: 'Bounce.easeOut',
+                                onComplete: () => {
+                                    // 晃动动画
+                                    this.playCapsuleShake(capsule, shakes, () => {
+                                        if (success) {
+                                            // 成功：星星特效
+                                            this.playSuccessEffect(capsule.x, capsule.y, () => {
+                                                capsule.destroy();
+                                                resolve();
+                                            });
+                                        } else {
+                                            // 失败：精灵跳出
+                                            this.playFailEffect(capsule, () => {
+                                                capsule.destroy();
+                                                // 恢复精灵显示
+                                                this.enemySprite.setScale(1);
+                                                this.enemySprite.setAlpha(1);
+                                                resolve();
+                                            });
+                                        }
+                                    });
+                                }
+                            });
+                        }
+                    });
+                }
+            });
+        });
+    }
+
+    playCapsuleShake(capsule, times, onComplete) {
+        let shakeCount = 0;
+        const doShake = () => {
+            if (shakeCount >= times) {
+                onComplete();
+                return;
+            }
+            shakeCount++;
+
+            this.tweens.add({
+                targets: capsule,
+                angle: 15,
+                duration: 150,
+                yoyo: true,
+                ease: 'Sine.easeInOut',
+                onComplete: () => {
+                    this.tweens.add({
+                        targets: capsule,
+                        angle: -15,
+                        duration: 150,
+                        yoyo: true,
+                        ease: 'Sine.easeInOut',
+                        onComplete: () => {
+                            this.time.delayedCall(300, doShake);
+                        }
+                    });
+                }
+            });
+        };
+        doShake();
+    }
+
+    playSuccessEffect(x, y, onComplete) {
+        // 星星特效
+        const stars = [];
+        for (let i = 0; i < 8; i++) {
+            const angle = (i / 8) * Math.PI * 2;
+            const star = this.add.text(x, y, '✨', { fontSize: '24px' }).setOrigin(0.5);
+            stars.push(star);
+
+            this.tweens.add({
+                targets: star,
+                x: x + Math.cos(angle) * 60,
+                y: y + Math.sin(angle) * 60,
+                alpha: 0,
+                duration: 600,
+                ease: 'Power2',
+                onComplete: () => star.destroy()
+            });
+        }
+
+        // 成功文字
+        const successText = this.add.text(x, y - 40, 'GET!', {
+            fontSize: '32px', fontFamily: 'Arial', color: '#ffdd44', fontStyle: 'bold',
+            stroke: '#000000', strokeThickness: 4
+        }).setOrigin(0.5).setDepth(60);
+
+        this.tweens.add({
+            targets: successText,
+            y: y - 80,
+            alpha: 0,
+            duration: 1000,
+            ease: 'Power2',
+            onComplete: () => {
+                successText.destroy();
+                onComplete();
+            }
+        });
+    }
+
+    playFailEffect(capsule, onComplete) {
+        // 胶囊打开
+        this.tweens.add({
+            targets: capsule,
+            scaleX: 1.5,
+            scaleY: 0.5,
+            duration: 150,
+            yoyo: true,
+            onComplete: () => {
+                // 精灵跳出
+                this.enemySprite.setPosition(capsule.x, capsule.y);
+                this.tweens.add({
+                    targets: this.enemySprite,
+                    x: this.W - 200,
+                    y: 230,
+                    scaleX: 1,
+                    scaleY: 1,
+                    alpha: 1,
+                    duration: 400,
+                    ease: 'Back.easeOut',
+                    onComplete: onComplete
+                });
+            }
+        });
     }
 
     playAttackAnim(actor) {

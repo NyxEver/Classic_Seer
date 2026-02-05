@@ -20,6 +20,9 @@ class SpaceshipScene extends Phaser.Scene {
         // 创建顶部信息栏
         this.createTopBar(width);
 
+        // 创建底部功能栏
+        this.createBottomBar(width, height);
+
         // 更新存档位置
         PlayerData.currentMapId = 'spaceship';
         PlayerData.saveToStorage();
@@ -224,5 +227,84 @@ class SpaceshipScene extends Phaser.Scene {
             msgBg.destroy();
             msgText.destroy();
         });
+    }
+
+    // ========== 底部功能栏 ==========
+    createBottomBar(width, height) {
+        const barH = 60;
+        const barY = height - barH;
+
+        // 底栏背景
+        const graphics = this.add.graphics();
+        graphics.fillStyle(0x1a2a3a, 0.95);
+        graphics.fillRect(0, barY, width, barH);
+        graphics.lineStyle(2, 0x4a6a8a, 1);
+        graphics.lineBetween(0, barY, width, barY);
+
+        // 按钮配置
+        const buttons = [
+            { name: '物品背包', icon: '🎒', scene: 'ItemBagScene' },
+            { name: '精灵管理', icon: '🐾', scene: 'ElfManageScene' }
+        ];
+
+        const btnW = 140;
+        const btnH = 40;
+        const spacing = 30;
+        const totalW = buttons.length * btnW + (buttons.length - 1) * spacing;
+        const startX = (width - totalW) / 2 + btnW / 2;
+
+        buttons.forEach((btn, i) => {
+            const x = startX + i * (btnW + spacing);
+            const y = barY + barH / 2;
+            this.createQuickButton(x, y, btnW, btnH, btn);
+        });
+    }
+
+    createQuickButton(x, y, w, h, btn) {
+        const container = this.add.container(x, y);
+
+        // 背景
+        const bg = this.add.graphics();
+        bg.fillStyle(0x3a5a7a, 1);
+        bg.fillRoundedRect(-w / 2, -h / 2, w, h, 8);
+        bg.lineStyle(2, 0x6a9aca, 1);
+        bg.strokeRoundedRect(-w / 2, -h / 2, w, h, 8);
+        container.add(bg);
+
+        // 图标 + 名称
+        const label = this.add.text(0, 0, `${btn.icon} ${btn.name}`, {
+            fontSize: '14px',
+            color: '#ffffff',
+            fontStyle: 'bold'
+        }).setOrigin(0.5);
+        container.add(label);
+
+        // 交互
+        const hit = this.add.rectangle(0, 0, w, h).setInteractive({ useHandCursor: true });
+        container.add(hit);
+
+        hit.on('pointerover', () => {
+            bg.clear();
+            bg.fillStyle(0x5a7a9a, 1);
+            bg.fillRoundedRect(-w / 2, -h / 2, w, h, 8);
+            bg.lineStyle(2, 0x8abada, 1);
+            bg.strokeRoundedRect(-w / 2, -h / 2, w, h, 8);
+            container.setScale(1.05);
+        });
+
+        hit.on('pointerout', () => {
+            bg.clear();
+            bg.fillStyle(0x3a5a7a, 1);
+            bg.fillRoundedRect(-w / 2, -h / 2, w, h, 8);
+            bg.lineStyle(2, 0x6a9aca, 1);
+            bg.strokeRoundedRect(-w / 2, -h / 2, w, h, 8);
+            container.setScale(1);
+        });
+
+        hit.on('pointerdown', () => {
+            SceneManager.changeScene(this, btn.scene, { returnScene: 'SpaceshipScene' });
+        });
+
+        return container;
     }
 }

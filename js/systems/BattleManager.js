@@ -17,7 +17,8 @@ class BattleManager {
         SKILL: 'skill',
         ITEM: 'item',
         SWITCH: 'switch',
-        ESCAPE: 'escape'
+        ESCAPE: 'escape',
+        CATCH: 'catch'
     };
 
     /**
@@ -204,8 +205,57 @@ class BattleManager {
             winner: null
         };
 
+        // 处理捕捉
+        if (this.playerAction.type === BattleManager.ACTION.CATCH) {
+            if (!this.canCatch) {
+                this.log('无法在此战斗中捕捉！');
+            } else {
+                const capsule = this.playerAction.capsule;
+
+                // 消耗胶囊
+                ItemBag.remove(capsule.id, 1);
+                this.log(`使用了 ${capsule.name}！`);
+
+                // 尝试捕捉
+                const catchResult = CatchSystem.attemptCatch(this.enemyElf, capsule);
+                result.catchAttempt = true;
+                result.catchResult = catchResult;
+
+                if (catchResult.success) {
+                    // 捕捉成功
+                    CatchSystem.addCapturedElf(this.enemyElf);
+                    this.log(`成功捕捉了 ${this.enemyElf.getDisplayName()}！`);
+                    result.battleEnded = true;
+                    result.captured = true;
+                    this.setPhase(BattleManager.PHASE.BATTLE_END);
+
+                    // 保存游戏
+                    PlayerData.saveToStorage();
+
+                    return result;
+                } else {
+                    // 捕捉失败，敌方行动
+                    this.generateEnemyAction();
+                    await this.executeAction('enemy', result);
+                }
+            }
+        }
+        // 处理精灵切换
+        else if (this.playerAction.type === BattleManager.ACTION.SWITCH) {
+            // 切换精灵时，敌方可以攻击
+            this.generateEnemyAction();
+            await this.executeAction('enemy', result);
+            result.switched = true;
+        }
+        // 处理使用道具
+        else if (this.playerAction.type === BattleManager.ACTION.ITEM) {
+            // 使用道具消耗回合，敌方可以攻击
+            result.events.push({ type: 'item', itemId: this.playerAction.data?.itemId });
+            this.generateEnemyAction();
+            await this.executeAction('enemy', result);
+        }
         // 处理逃跑
-        if (this.playerAction.type === BattleManager.ACTION.ESCAPE) {
+        else if (this.playerAction.type === BattleManager.ACTION.ESCAPE) {
             const escaped = this.attemptEscape();
             result.events.push({
                 type: 'escape',
@@ -255,6 +305,10 @@ class BattleManager {
             } else {
                 await this.handleDefeat(result);
             }
+        } else if (checkResult.needSwitch) {
+            // 玩家精灵倒下但还有其他精灵可切换
+            result.needSwitch = true;
+            this.setPhase(BattleManager.PHASE.PLAYER_CHOOSE);
         } else {
             // 回合结束，返回玩家选择阶段
             this.setPhase(BattleManager.PHASE.PLAYER_CHOOSE);
@@ -445,16 +499,23 @@ class BattleManager {
 
     /**
      * 检查战斗是否结束
-     * @returns {Object} - { ended, winner }
+     * @returns {Object} - { ended, winner, needSwitch }
      */
     checkBattleEnd() {
         if (this.enemyElf.isFainted()) {
-            return { ended: true, winner: 'player' };
+            return { ended: true, winner: 'player', needSwitch: false };
         }
         if (this.playerElf.isFainted()) {
-            return { ended: true, winner: 'enemy' };
+            // 检查是否有其他精灵可战斗
+            const availableElves = PlayerData.elves.filter(e => e.currentHp > 0);
+            if (availableElves.length > 0) {
+                // 还有精灵可切换，不结束战斗
+                return { ended: false, winner: null, needSwitch: true };
+            }
+            // 没有精灵可战斗，战斗失败
+            return { ended: true, winner: 'enemy', needSwitch: false };
         }
-        return { ended: false, winner: null };
+        return { ended: false, winner: null, needSwitch: false };
     }
 
     /**

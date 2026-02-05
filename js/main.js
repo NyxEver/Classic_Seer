@@ -20,6 +20,8 @@ const gameConfig = {
         TeleportScene,
         KloseScene,
         ElfBagScene,
+        ItemBagScene,
+        ElfManageScene,
         BattleScene
     ],
 
