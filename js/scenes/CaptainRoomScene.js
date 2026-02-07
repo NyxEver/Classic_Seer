@@ -6,6 +6,9 @@
 class CaptainRoomScene extends Phaser.Scene {
     constructor() {
         super({ key: 'CaptainRoomScene' });
+        this.currentTab = 'available'; // 'available', 'active', 'completed'
+        this.selectedQuest = null;
+        this.questUIElements = [];
     }
 
     create() {
@@ -157,84 +160,459 @@ class CaptainRoomScene extends Phaser.Scene {
 
     // ========== 任务面板 ==========
     createQuestPanel(width, height) {
-        const panelX = width - 250;
-        const panelY = 100;
-        const panelW = 220;
-        const panelH = 350;
+        this.panelX = width - 320;
+        this.panelY = 60;
+        this.panelW = 300;
+        this.panelH = 480;
 
         // 面板背景
-        const graphics = this.add.graphics();
-        graphics.fillStyle(0x000000, 0.7);
-        graphics.fillRoundedRect(panelX, panelY, panelW, panelH, 10);
-        graphics.lineStyle(2, 0x886644, 1);
-        graphics.strokeRoundedRect(panelX, panelY, panelW, panelH, 10);
+        const panelBg = this.add.graphics();
+        panelBg.fillStyle(0x000000, 0.75);
+        panelBg.fillRoundedRect(this.panelX, this.panelY, this.panelW, this.panelH, 10);
+        panelBg.lineStyle(2, 0x886644, 1);
+        panelBg.strokeRoundedRect(this.panelX, this.panelY, this.panelW, this.panelH, 10);
 
         // 标题
-        this.add.text(panelX + panelW / 2, panelY + 25, '任务列表', {
+        this.add.text(this.panelX + this.panelW / 2, this.panelY + 25, '任务列表', {
             fontSize: '20px',
             color: '#ffdd88',
             fontStyle: 'bold'
         }).setOrigin(0.5);
 
-        // 分隔线
-        graphics.lineStyle(1, 0x886644, 0.5);
-        graphics.lineBetween(panelX + 20, panelY + 50, panelX + panelW - 20, panelY + 50);
+        // 创建标签页
+        this.createTabs();
 
-        // 任务列表（MVP 阶段静态数据）
-        const quests = [
-            { name: '初次探索', desc: '前往克洛斯星', status: 'active', icon: '📍' },
-            { name: '捕捉皮皮', desc: '捕获一只皮皮', status: 'locked', icon: '🎯' },
-            { name: '变强之路', desc: '将精灵升到 Lv.10', status: 'locked', icon: '⬆️' }
+        // 刷新任务列表
+        this.refreshQuestList();
+    }
+
+    createTabs() {
+        const tabs = [
+            { key: 'available', label: '可接取' },
+            { key: 'active', label: '进行中' },
+            { key: 'completed', label: '已完成' }
         ];
 
-        quests.forEach((quest, index) => {
-            const qy = panelY + 80 + index * 80;
-            this.createQuestItem(panelX + 15, qy, panelW - 30, quest);
+        const tabWidth = 90;
+        const tabHeight = 28;
+        const startX = this.panelX + 15;
+        const tabY = this.panelY + 55;
+
+        this.tabButtons = [];
+
+        tabs.forEach((tab, index) => {
+            const tabX = startX + index * (tabWidth + 5);
+            const container = this.add.container(tabX, tabY);
+
+            const bg = this.add.graphics();
+            const isActive = this.currentTab === tab.key;
+            this.drawTabBackground(bg, isActive, tabWidth, tabHeight);
+
+            const label = this.add.text(tabWidth / 2, tabHeight / 2, tab.label, {
+                fontSize: '13px',
+                color: isActive ? '#ffffff' : '#888888'
+            }).setOrigin(0.5);
+
+            container.add([bg, label]);
+
+            const hitArea = new Phaser.Geom.Rectangle(0, 0, tabWidth, tabHeight);
+            container.setInteractive(hitArea, Phaser.Geom.Rectangle.Contains);
+
+            container.on('pointerup', () => {
+                this.currentTab = tab.key;
+                this.selectedQuest = null;
+                this.refreshTabs();
+                this.refreshQuestList();
+            });
+
+            this.tabButtons.push({ container, bg, label, key: tab.key });
         });
+    }
+
+    drawTabBackground(graphics, isActive, width, height) {
+        graphics.clear();
+        graphics.fillStyle(isActive ? 0x5a7a3a : 0x3a3a3a, 1);
+        graphics.fillRoundedRect(0, 0, width, height, 6);
+        if (isActive) {
+            graphics.lineStyle(1, 0x88aa88, 1);
+            graphics.strokeRoundedRect(0, 0, width, height, 6);
+        }
+    }
+
+    refreshTabs() {
+        this.tabButtons.forEach(tab => {
+            const isActive = this.currentTab === tab.key;
+            this.drawTabBackground(tab.bg, isActive, 90, 28);
+            tab.label.setColor(isActive ? '#ffffff' : '#888888');
+        });
+    }
+
+    refreshQuestList() {
+        // 清除旧的任务 UI 元素
+        this.questUIElements.forEach(el => el.destroy());
+        this.questUIElements = [];
+
+        let quests = [];
+        switch (this.currentTab) {
+            case 'available':
+                quests = QuestManager.getAvailableQuests();
+                break;
+            case 'active':
+                quests = QuestManager.getActiveQuests();
+                break;
+            case 'completed':
+                quests = QuestManager.getCompletedQuests();
+                break;
+        }
+
+        const listY = this.panelY + 95;
+        const itemHeight = 65;
+        const maxItems = 5;
+
+        if (quests.length === 0) {
+            const emptyText = this.add.text(
+                this.panelX + this.panelW / 2,
+                listY + 80,
+                this.currentTab === 'available' ? '暂无可接取任务' :
+                    this.currentTab === 'active' ? '暂无进行中任务' : '暂无已完成任务',
+                { fontSize: '14px', color: '#666666' }
+            ).setOrigin(0.5);
+            this.questUIElements.push(emptyText);
+            return;
+        }
+
+        quests.slice(0, maxItems).forEach((quest, index) => {
+            const itemY = listY + index * itemHeight;
+            this.createQuestItem(this.panelX + 10, itemY, this.panelW - 20, quest);
+        });
+
+        // 详情面板（如果有选中的任务）
+        if (this.selectedQuest) {
+            this.createQuestDetail();
+        }
     }
 
     createQuestItem(x, y, w, quest) {
         const container = this.add.container(x, y);
+        const isSelected = this.selectedQuest && this.selectedQuest.id === quest.id;
+        const isActive = this.currentTab === 'active';
 
         // 背景
         const bg = this.add.graphics();
-        const isActive = quest.status === 'active';
-
-        bg.fillStyle(isActive ? 0x3a5a3a : 0x3a3a3a, 0.8);
-        bg.fillRoundedRect(0, 0, w, 70, 8);
-
-        if (isActive) {
-            bg.lineStyle(1, 0x88aa88, 1);
-            bg.strokeRoundedRect(0, 0, w, 70, 8);
+        bg.fillStyle(isSelected ? 0x4a6a4a : 0x2a2a2a, 0.9);
+        bg.fillRoundedRect(0, 0, w, 58, 6);
+        if (isSelected) {
+            bg.lineStyle(2, 0x88cc88, 1);
+            bg.strokeRoundedRect(0, 0, w, 58, 6);
         }
 
-        // 图标
-        const icon = this.add.text(15, 35, quest.icon, {
-            fontSize: '24px'
-        }).setOrigin(0, 0.5);
+        // 任务类型图标
+        const typeIcon = quest.type === 'main' ? '📍' : '📋';
+        const icon = this.add.text(12, 29, typeIcon, { fontSize: '20px' }).setOrigin(0, 0.5);
 
         // 任务名称
-        const name = this.add.text(50, 20, quest.name, {
-            fontSize: '16px',
-            color: isActive ? '#88ff88' : '#888888',
+        const nameColor = this.currentTab === 'completed' ? '#888888' : '#ffffff';
+        const name = this.add.text(40, 15, quest.name, {
+            fontSize: '15px',
+            color: nameColor,
             fontStyle: 'bold'
         });
 
-        // 任务描述
-        const desc = this.add.text(50, 45, quest.desc, {
+        // 任务描述或进度
+        let descText = quest.description;
+        if (isActive && quest.progress) {
+            const progressStr = QuestManager.getProgressText(quest, 0);
+            descText = `进度: ${progressStr}`;
+        }
+        const desc = this.add.text(40, 36, descText, {
             fontSize: '12px',
-            color: isActive ? '#aaaaaa' : '#666666'
+            color: '#aaaaaa'
         });
 
-        // 状态标签
-        if (!isActive) {
-            const lock = this.add.text(w - 10, 35, '🔒', {
-                fontSize: '16px'
+        container.add([bg, icon, name, desc]);
+
+        // 可完成标识
+        if (isActive && QuestManager.checkCompletion(quest.id)) {
+            const completeIcon = this.add.text(w - 15, 29, '✓', {
+                fontSize: '20px',
+                color: '#88ff88'
             }).setOrigin(1, 0.5);
-            container.add(lock);
+            container.add(completeIcon);
         }
 
-        container.add([bg, icon, name, desc]);
+        // 点击选择任务
+        const hitArea = new Phaser.Geom.Rectangle(0, 0, w, 58);
+        container.setInteractive(hitArea, Phaser.Geom.Rectangle.Contains);
+
+        container.on('pointerup', () => {
+            this.selectedQuest = quest;
+            this.refreshQuestList();
+        });
+
+        this.questUIElements.push(container);
+    }
+
+    createQuestDetail() {
+        const quest = this.selectedQuest;
+        const detailY = this.panelY + this.panelH - 140;
+        const detailH = 125;
+
+        // 分隔线
+        const separator = this.add.graphics();
+        separator.lineStyle(1, 0x555555, 1);
+        separator.lineBetween(this.panelX + 15, detailY - 10, this.panelX + this.panelW - 15, detailY - 10);
+        this.questUIElements.push(separator);
+
+        // 详情标题
+        const title = this.add.text(this.panelX + 15, detailY, quest.name, {
+            fontSize: '14px',
+            color: '#ffdd88',
+            fontStyle: 'bold'
+        });
+        this.questUIElements.push(title);
+
+        // 目标描述
+        const objectiveDesc = QuestManager.getObjectiveDescription(quest.objectives[0]);
+        const targetCount = quest.objectives[0].count;
+        const objective = this.add.text(this.panelX + 15, detailY + 22, `目标: ${objectiveDesc} x${targetCount}`, {
+            fontSize: '12px',
+            color: '#cccccc'
+        });
+        this.questUIElements.push(objective);
+
+        // 如果是进行中，显示当前进度
+        if (this.currentTab === 'active' && quest.progress) {
+            const progressText = QuestManager.getProgressText(quest, 0);
+            const progress = this.add.text(this.panelX + 15, detailY + 40, `进度: ${progressText}`, {
+                fontSize: '12px',
+                color: '#88ff88'
+            });
+            this.questUIElements.push(progress);
+        }
+
+        // 奖励信息
+        let rewardText = '奖励:';
+        if (quest.rewards.seerBeans > 0) {
+            rewardText += ` ${quest.rewards.seerBeans} 赛尔豆`;
+        }
+        if (quest.rewards.items && quest.rewards.items.length > 0) {
+            quest.rewards.items.forEach(item => {
+                const itemData = DataLoader.getItem(item.id);
+                if (itemData) {
+                    rewardText += ` / ${itemData.name} x${item.count}`;
+                }
+            });
+        }
+        const reward = this.add.text(this.panelX + 15, detailY + 58, rewardText, {
+            fontSize: '11px',
+            color: '#ffcc66',
+            wordWrap: { width: this.panelW - 30 }
+        });
+        this.questUIElements.push(reward);
+
+        // 操作按钮
+        this.createActionButton(detailY + 90, quest);
+    }
+
+    createActionButton(y, quest) {
+        const btnWidth = 100;
+        const btnHeight = 32;
+        const btnX = this.panelX + this.panelW / 2 - btnWidth / 2;
+
+        let btnText = '';
+        let btnAction = null;
+        let btnEnabled = false;
+
+        if (this.currentTab === 'available') {
+            btnText = '接取任务';
+            btnEnabled = true;
+            btnAction = () => {
+                if (QuestManager.acceptQuest(quest.id)) {
+                    this.showToast(`已接取任务: ${quest.name}`);
+                    this.currentTab = 'active';
+                    this.selectedQuest = null;
+                    this.refreshTabs();
+                    this.refreshQuestList();
+                }
+            };
+        } else if (this.currentTab === 'active') {
+            const canComplete = QuestManager.checkCompletion(quest.id);
+            btnText = canComplete ? '完成任务' : '进行中...';
+            btnEnabled = canComplete;
+            btnAction = () => {
+                if (canComplete) {
+                    const rewards = QuestManager.completeQuest(quest.id);
+                    if (rewards) {
+                        this.showRewardPopup(quest.name, rewards);
+                        this.selectedQuest = null;
+                        this.refreshQuestList();
+                    }
+                }
+            };
+        }
+
+        if (!btnText) return;
+
+        const btn = this.add.container(btnX, y);
+
+        const bg = this.add.graphics();
+        bg.fillStyle(btnEnabled ? 0x5a8a3a : 0x3a3a3a, 1);
+        bg.fillRoundedRect(0, 0, btnWidth, btnHeight, 6);
+        if (btnEnabled) {
+            bg.lineStyle(1, 0x88cc66, 1);
+            bg.strokeRoundedRect(0, 0, btnWidth, btnHeight, 6);
+        }
+
+        const label = this.add.text(btnWidth / 2, btnHeight / 2, btnText, {
+            fontSize: '14px',
+            color: btnEnabled ? '#ffffff' : '#666666'
+        }).setOrigin(0.5);
+
+        btn.add([bg, label]);
+
+        if (btnEnabled && btnAction) {
+            const hitArea = new Phaser.Geom.Rectangle(0, 0, btnWidth, btnHeight);
+            btn.setInteractive(hitArea, Phaser.Geom.Rectangle.Contains);
+            btn.on('pointerup', btnAction);
+
+            btn.on('pointerover', () => {
+                bg.clear();
+                bg.fillStyle(0x7aaa5a, 1);
+                bg.fillRoundedRect(0, 0, btnWidth, btnHeight, 6);
+                bg.lineStyle(1, 0xaaee88, 1);
+                bg.strokeRoundedRect(0, 0, btnWidth, btnHeight, 6);
+            });
+
+            btn.on('pointerout', () => {
+                bg.clear();
+                bg.fillStyle(0x5a8a3a, 1);
+                bg.fillRoundedRect(0, 0, btnWidth, btnHeight, 6);
+                bg.lineStyle(1, 0x88cc66, 1);
+                bg.strokeRoundedRect(0, 0, btnWidth, btnHeight, 6);
+            });
+        }
+
+        this.questUIElements.push(btn);
+    }
+
+    showToast(message) {
+        const { width, height } = this.cameras.main;
+
+        const toast = this.add.container(width / 2, height / 2);
+
+        const bg = this.add.graphics();
+        bg.fillStyle(0x000000, 0.85);
+        bg.fillRoundedRect(-150, -25, 300, 50, 10);
+
+        const text = this.add.text(0, 0, message, {
+            fontSize: '16px',
+            color: '#88ff88'
+        }).setOrigin(0.5);
+
+        toast.add([bg, text]);
+        toast.setAlpha(0);
+
+        this.tweens.add({
+            targets: toast,
+            alpha: 1,
+            y: height / 2 - 50,
+            duration: 300,
+            ease: 'Power2',
+            onComplete: () => {
+                this.time.delayedCall(1500, () => {
+                    this.tweens.add({
+                        targets: toast,
+                        alpha: 0,
+                        duration: 300,
+                        onComplete: () => toast.destroy()
+                    });
+                });
+            }
+        });
+    }
+
+    showRewardPopup(questName, rewards) {
+        const { width, height } = this.cameras.main;
+
+        // 遮罩层
+        const overlay = this.add.graphics();
+        overlay.fillStyle(0x000000, 0.7);
+        overlay.fillRect(0, 0, width, height);
+        overlay.setInteractive(new Phaser.Geom.Rectangle(0, 0, width, height), Phaser.Geom.Rectangle.Contains);
+
+        // 弹窗容器
+        const popup = this.add.container(width / 2, height / 2);
+
+        // 弹窗背景
+        const bg = this.add.graphics();
+        bg.fillStyle(0x2a2a2a, 1);
+        bg.fillRoundedRect(-150, -100, 300, 200, 15);
+        bg.lineStyle(3, 0xffdd88, 1);
+        bg.strokeRoundedRect(-150, -100, 300, 200, 15);
+
+        // 标题
+        const title = this.add.text(0, -75, '🎉 任务完成！', {
+            fontSize: '20px',
+            color: '#ffdd88',
+            fontStyle: 'bold'
+        }).setOrigin(0.5);
+
+        // 任务名称
+        const name = this.add.text(0, -45, questName, {
+            fontSize: '14px',
+            color: '#ffffff'
+        }).setOrigin(0.5);
+
+        // 奖励标题
+        const rewardTitle = this.add.text(0, -15, '获得奖励:', {
+            fontSize: '14px',
+            color: '#88ff88'
+        }).setOrigin(0.5);
+
+        // 奖励列表
+        let rewardY = 10;
+        if (rewards.seerBeans > 0) {
+            const beans = this.add.text(0, rewardY, `💰 ${rewards.seerBeans} 赛尔豆`, {
+                fontSize: '14px',
+                color: '#ffcc66'
+            }).setOrigin(0.5);
+            popup.add(beans);
+            rewardY += 22;
+        }
+
+        if (rewards.items && rewards.items.length > 0) {
+            rewards.items.forEach(item => {
+                const itemData = DataLoader.getItem(item.id);
+                if (itemData) {
+                    const itemText = this.add.text(0, rewardY, `📦 ${itemData.name} x${item.count}`, {
+                        fontSize: '14px',
+                        color: '#88ccff'
+                    }).setOrigin(0.5);
+                    popup.add(itemText);
+                    rewardY += 22;
+                }
+            });
+        }
+
+        // 确认按钮
+        const btnBg = this.add.graphics();
+        btnBg.fillStyle(0x5a8a3a, 1);
+        btnBg.fillRoundedRect(-50, 65, 100, 30, 8);
+
+        const btnText = this.add.text(0, 80, '确定', {
+            fontSize: '14px',
+            color: '#ffffff'
+        }).setOrigin(0.5);
+
+        popup.add([bg, title, name, rewardTitle, btnBg, btnText]);
+
+        const btnHitArea = new Phaser.Geom.Rectangle(-50, 65, 100, 30);
+        popup.setInteractive(btnHitArea, Phaser.Geom.Rectangle.Contains);
+
+        popup.on('pointerup', () => {
+            overlay.destroy();
+            popup.destroy();
+        });
     }
 
     // ========== 返回按钮 ==========

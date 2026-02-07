@@ -563,6 +563,11 @@ class BattleManager {
         // 获取努力值
         this.playerElf.gainEVFromDefeat(this.enemyElf);
 
+        // 通知任务系统击败精灵
+        if (typeof QuestManager !== 'undefined') {
+            QuestManager.updateProgress('defeat', this.enemyElf.id, 1);
+        }
+
         // 保存游戏
         PlayerData.saveToStorage();
 

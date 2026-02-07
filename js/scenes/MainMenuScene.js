@@ -21,7 +21,7 @@ class MainMenuScene extends Phaser.Scene {
         this.createMenuButtons(width, height);
 
         // 版本号
-        this.add.text(width - 10, height - 10, 'v0.5.0', {
+        this.add.text(width - 10, height - 10, 'v0.8.0', {
             fontSize: '14px',
             color: '#666666'
         }).setOrigin(1, 1);
@@ -202,14 +202,270 @@ class MainMenuScene extends Phaser.Scene {
     // ========== 游戏流程 ==========
     startNewGame() {
         console.log('Starting new game...');
+        this.showWelcomeDialog();
+    }
 
+    // ========== 新游戏对话框流程 ==========
+    showWelcomeDialog() {
+        const { width, height } = this.cameras.main;
+
+        // 创建遮罩层
+        this.dialogOverlay = this.add.graphics();
+        this.dialogOverlay.fillStyle(0x000000, 0.7);
+        this.dialogOverlay.fillRect(0, 0, width, height);
+        this.dialogOverlay.setDepth(100);
+
+        // 对话框容器
+        this.dialogContainer = this.add.container(width / 2, height / 2).setDepth(101);
+
+        // 对话框背景
+        const dialogBg = this.add.graphics();
+        dialogBg.fillGradientStyle(0x2a3a5a, 0x2a3a5a, 0x1a2a4a, 0x1a2a4a, 1);
+        dialogBg.fillRoundedRect(-250, -180, 500, 360, 16);
+        dialogBg.lineStyle(3, 0x6a9aca, 1);
+        dialogBg.strokeRoundedRect(-250, -180, 500, 360, 16);
+        this.dialogContainer.add(dialogBg);
+
+        // 欢迎标题
+        const titleText = this.add.text(0, -140, '欢迎来到赛尔号！', {
+            fontSize: '28px',
+            color: '#88ccff',
+            fontStyle: 'bold'
+        }).setOrigin(0.5);
+        this.dialogContainer.add(titleText);
+
+        // 欢迎消息
+        const welcomeMsg = this.add.text(0, -80,
+            '在这片浩瀚的宇宙中，你将成为一名赛尔战士，\n与精灵伙伴一起探索未知的星球！\n\n请输入你的名字：', {
+            fontSize: '16px',
+            color: '#ccddee',
+            align: 'center',
+            lineSpacing: 8
+        }).setOrigin(0.5);
+        this.dialogContainer.add(welcomeMsg);
+
+        // 名字输入框背景
+        const inputBg = this.add.graphics();
+        inputBg.fillStyle(0x1a2a3a, 1);
+        inputBg.fillRoundedRect(-120, -10, 240, 40, 8);
+        inputBg.lineStyle(2, 0x4a6a8a, 1);
+        inputBg.strokeRoundedRect(-120, -10, 240, 40, 8);
+        this.dialogContainer.add(inputBg);
+
+        // 玩家名字文本显示
+        this.playerName = '赛尔';
+        this.nameText = this.add.text(0, 10, this.playerName, {
+            fontSize: '20px',
+            color: '#ffffff'
+        }).setOrigin(0.5);
+        this.dialogContainer.add(this.nameText);
+
+        // 预设名字按钮
+        const presetNames = ['赛尔', '小明', '星际战士', '探险家'];
+        const btnStartX = -180;
+        const btnSpacing = 90;
+
+        presetNames.forEach((name, i) => {
+            const btn = this.createSmallButton(btnStartX + i * btnSpacing, 60, name, () => {
+                this.playerName = name;
+                this.nameText.setText(name);
+            });
+            this.dialogContainer.add(btn);
+        });
+
+        // 下一步按钮
+        const nextBtn = this.createDialogButton(0, 130, '下一步', () => {
+            this.showStarterElfDialog();
+        });
+        this.dialogContainer.add(nextBtn);
+    }
+
+    showStarterElfDialog() {
+        // 清除当前对话框内容
+        this.dialogContainer.removeAll(true);
+
+        // 重建对话框背景
+        const dialogBg = this.add.graphics();
+        dialogBg.fillGradientStyle(0x2a3a5a, 0x2a3a5a, 0x1a2a4a, 0x1a2a4a, 1);
+        dialogBg.fillRoundedRect(-250, -200, 500, 400, 16);
+        dialogBg.lineStyle(3, 0x6a9aca, 1);
+        dialogBg.strokeRoundedRect(-250, -200, 500, 400, 16);
+        this.dialogContainer.add(dialogBg);
+
+        // 标题
+        const titleText = this.add.text(0, -160, '选择你的初始精灵', {
+            fontSize: '24px',
+            color: '#88ccff',
+            fontStyle: 'bold'
+        }).setOrigin(0.5);
+        this.dialogContainer.add(titleText);
+
+        // 获取伊优数据
+        const elfData = DataLoader.getElf(1); // 伊优 ID = 1
+
+        // 精灵展示卡片背景
+        const cardBg = this.add.graphics();
+        cardBg.fillGradientStyle(0x3a5a8a, 0x3a5a8a, 0x2a4a7a, 0x2a4a7a, 1);
+        cardBg.fillRoundedRect(-150, -120, 300, 200, 12);
+        cardBg.lineStyle(2, 0x6a9aca, 1);
+        cardBg.strokeRoundedRect(-150, -120, 300, 200, 12);
+        this.dialogContainer.add(cardBg);
+
+        // 精灵图标（使用简单图形代替）
+        const elfIcon = this.add.graphics();
+        elfIcon.fillStyle(0x4a9aff, 1); // 水属性蓝色
+        elfIcon.fillCircle(0, -50, 40);
+        elfIcon.fillStyle(0x6abaff, 1);
+        elfIcon.fillCircle(-10, -60, 15); // 眼睛区域
+        elfIcon.fillCircle(10, -60, 15);
+        this.dialogContainer.add(elfIcon);
+
+        // 精灵名称
+        const elfName = this.add.text(0, 10, elfData.name, {
+            fontSize: '24px',
+            color: '#ffffff',
+            fontStyle: 'bold'
+        }).setOrigin(0.5);
+        this.dialogContainer.add(elfName);
+
+        // 属性标签
+        const typeLabel = this.add.text(0, 40, `属性：${this.getTypeDisplayName(elfData.type)}`, {
+            fontSize: '16px',
+            color: '#88ddff'
+        }).setOrigin(0.5);
+        this.dialogContainer.add(typeLabel);
+
+        // 简介
+        const desc = this.add.text(0, 70, '水属性初始精灵，活泼可爱，忠诚可靠', {
+            fontSize: '14px',
+            color: '#aaccdd'
+        }).setOrigin(0.5);
+        this.dialogContainer.add(desc);
+
+        // 说明文字
+        const note = this.add.text(0, 120, '（更多初始精灵将在后续版本开放）', {
+            fontSize: '12px',
+            color: '#666688'
+        }).setOrigin(0.5);
+        this.dialogContainer.add(note);
+
+        // 确认按钮
+        const confirmBtn = this.createDialogButton(0, 160, '确认出发！', () => {
+            this.confirmNewGame();
+        });
+        this.dialogContainer.add(confirmBtn);
+    }
+
+    confirmNewGame() {
         // 创建新存档
-        PlayerData.createNew();
+        PlayerData.createNew(this.playerName);
         PlayerData.currentMapId = 'spaceship';
         PlayerData.saveToStorage();
 
+        // 清理对话框
+        if (this.dialogOverlay) this.dialogOverlay.destroy();
+        if (this.dialogContainer) this.dialogContainer.destroy();
+
         // 切换到飞船场景
         SceneManager.changeScene(this, 'SpaceshipScene');
+    }
+
+    getTypeDisplayName(type) {
+        const typeNames = {
+            'water': '水',
+            'fire': '火',
+            'grass': '草',
+            'electric': '电',
+            'normal': '普通',
+            'flying': '飞行',
+            'ground': '地面',
+            'ice': '冰',
+            'mechanical': '机械'
+        };
+        return typeNames[type] || type;
+    }
+
+    createSmallButton(x, y, text, callback) {
+        const container = this.add.container(x, y);
+
+        const bg = this.add.graphics();
+        bg.fillStyle(0x3a5a7a, 1);
+        bg.fillRoundedRect(-35, -15, 70, 30, 6);
+        bg.lineStyle(1, 0x6a9aca, 1);
+        bg.strokeRoundedRect(-35, -15, 70, 30, 6);
+        container.add(bg);
+
+        const label = this.add.text(0, 0, text, {
+            fontSize: '14px',
+            color: '#ffffff'
+        }).setOrigin(0.5);
+        container.add(label);
+
+        const hitArea = new Phaser.Geom.Rectangle(-35, -15, 70, 30);
+        container.setInteractive(hitArea, Phaser.Geom.Rectangle.Contains);
+
+        container.on('pointerover', () => {
+            bg.clear();
+            bg.fillStyle(0x5a7a9a, 1);
+            bg.fillRoundedRect(-35, -15, 70, 30, 6);
+            bg.lineStyle(1, 0x8abada, 1);
+            bg.strokeRoundedRect(-35, -15, 70, 30, 6);
+        });
+
+        container.on('pointerout', () => {
+            bg.clear();
+            bg.fillStyle(0x3a5a7a, 1);
+            bg.fillRoundedRect(-35, -15, 70, 30, 6);
+            bg.lineStyle(1, 0x6a9aca, 1);
+            bg.strokeRoundedRect(-35, -15, 70, 30, 6);
+        });
+
+        container.on('pointerdown', () => callback());
+
+        return container;
+    }
+
+    createDialogButton(x, y, text, callback) {
+        const container = this.add.container(x, y);
+
+        const bg = this.add.graphics();
+        bg.fillGradientStyle(0x4a7aaa, 0x4a7aaa, 0x3a6a9a, 0x3a6a9a, 1);
+        bg.fillRoundedRect(-80, -20, 160, 40, 8);
+        bg.lineStyle(2, 0x8abada, 1);
+        bg.strokeRoundedRect(-80, -20, 160, 40, 8);
+        container.add(bg);
+
+        const label = this.add.text(0, 0, text, {
+            fontSize: '18px',
+            color: '#ffffff',
+            fontStyle: 'bold'
+        }).setOrigin(0.5);
+        container.add(label);
+
+        const hitArea = new Phaser.Geom.Rectangle(-80, -20, 160, 40);
+        container.setInteractive(hitArea, Phaser.Geom.Rectangle.Contains);
+
+        container.on('pointerover', () => {
+            bg.clear();
+            bg.fillGradientStyle(0x6a9aca, 0x6a9aca, 0x5a8aba, 0x5a8aba, 1);
+            bg.fillRoundedRect(-80, -20, 160, 40, 8);
+            bg.lineStyle(2, 0xaadaff, 1);
+            bg.strokeRoundedRect(-80, -20, 160, 40, 8);
+            container.setScale(1.05);
+        });
+
+        container.on('pointerout', () => {
+            bg.clear();
+            bg.fillGradientStyle(0x4a7aaa, 0x4a7aaa, 0x3a6a9a, 0x3a6a9a, 1);
+            bg.fillRoundedRect(-80, -20, 160, 40, 8);
+            bg.lineStyle(2, 0x8abada, 1);
+            bg.strokeRoundedRect(-80, -20, 160, 40, 8);
+            container.setScale(1);
+        });
+
+        container.on('pointerdown', () => callback());
+
+        return container;
     }
 
     continueGame() {

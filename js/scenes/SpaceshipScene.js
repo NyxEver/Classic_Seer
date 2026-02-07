@@ -99,7 +99,7 @@ class SpaceshipScene extends Phaser.Scene {
             { name: '实验室', enabled: false, scene: null, icon: '🔬' },
             { name: '传送舱', enabled: true, scene: 'TeleportScene', icon: '🚀' },
             { name: '能源中心', enabled: false, scene: null, icon: '⚡' },
-            { name: '资料室', enabled: false, scene: null, icon: '📚' }
+            { name: '资料室', enabled: true, scene: 'PokedexScene', icon: '📚' }
         ];
 
         // 布局：2行3列
@@ -244,7 +244,8 @@ class SpaceshipScene extends Phaser.Scene {
         // 按钮配置
         const buttons = [
             { name: '物品背包', icon: '🎒', scene: 'ItemBagScene' },
-            { name: '精灵管理', icon: '🐾', scene: 'ElfManageScene' }
+            { name: '精灵管理', icon: '🐾', scene: 'ElfManageScene' },
+            { name: '设置', icon: '⚙️', scene: 'SettingsScene' }
         ];
 
         const btnW = 140;

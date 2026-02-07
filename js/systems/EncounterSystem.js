@@ -80,6 +80,9 @@ const EncounterSystem = {
 
         console.log(`野生战斗开始：${playerElf.name} Lv.${playerElf.level} VS 野生 ${wildElf.name} Lv.${wildElf.level}`);
 
+        // 标记精灵为已见过（图鉴系统）
+        PlayerData.markSeen(wildElf.id);
+
         // 切换到战斗场景，传递数据
         scene.scene.start('BattleScene', {
             playerElf: playerElf,

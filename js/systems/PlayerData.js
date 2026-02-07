@@ -25,6 +25,12 @@ const PlayerData = {
     // 上次保存时间
     lastSaveTime: null,
 
+    // 图鉴系统：见过的精灵
+    seenElves: [],
+
+    // 图鉴系统：捕捉过的精灵
+    caughtElves: [],
+
     /**
      * 生成随机个体值 (IV)
      * 每项属性 0-31 随机
@@ -139,11 +145,15 @@ const PlayerData = {
         this.currentMapId = 'spaceship';
         this.questProgress = {};
         this.lastSaveTime = Date.now();
+        this.seenElves = [];
+        this.caughtElves = [];
 
         // 创建初始精灵伊优（1 级）
         const starterElf = this.createElfInstance(1, 1, null);
         if (starterElf) {
             this.elves.push(starterElf);
+            // 初始精灵自动标记为已捕捉
+            this.markCaught(1);
         }
 
         // 初始物品
@@ -181,6 +191,8 @@ const PlayerData = {
             this.currentMapId = saveData.currentMapId || 'spaceship';
             this.questProgress = saveData.questProgress || {};
             this.lastSaveTime = saveData.lastSaveTime || null;
+            this.seenElves = saveData.seenElves || [];
+            this.caughtElves = saveData.caughtElves || [];
 
             console.log('[PlayerData] 存档加载成功');
             return true;
@@ -212,8 +224,52 @@ const PlayerData = {
             items: this.items,
             currentMapId: this.currentMapId,
             questProgress: this.questProgress,
-            lastSaveTime: this.lastSaveTime
+            lastSaveTime: this.lastSaveTime,
+            seenElves: this.seenElves,
+            caughtElves: this.caughtElves
         };
+    },
+
+    /**
+     * 标记精灵为已见过
+     * @param {number} elfId - 精灵 ID
+     */
+    markSeen(elfId) {
+        if (!this.seenElves.includes(elfId)) {
+            this.seenElves.push(elfId);
+            console.log(`[PlayerData] 图鉴：发现精灵 ID=${elfId}`);
+        }
+    },
+
+    /**
+     * 标记精灵为已捕捉
+     * @param {number} elfId - 精灵 ID
+     */
+    markCaught(elfId) {
+        // 捕捉同时也算见过
+        this.markSeen(elfId);
+        if (!this.caughtElves.includes(elfId)) {
+            this.caughtElves.push(elfId);
+            console.log(`[PlayerData] 图鉴：捕捉精灵 ID=${elfId}`);
+        }
+    },
+
+    /**
+     * 检查精灵是否已见过
+     * @param {number} elfId - 精灵 ID
+     * @returns {boolean}
+     */
+    hasSeen(elfId) {
+        return this.seenElves.includes(elfId);
+    },
+
+    /**
+     * 检查精灵是否已捕捉
+     * @param {number} elfId - 精灵 ID
+     * @returns {boolean}
+     */
+    hasCaught(elfId) {
+        return this.caughtElves.includes(elfId);
     },
 
     /**

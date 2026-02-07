@@ -256,6 +256,10 @@ class Elf {
             const result = this.levelUp();
             if (result) {
                 levelUpResults.push(result);
+                // 通知任务系统精灵升级
+                if (typeof QuestManager !== 'undefined') {
+                    QuestManager.updateProgress('levelUp', this.id, result.newLevel);
+                }
             }
         }
 

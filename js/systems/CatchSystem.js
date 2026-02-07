@@ -87,6 +87,14 @@ const CatchSystem = {
         console.log(`[CatchSystem] 成功捕捉 ${elf.name}，已加入背包`);
         console.log(`[CatchSystem] 精灵数据:`, elfInstanceData);
 
+        // 通知任务系统捕捉精灵
+        if (typeof QuestManager !== 'undefined') {
+            QuestManager.updateProgress('catch', elf.id, 1);
+        }
+
+        // 标记精灵为已捕捉（图鉴系统）
+        PlayerData.markCaught(elf.id);
+
         // 保存存档
         PlayerData.saveToStorage();
 

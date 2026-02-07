@@ -10,6 +10,7 @@ const DataLoader = {
     typeChart: null,
     typeNames: null,
     items: null,
+    quests: null,
 
     // 加载状态
     isLoaded: false,
@@ -56,12 +57,22 @@ const DataLoader = {
                 this.items[item.id] = item;
             });
 
+            // 从全局对象读取任务数据
+            if (typeof QuestsData === 'undefined') {
+                throw new Error('QuestsData 未定义，请确保 QuestsData.js 已加载');
+            }
+            this.quests = {};
+            QuestsData.quests.forEach(quest => {
+                this.quests[quest.id] = quest;
+            });
+
             this.isLoaded = true;
             console.log('[DataLoader] 数据加载完成');
             console.log('[DataLoader] 精灵数据:', this.elves);
             console.log('[DataLoader] 技能数据:', this.skills);
             console.log('[DataLoader] 属性克制表:', this.typeChart);
             console.log('[DataLoader] 物品数据:', this.items);
+            console.log('[DataLoader] 任务数据:', this.quests);
 
             return true;
 
@@ -82,6 +93,18 @@ const DataLoader = {
             return null;
         }
         return this.elves[elfId] || null;
+    },
+
+    /**
+     * 获取所有精灵数据数组
+     * @returns {Array} - 所有精灵数据
+     */
+    getAllElves() {
+        if (!this.isLoaded) {
+            console.warn('[DataLoader] 数据尚未加载');
+            return [];
+        }
+        return Object.values(this.elves);
     },
 
     /**
@@ -142,6 +165,19 @@ const DataLoader = {
             return null;
         }
         return this.items[itemId] || null;
+    },
+
+    /**
+     * 根据 ID 获取任务数据
+     * @param {number} questId - 任务 ID
+     * @returns {Object|null} - 任务数据或 null
+     */
+    getQuest(questId) {
+        if (!this.isLoaded) {
+            console.warn('[DataLoader] 数据尚未加载');
+            return null;
+        }
+        return this.quests[questId] || null;
     }
 };
 

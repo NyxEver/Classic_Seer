@@ -22,7 +22,9 @@ const gameConfig = {
         ElfBagScene,
         ItemBagScene,
         ElfManageScene,
-        BattleScene
+        BattleScene,
+        SettingsScene,
+        PokedexScene
     ],
 
     // Physics configuration (if needed later)
