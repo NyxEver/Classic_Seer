@@ -39,7 +39,7 @@ const ElvesData = {
         {
             id: 2,
             name: "皮皮",
-            type: "normal",
+            type: "flying",
             baseStats: {
                 hp: 40,
                 atk: 40,
