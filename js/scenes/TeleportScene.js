@@ -78,7 +78,7 @@ class TeleportScene extends Phaser.Scene {
 
         // 星球配置
         const planets = [
-            { name: '克洛斯星', enabled: true, scene: 'KloseScene', x: width * 0.5, y: height * 0.4, color: 0x44aa44, size: 45 },
+            { name: '克洛斯星', enabled: true, scene: 'KloseScene', x: width * 0.5, y: height * 0.4, color: 0x44aa44, size: 60, icon: 'klose_icon' },
             { name: '赫尔卡星', enabled: false, scene: null, x: width * 0.25, y: height * 0.3, color: 0x884422, size: 35 },
             { name: '海洋星', enabled: false, scene: null, x: width * 0.75, y: height * 0.35, color: 0x2266aa, size: 40 },
             { name: '火山星', enabled: false, scene: null, x: width * 0.2, y: height * 0.6, color: 0xaa4422, size: 38 },
@@ -94,32 +94,43 @@ class TeleportScene extends Phaser.Scene {
     createPlanet(planet) {
         const container = this.add.container(planet.x, planet.y);
 
-        // 星球光晕
-        const glow = this.add.graphics();
-        if (planet.enabled) {
-            glow.fillStyle(planet.color, 0.3);
-            glow.fillCircle(0, 0, planet.size + 10);
-        }
+        // 检查是否有真实图标
+        const iconKey = planet.icon ? `ui_${planet.icon}` : null;
+        let body;
+        let glow = null;
 
-        // 星球本体
-        const body = this.add.graphics();
-
-        if (planet.enabled) {
-            // 可用星球 - 彩色
-            body.fillStyle(planet.color, 1);
+        if (iconKey && this.textures.exists(iconKey)) {
+            // 使用真实图标（不需要光晕）
+            body = this.add.image(0, 0, iconKey);
+            // 放大图标（增加 30%）
+            const scale = (planet.size * 2.6) / Math.max(body.width, body.height);
+            body.setScale(scale);
+            if (!planet.enabled) {
+                body.setTint(0x555555);
+                body.setAlpha(0.6);
+            }
         } else {
-            // 锁定星球 - 灰色
-            body.fillStyle(0x555555, 0.6);
-        }
-        body.fillCircle(0, 0, planet.size);
+            // 后备：绘制星球（带光晕）
+            glow = this.add.graphics();
+            if (planet.enabled) {
+                glow.fillStyle(planet.color, 0.3);
+                glow.fillCircle(0, 0, planet.size + 10);
+            }
 
-        // 星球表面纹理
-        body.lineStyle(1, planet.enabled ? 0xffffff : 0x777777, 0.3);
-        body.arc(0, 0, planet.size * 0.8, 0.5, 2.5);
-        body.arc(0, 0, planet.size * 0.6, -0.5, 1.5);
+            body = this.add.graphics();
+            if (planet.enabled) {
+                body.fillStyle(planet.color, 1);
+            } else {
+                body.fillStyle(0x555555, 0.6);
+            }
+            body.fillCircle(0, 0, planet.size);
+            body.lineStyle(1, planet.enabled ? 0xffffff : 0x777777, 0.3);
+            body.arc(0, 0, planet.size * 0.8, 0.5, 2.5);
+            body.arc(0, 0, planet.size * 0.6, -0.5, 1.5);
+        }
 
         // 名称
-        const nameText = this.add.text(0, planet.size + 20, planet.name, {
+        const nameText = this.add.text(0, planet.size + 35, planet.name, {
             fontSize: '14px',
             color: planet.enabled ? '#ffffff' : '#666666',
             fontStyle: 'bold'
@@ -133,45 +144,48 @@ class TeleportScene extends Phaser.Scene {
             }).setOrigin(0.5);
         }
 
-        container.add([glow, body, nameText]);
+        // 添加到容器
+        if (glow) container.add(glow);
+        container.add([body, nameText]);
         if (lockIcon) container.add(lockIcon);
 
-        // 交互
-        const hitArea = new Phaser.Geom.Circle(0, 0, planet.size + 10);
-        container.setInteractive(hitArea, Phaser.Geom.Circle.Contains);
+        // 交互区域
+        const hitArea = new Phaser.Geom.Circle(0, 0, planet.size + 25);
 
         if (planet.enabled) {
-            // 悬停动画
+            // 启用星球：手型光标 + 悬停放大
+            container.setInteractive(hitArea, Phaser.Geom.Circle.Contains);
+            this.input.setDefaultCursor('default');
+
             container.on('pointerover', () => {
-                container.setScale(1.1);
-                glow.clear();
-                glow.fillStyle(planet.color, 0.5);
-                glow.fillCircle(0, 0, planet.size + 15);
+                this.game.canvas.style.cursor = 'pointer';
+                this.tweens.add({
+                    targets: container,
+                    scaleX: 1.2,
+                    scaleY: 1.2,
+                    duration: 150,
+                    ease: 'Power2'
+                });
             });
 
             container.on('pointerout', () => {
-                container.setScale(1);
-                glow.clear();
-                glow.fillStyle(planet.color, 0.3);
-                glow.fillCircle(0, 0, planet.size + 10);
+                this.game.canvas.style.cursor = 'default';
+                this.tweens.add({
+                    targets: container,
+                    scaleX: 1,
+                    scaleY: 1,
+                    duration: 150,
+                    ease: 'Power2'
+                });
             });
 
             container.on('pointerup', () => {
                 console.log(`前往 ${planet.name}`);
                 SceneManager.changeScene(this, planet.scene);
             });
-
-            // 呼吸动画
-            this.tweens.add({
-                targets: container,
-                scaleX: 1.02,
-                scaleY: 1.02,
-                duration: 2000,
-                yoyo: true,
-                repeat: -1,
-                ease: 'Sine.easeInOut'
-            });
         } else {
+            // 锁定星球
+            container.setInteractive(hitArea, Phaser.Geom.Circle.Contains);
             container.on('pointerup', () => {
                 this.showLockedMessage(planet.name);
             });

@@ -109,17 +109,27 @@ class ElfManageScene extends Phaser.Scene {
         container.add(bg);
         container._bg = bg;
 
-        // 精灵图标
-        const iconBg = this.add.graphics();
-        const iconColor = this.getTypeColor(baseData.type);
-        iconBg.fillStyle(iconColor, 1);
-        iconBg.fillCircle(40, h / 2, 28);
-        container.add(iconBg);
+        // 精灵图标 - 尝试使用真实贴图
+        const imageKey = AssetMappings.getElfImageKey(baseData.id);
+        if (imageKey && this.textures.exists(imageKey)) {
+            const sprite = this.add.image(40, h / 2, imageKey);
+            const maxSize = 56;
+            const scale = Math.min(maxSize / sprite.width, maxSize / sprite.height);
+            sprite.setScale(scale);
+            container.add(sprite);
+        } else {
+            // 后备：彩色圆圈 + 首字母
+            const iconBg = this.add.graphics();
+            const iconColor = this.getTypeColor(baseData.type);
+            iconBg.fillStyle(iconColor, 1);
+            iconBg.fillCircle(40, h / 2, 28);
+            container.add(iconBg);
 
-        const iconText = this.add.text(40, h / 2, baseData.name.charAt(0), {
-            fontSize: '24px', fontFamily: 'Arial', color: '#ffffff', fontStyle: 'bold'
-        }).setOrigin(0.5);
-        container.add(iconText);
+            const iconText = this.add.text(40, h / 2, baseData.name.charAt(0), {
+                fontSize: '24px', fontFamily: 'Arial', color: '#ffffff', fontStyle: 'bold'
+            }).setOrigin(0.5);
+            container.add(iconText);
+        }
 
         // 精灵名称
         const name = elfData.nickname || baseData.name;

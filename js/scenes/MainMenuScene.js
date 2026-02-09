@@ -350,14 +350,24 @@ class MainMenuScene extends Phaser.Scene {
         container._width = width;
         container._height = height;
 
-        // 精灵图标
-        const elfIcon = this.add.graphics();
-        elfIcon.fillStyle(starter.color, 1);
-        elfIcon.fillCircle(0, -55, 40);
-        elfIcon.fillStyle(this.lightenColor(starter.color), 1);
-        elfIcon.fillCircle(-10, -65, 12);
-        elfIcon.fillCircle(10, -65, 12);
-        container.add(elfIcon);
+        // 精灵图标 - 尝试使用真实贴图
+        const imageKey = AssetMappings.getElfImageKey(starter.id);
+        if (imageKey && this.textures.exists(imageKey)) {
+            const sprite = this.add.image(0, -55, imageKey);
+            const maxSize = 80;
+            const scale = Math.min(maxSize / sprite.width, maxSize / sprite.height);
+            sprite.setScale(scale);
+            container.add(sprite);
+        } else {
+            // 后备：彩色圆圈
+            const elfIcon = this.add.graphics();
+            elfIcon.fillStyle(starter.color, 1);
+            elfIcon.fillCircle(0, -55, 40);
+            elfIcon.fillStyle(this.lightenColor(starter.color), 1);
+            elfIcon.fillCircle(-10, -65, 12);
+            elfIcon.fillCircle(10, -65, 12);
+            container.add(elfIcon);
+        }
 
         // 精灵名称
         const nameText = this.add.text(0, 5, starter.name, {

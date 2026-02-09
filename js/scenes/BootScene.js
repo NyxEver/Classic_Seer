@@ -12,8 +12,35 @@ class BootScene extends Phaser.Scene {
      * 用于加载图片、音频等资源文件
      */
     preload() {
-        // TODO: 在此加载图片和音频资源
-        // Example: this.load.image('logo', 'assets/images/logo.png');
+        // 使用 Base64 嵌入数据加载精灵贴图（绕过 file:// CORS 限制）
+        if (typeof ElfSpriteData !== 'undefined' && typeof AssetMappings !== 'undefined') {
+            let loadedCount = 0;
+            for (const [elfId, fileName] of Object.entries(AssetMappings.elves)) {
+                const imageKey = `elf_${fileName}`;
+                const base64Data = ElfSpriteData[fileName];
+                if (base64Data) {
+                    this.load.image(imageKey, base64Data);
+                    loadedCount++;
+                }
+            }
+            console.log(`[BootScene] 预加载 ${loadedCount} 个精灵贴图（Base64 模式）`);
+        }
+
+        // 加载背景图片
+        if (typeof BackgroundData !== 'undefined') {
+            for (const [key, data] of Object.entries(BackgroundData)) {
+                this.load.image(`bg_${key}`, data);
+            }
+            console.log(`[BootScene] 预加载 ${Object.keys(BackgroundData).length} 个背景图片`);
+        }
+
+        // 加载 UI 资源
+        if (typeof UIAssetData !== 'undefined') {
+            for (const [key, data] of Object.entries(UIAssetData)) {
+                this.load.image(`ui_${key}`, data);
+            }
+            console.log(`[BootScene] 预加载 ${Object.keys(UIAssetData).length} 个 UI 资源`);
+        }
     }
 
     /**

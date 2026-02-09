@@ -75,7 +75,7 @@ const ItemsData = {
             name: "初级活力药剂",
             type: "ppPotion",
             tier: "basic",
-            description: "恢复一个技能 5 点 PP。",
+            description: "恢复技能 5 点 PP。",
             effect: {
                 ppRestore: 5
             }
@@ -85,7 +85,7 @@ const ItemsData = {
             name: "中级活力药剂",
             type: "ppPotion",
             tier: "intermediate",
-            description: "恢复一个技能 10 点 PP。",
+            description: "恢复技能 10 点 PP。",
             effect: {
                 ppRestore: 10
             }
@@ -95,9 +95,9 @@ const ItemsData = {
             name: "高级活力药剂",
             type: "ppPotion",
             tier: "advanced",
-            description: "完全恢复一个技能的 PP。",
+            description: "恢复技能 20 点 PP。",
             effect: {
-                ppRestore: 999
+                ppRestore: 20
             }
         }
     ]

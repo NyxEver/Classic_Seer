@@ -174,24 +174,38 @@ class BattleScene extends Phaser.Scene {
     createCharacterSprite(x, y, elf, isPlayer) {
         const container = this.add.container(x, y);
         const size = 80;
-        const circle = this.add.graphics();
-        const color = isPlayer ? 0x4499ee : 0xee5544;
-        circle.fillStyle(color, 1);
-        circle.fillCircle(0, 0, size);
-        circle.lineStyle(4, 0xffffff, 0.9);
-        circle.strokeCircle(0, 0, size);
-        container.add(circle);
 
-        const nameText = this.add.text(0, -10, elf.name, {
-            fontSize: '22px', fontFamily: 'Arial', color: '#ffffff', fontStyle: 'bold'
-        }).setOrigin(0.5);
-        container.add(nameText);
+        // 尝试获取精灵图片
+        const imageKey = AssetMappings.getElfImageKey(elf.id);
+        if (imageKey && this.textures.exists(imageKey)) {
+            // 使用真实精灵贴图
+            const sprite = this.add.image(0, 0, imageKey);
+            // 根据尺寸缩放图片
+            const maxSize = size * 2;
+            const scale = Math.min(maxSize / sprite.width, maxSize / sprite.height);
+            sprite.setScale(scale);
+            container.add(sprite);
+        } else {
+            // 后备：使用彩色圆圈占位符
+            const circle = this.add.graphics();
+            const color = isPlayer ? 0x4499ee : 0xee5544;
+            circle.fillStyle(color, 1);
+            circle.fillCircle(0, 0, size);
+            circle.lineStyle(4, 0xffffff, 0.9);
+            circle.strokeCircle(0, 0, size);
+            container.add(circle);
 
-        const typeName = DataLoader.getTypeName(elf.type);
-        const typeText = this.add.text(0, 20, typeName, {
-            fontSize: '14px', fontFamily: 'Arial', color: '#dddddd'
-        }).setOrigin(0.5);
-        container.add(typeText);
+            const nameText = this.add.text(0, -10, elf.name, {
+                fontSize: '22px', fontFamily: 'Arial', color: '#ffffff', fontStyle: 'bold'
+            }).setOrigin(0.5);
+            container.add(nameText);
+
+            const typeName = DataLoader.getTypeName(elf.type);
+            const typeText = this.add.text(0, 20, typeName, {
+                fontSize: '14px', fontFamily: 'Arial', color: '#dddddd'
+            }).setOrigin(0.5);
+            container.add(typeText);
+        }
 
         return container;
     }
@@ -1007,12 +1021,22 @@ class BattleScene extends Phaser.Scene {
         bg.strokeRoundedRect(0, 0, size, size, 6);
         container.add(bg);
 
-        // 精灵图标（首字母）
-        const iconText = this.add.text(size / 2, size / 2, baseData.name.charAt(0), {
-            fontSize: '18px', fontFamily: 'Arial',
-            color: canFight ? '#ffffff' : '#666666', fontStyle: 'bold'
-        }).setOrigin(0.5);
-        container.add(iconText);
+        // 精灵图标
+        const imageKey = AssetMappings.getElfImageKey(baseData.id);
+        if (imageKey && this.textures.exists(imageKey)) {
+            const sprite = this.add.image(size / 2, size / 2, imageKey);
+            const scale = Math.min((size - 8) / sprite.width, (size - 8) / sprite.height);
+            sprite.setScale(scale);
+            if (!canFight) sprite.setTint(0x666666);
+            container.add(sprite);
+        } else {
+            // 后备：使用首字母
+            const iconText = this.add.text(size / 2, size / 2, baseData.name.charAt(0), {
+                fontSize: '18px', fontFamily: 'Arial',
+                color: canFight ? '#ffffff' : '#666666', fontStyle: 'bold'
+            }).setOrigin(0.5);
+            container.add(iconText);
+        }
 
         // 等级标签
         const lvText = this.add.text(size - 2, size - 2, `${elf.level}`, {

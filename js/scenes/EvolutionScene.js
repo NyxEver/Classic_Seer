@@ -56,14 +56,14 @@ class EvolutionScene extends Phaser.Scene {
             fontStyle: 'bold'
         }).setOrigin(0.5);
 
-        // 创建进化前精灵显示（使用文字占位，后续可替换为精灵贴图）
-        this.beforeSprite = this.createElfDisplay(centerX, centerY, beforeElfData.name, '#4fc3f7');
+        // 创建进化前精灵显示
+        this.beforeSprite = this.createElfDisplay(centerX, centerY, beforeElfData, '#4fc3f7');
 
         // 创建白色光球（初始透明）
         this.lightBall = this.add.circle(centerX, centerY, 80, 0xffffff, 0);
 
         // 创建进化后精灵显示（初始透明）
-        this.afterSprite = this.createElfDisplay(centerX, centerY, afterElfData.name, '#81c784');
+        this.afterSprite = this.createElfDisplay(centerX, centerY, afterElfData, '#81c784');
         this.afterSprite.setAlpha(0);
 
         // 开始进化动画序列
@@ -71,27 +71,37 @@ class EvolutionScene extends Phaser.Scene {
     }
 
     /**
-     * 创建精灵显示（文字占位版本）
+     * 创建精灵显示
      * @param {number} x - X 坐标
      * @param {number} y - Y 坐标
-     * @param {string} name - 精灵名称
-     * @param {string} color - 颜色
+     * @param {Object} elfData - 精灵数据对象（需包含 id 和 name）
+     * @param {string} fallbackColor - 后备颜色（无贴图时使用）
      * @returns {Phaser.GameObjects.Container}
      */
-    createElfDisplay(x, y, name, color) {
+    createElfDisplay(x, y, elfData, fallbackColor) {
         const container = this.add.container(x, y);
 
-        // 精灵圆形背景
-        const circle = this.add.circle(0, 0, 70, Phaser.Display.Color.HexStringToColor(color).color, 0.8);
-        container.add(circle);
+        // 尝试使用真实精灵贴图
+        const imageKey = AssetMappings.getElfImageKey(elfData.id);
+        if (imageKey && this.textures.exists(imageKey)) {
+            const sprite = this.add.image(0, 0, imageKey);
+            const maxSize = 140;
+            const scale = Math.min(maxSize / sprite.width, maxSize / sprite.height);
+            sprite.setScale(scale);
+            container.add(sprite);
+        } else {
+            // 后备：精灵圆形背景
+            const circle = this.add.circle(0, 0, 70, Phaser.Display.Color.HexStringToColor(fallbackColor).color, 0.8);
+            container.add(circle);
 
-        // 精灵名称
-        const nameText = this.add.text(0, 0, name, {
-            fontSize: '24px',
-            fill: '#ffffff',
-            fontStyle: 'bold'
-        }).setOrigin(0.5);
-        container.add(nameText);
+            // 精灵名称
+            const nameText = this.add.text(0, 0, elfData.name, {
+                fontSize: '24px',
+                fill: '#ffffff',
+                fontStyle: 'bold'
+            }).setOrigin(0.5);
+            container.add(nameText);
+        }
 
         return container;
     }

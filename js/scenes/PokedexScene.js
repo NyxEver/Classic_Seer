@@ -112,8 +112,25 @@ class PokedexScene extends Phaser.Scene {
         const iconContainer = this.add.container(0, -20);
         container.add(iconContainer);
 
-        if (hasCaught) {
-            // 已捕捉：显示彩色图标
+        // 尝试使用真实精灵贴图
+        const imageKey = AssetMappings.getElfImageKey(elfData.id);
+        if (hasCaught && imageKey && this.textures.exists(imageKey)) {
+            // 已捕捉：显示彩色精灵贴图
+            const sprite = this.add.image(0, 0, imageKey);
+            const maxSize = 70;
+            const scale = Math.min(maxSize / sprite.width, maxSize / sprite.height);
+            sprite.setScale(scale);
+            iconContainer.add(sprite);
+        } else if (hasSeen && imageKey && this.textures.exists(imageKey)) {
+            // 已见未捕捉：显示灰色剪影
+            const sprite = this.add.image(0, 0, imageKey);
+            const maxSize = 70;
+            const scale = Math.min(maxSize / sprite.width, maxSize / sprite.height);
+            sprite.setScale(scale);
+            sprite.setTint(0x333333);
+            iconContainer.add(sprite);
+        } else if (hasCaught) {
+            // 后备：已捕捉显示彩色圆
             const icon = this.add.graphics();
             icon.fillStyle(this.getTypeColor(elfData.type), 1);
             icon.fillCircle(0, 0, 35);
@@ -121,13 +138,12 @@ class PokedexScene extends Phaser.Scene {
             icon.fillCircle(-10, -10, 12);
             iconContainer.add(icon);
         } else if (hasSeen) {
-            // 已见未捕捉：显示灰色剪影
+            // 后备：已见未捕捉显示灰色剪影
             const icon = this.add.graphics();
             icon.fillStyle(0x333333, 1);
             icon.fillCircle(0, 0, 35);
             iconContainer.add(icon);
 
-            // 问号标记
             const question = this.add.text(0, 0, '?', {
                 fontSize: '32px',
                 color: '#555555',
