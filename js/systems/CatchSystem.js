@@ -43,6 +43,16 @@ const CatchSystem = {
      * @returns {Object} - 捕捉结果 {success, rate, shakes}
      */
     attemptCatch(elf, capsule) {
+        // 开发者模式：100% 捕捉
+        if (typeof DevMode !== 'undefined' && DevMode.alwaysCatch) {
+            console.log('[CatchSystem] 开发者模式：100% 捕捉成功');
+            return {
+                success: true,
+                rate: 100,
+                shakes: 3
+            };
+        }
+
         const rate = this.calculateCatchRate(elf, capsule);
         const roll = Math.random() * 100;
         const success = roll < rate;

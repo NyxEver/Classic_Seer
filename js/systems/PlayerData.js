@@ -132,9 +132,10 @@ const PlayerData = {
     /**
      * 创建新游戏玩家数据
      * @param {string} playerName - 玩家名称
+     * @param {number} starterElfId - 初始精灵 ID (1=布布种子, 4=伊优, 7=小火猴)
      * @returns {Object} - 完整的玩家数据对象
      */
-    createNew(playerName = '赛尔') {
+    createNew(playerName = '赛尔', starterElfId = 1) {
         console.log('[PlayerData] 创建新游戏存档...');
 
         // 重置数据
@@ -148,12 +149,12 @@ const PlayerData = {
         this.seenElves = [];
         this.caughtElves = [];
 
-        // 创建初始精灵伊优（1 级）
-        const starterElf = this.createElfInstance(1, 1, null);
+        // 创建初始精灵（1 级）
+        const starterElf = this.createElfInstance(starterElfId, 5, null);  // 改为5级方便测试进化
         if (starterElf) {
             this.elves.push(starterElf);
             // 初始精灵自动标记为已捕捉
-            this.markCaught(1);
+            this.markCaught(starterElfId);
         }
 
         // 初始物品

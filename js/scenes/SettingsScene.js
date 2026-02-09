@@ -148,6 +148,21 @@ class SettingsScene extends Phaser.Scene {
     }
 
     createActionButtons(container, startY) {
+        // 开发者模式开关
+        this.devModeEnabled = typeof DevMode !== 'undefined' && DevMode.enabled;
+        const devModeBtn = this.createToggleButton(0, startY - 60, '开发者模式', this.devModeEnabled, (enabled) => {
+            if (typeof DevMode !== 'undefined') {
+                if (enabled) {
+                    DevMode.enable();
+                } else {
+                    DevMode.disable();
+                }
+                this.devModeEnabled = enabled;
+                console.log(`[SettingsScene] 开发者模式: ${enabled ? '开启' : '关闭'}`);
+            }
+        });
+        container.add(devModeBtn);
+
         // 返回主菜单按钮
         const menuBtn = this.createButton(0, startY, '返回主菜单', () => {
             this.showConfirmDialog(
@@ -233,6 +248,65 @@ class SettingsScene extends Phaser.Scene {
         });
 
         container.on('pointerdown', () => callback());
+
+        return container;
+    }
+
+    createToggleButton(x, y, text, initialState, onToggle) {
+        const container = this.add.container(x, y);
+        const btnW = 200;
+        const btnH = 45;
+
+        let isOn = initialState;
+
+        const bg = this.add.graphics();
+        const drawBg = () => {
+            bg.clear();
+            if (isOn) {
+                bg.fillGradientStyle(0x4a8a4a, 0x4a8a4a, 0x3a7a3a, 0x3a7a3a, 1);
+                bg.lineStyle(2, 0x6aca6a, 1);
+            } else {
+                bg.fillGradientStyle(0x4a6a8a, 0x4a6a8a, 0x3a5a7a, 0x3a5a7a, 1);
+                bg.lineStyle(2, 0x6a9aca, 1);
+            }
+            bg.fillRoundedRect(-btnW / 2, -btnH / 2, btnW, btnH, 10);
+            bg.strokeRoundedRect(-btnW / 2, -btnH / 2, btnW, btnH, 10);
+        };
+        drawBg();
+        container.add(bg);
+
+        const label = this.add.text(-30, 0, text, {
+            fontSize: '16px',
+            color: '#ffffff',
+            fontStyle: 'bold'
+        }).setOrigin(0.5);
+        container.add(label);
+
+        // 状态指示器
+        const stateText = this.add.text(70, 0, isOn ? '开' : '关', {
+            fontSize: '14px',
+            color: isOn ? '#aaffaa' : '#aaaaaa'
+        }).setOrigin(0.5);
+        container.add(stateText);
+
+        const hitArea = new Phaser.Geom.Rectangle(-btnW / 2, -btnH / 2, btnW, btnH);
+        container.setInteractive(hitArea, Phaser.Geom.Rectangle.Contains);
+
+        container.on('pointerover', () => {
+            container.setScale(1.05);
+        });
+
+        container.on('pointerout', () => {
+            container.setScale(1);
+        });
+
+        container.on('pointerdown', () => {
+            isOn = !isOn;
+            drawBg();
+            stateText.setText(isOn ? '开' : '关');
+            stateText.setColor(isOn ? '#aaffaa' : '#aaaaaa');
+            onToggle(isOn);
+        });
 
         return container;
     }

@@ -330,7 +330,92 @@ class ElfManageScene extends Phaser.Scene {
         const maxHp = elf.getMaxHp();
         if (elfData.currentHp < maxHp) {
             this.createHealButton(0, y, index);
+            y += 55;
         }
+
+        // 开发者模式调试按钮
+        if (typeof DevMode !== 'undefined' && DevMode.enabled) {
+            this.createDevExpButton(0, y, index);
+        }
+    }
+
+    createDevExpButton(x, y, elfIndex) {
+        const btnW = 160, btnH = 40;
+        const container = this.add.container(x, y);
+
+        const bg = this.add.graphics();
+        bg.fillStyle(0x8a6a4a, 1);
+        bg.fillRoundedRect(0, 0, btnW, btnH, 8);
+        bg.lineStyle(2, 0xaa8a6a);
+        bg.strokeRoundedRect(0, 0, btnW, btnH, 8);
+        container.add(bg);
+
+        const text = this.add.text(btnW / 2, btnH / 2, '🔧 +5000 经验', {
+            fontSize: '15px', fontFamily: 'Arial', color: '#ffffff', fontStyle: 'bold'
+        }).setOrigin(0.5);
+        container.add(text);
+
+        const hit = this.add.rectangle(btnW / 2, btnH / 2, btnW, btnH).setInteractive({ useHandCursor: true });
+        container.add(hit);
+
+        hit.on('pointerover', () => {
+            bg.clear();
+            bg.fillStyle(0xaa8a6a, 1);
+            bg.fillRoundedRect(0, 0, btnW, btnH, 8);
+            bg.lineStyle(2, 0xccaa8a);
+            bg.strokeRoundedRect(0, 0, btnW, btnH, 8);
+        });
+
+        hit.on('pointerout', () => {
+            bg.clear();
+            bg.fillStyle(0x8a6a4a, 1);
+            bg.fillRoundedRect(0, 0, btnW, btnH, 8);
+            bg.lineStyle(2, 0xaa8a6a);
+            bg.strokeRoundedRect(0, 0, btnW, btnH, 8);
+        });
+
+        hit.on('pointerdown', () => {
+            if (window.dev) {
+                window.dev.giveExp(elfIndex, 5000);
+                // 刷新当前详情面板和列表
+                this.updateDetailPanel(elfIndex);
+                this.refreshElfList();
+            }
+        });
+
+        this.detailContainer.add(container);
+    }
+
+    refreshElfList() {
+        // 销毁现有列表
+        if (this.elfListContainer) {
+            this.elfListContainer.removeAll(true);
+        }
+        this.elfListItems = [];
+
+        // 重新创建列表
+        const listW = 320;
+        const elves = PlayerData.elves;
+        const itemH = 80;
+        const padding = 10;
+
+        if (elves.length === 0) {
+            const emptyText = this.add.text(listW / 2, (this.H - 150) / 2, '没有精灵', {
+                fontSize: '18px', fontFamily: 'Arial', color: '#666666'
+            }).setOrigin(0.5);
+            this.elfListContainer.add(emptyText);
+            return;
+        }
+
+        elves.forEach((elfData, index) => {
+            const itemY = padding + index * (itemH + 10);
+            const item = this.createElfListItem(padding, itemY, listW - padding * 2, itemH, elfData, index);
+            this.elfListContainer.add(item);
+            this.elfListItems.push(item);
+        });
+
+        // 重新高亮选中项
+        this.selectElf(this.selectedElfIndex);
     }
 
     createHealButton(x, y, elfIndex) {

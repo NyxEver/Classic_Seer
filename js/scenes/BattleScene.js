@@ -482,12 +482,20 @@ class BattleScene extends Phaser.Scene {
 
         btnHit.on('pointerdown', () => {
             this.popupContainer.setVisible(false);
-            this.returnToMap();
+            // 如果有回调函数则执行回调，否则返回地图
+            if (this.popupCallback) {
+                const callback = this.popupCallback;
+                this.popupCallback = null;  // 清除回调
+                callback();
+            } else {
+                this.returnToMap();
+            }
         });
     }
 
-    showPopup(title, message) {
+    showPopup(title, message, callback = null) {
         this.popupText.setText(`${title}\n\n${message}`);
+        this.popupCallback = callback;  // 存储回调
         this.popupContainer.setVisible(true);
     }
 
@@ -1689,13 +1697,105 @@ class BattleScene extends Phaser.Scene {
                     }
                 }
             }
+
+            // 提示待学习技能（技能槽已满）
+            if (result.pendingSkills && result.pendingSkills.length > 0) {
+                msg += `\n\n有 ${result.pendingSkills.length} 个新技能待学习...`;
+            }
+
+            // 检查是否可以进化
+            if (result.canEvolve && result.evolveTo && result.playerElf) {
+                msg += `\n\n咦？${result.playerElf.getDisplayName()} 好像要进化了！`;
+            }
+
+            // 存储结果用于后续处理
+            this.pendingResult = result;
+
             this.time.delayedCall(500, () => {
-                this.showPopup('🎉 战斗胜利！', msg);
+                this.showPopup('🎉 战斗胜利！', msg, () => {
+                    // 开始后续处理流程：技能学习 → 进化 → 返回
+                    this.processPostBattle();
+                });
             });
         } else {
             this.time.delayedCall(500, () => {
                 this.showPopup('战斗失败', `${this.playerElf.getDisplayName()} 倒下了...`);
             });
+        }
+    }
+
+    /**
+     * 处理战斗后续流程：技能学习 → 进化 → 返回地图
+     */
+    processPostBattle() {
+        const result = this.pendingResult;
+
+        // 第一步：处理待学习技能（逐个处理）
+        if (result.pendingSkills && result.pendingSkills.length > 0) {
+            this.processNextPendingSkill(result.pendingSkills, 0, () => {
+                // 所有技能处理完成，检查进化
+                this.processEvolution();
+            });
+        } else {
+            // 没有待学习技能，直接检查进化
+            this.processEvolution();
+        }
+    }
+
+    /**
+     * 处理下一个待学习技能
+     */
+    processNextPendingSkill(pendingSkills, index, onComplete) {
+        if (index >= pendingSkills.length) {
+            // 所有技能处理完成
+            onComplete();
+            return;
+        }
+
+        const skillId = pendingSkills[index];
+        const result = this.pendingResult;
+
+        // 使用 chainData 让 SkillLearnScene 自己处理后续流程
+        // 注意：不再传递 pendingSkills 数组，SkillLearnScene 会使用 elf.getPendingSkills() 获取最新列表
+        this.scene.start('SkillLearnScene', {
+            elf: result.playerElf,
+            newSkillId: skillId,
+            returnScene: this.returnScene,
+            returnData: {},
+            chainData: {
+                canEvolve: result.canEvolve,
+                evolveTo: result.evolveTo,
+                playerElf: result.playerElf,
+                returnScene: this.returnScene
+            }
+        });
+    }
+
+    /**
+     * 处理进化
+     */
+    processEvolution() {
+        const result = this.pendingResult;
+
+        if (result.canEvolve && result.evolveTo && result.playerElf) {
+            const elfBeforeEvolution = result.playerElf;
+            const newElfId = result.evolveTo;
+
+            this.scene.start('EvolutionScene', {
+                elf: elfBeforeEvolution,
+                newElfId: newElfId,
+                returnScene: this.returnScene,
+                returnData: {},
+                callback: (evolvedElfId) => {
+                    // 进化完成后的回调：执行evolve()更新数据
+                    elfBeforeEvolution.evolve();
+                    PlayerData.saveToStorage();
+                    console.log(`[BattleScene] 进化完成: ${elfBeforeEvolution.name}`);
+                }
+            });
+        } else {
+            // 没有进化，直接返回地图
+            this.returnToMap();
         }
     }
 

@@ -284,81 +284,181 @@ class MainMenuScene extends Phaser.Scene {
         // 清除当前对话框内容
         this.dialogContainer.removeAll(true);
 
-        // 重建对话框背景
+        // 重建对话框背景（更宽以容纳3个精灵）
         const dialogBg = this.add.graphics();
         dialogBg.fillGradientStyle(0x2a3a5a, 0x2a3a5a, 0x1a2a4a, 0x1a2a4a, 1);
-        dialogBg.fillRoundedRect(-250, -200, 500, 400, 16);
+        dialogBg.fillRoundedRect(-350, -230, 700, 460, 16);
         dialogBg.lineStyle(3, 0x6a9aca, 1);
-        dialogBg.strokeRoundedRect(-250, -200, 500, 400, 16);
+        dialogBg.strokeRoundedRect(-350, -230, 700, 460, 16);
         this.dialogContainer.add(dialogBg);
 
         // 标题
-        const titleText = this.add.text(0, -160, '选择你的初始精灵', {
-            fontSize: '24px',
+        const titleText = this.add.text(0, -195, '选择你的初始精灵', {
+            fontSize: '26px',
             color: '#88ccff',
             fontStyle: 'bold'
         }).setOrigin(0.5);
         this.dialogContainer.add(titleText);
 
-        // 获取伊优数据
-        const elfData = DataLoader.getElf(1); // 伊优 ID = 1
+        // 3个初始精灵: 布布种子(1-草), 伊优(4-水), 小火猴(7-火)
+        const starters = [
+            { id: 1, name: '布布种子', type: 'grass', color: 0x44aa44, desc: '草属性初始精灵，坚韧顽强，防御出众' },
+            { id: 4, name: '伊优', type: 'water', color: 0x4a9aff, desc: '水属性初始精灵，活泼可爱，忠诚可靠' },
+            { id: 7, name: '小火猴', type: 'fire', color: 0xff6644, desc: '火属性初始精灵，热情似火，速度飞快' }
+        ];
 
-        // 精灵展示卡片背景
-        const cardBg = this.add.graphics();
-        cardBg.fillGradientStyle(0x3a5a8a, 0x3a5a8a, 0x2a4a7a, 0x2a4a7a, 1);
-        cardBg.fillRoundedRect(-150, -120, 300, 200, 12);
-        cardBg.lineStyle(2, 0x6a9aca, 1);
-        cardBg.strokeRoundedRect(-150, -120, 300, 200, 12);
-        this.dialogContainer.add(cardBg);
+        this.selectedStarterId = 4; // 默认选中伊优
+        this.starterCards = [];
 
-        // 精灵图标（使用简单图形代替）
-        const elfIcon = this.add.graphics();
-        elfIcon.fillStyle(0x4a9aff, 1); // 水属性蓝色
-        elfIcon.fillCircle(0, -50, 40);
-        elfIcon.fillStyle(0x6abaff, 1);
-        elfIcon.fillCircle(-10, -60, 15); // 眼睛区域
-        elfIcon.fillCircle(10, -60, 15);
-        this.dialogContainer.add(elfIcon);
+        const cardWidth = 180;
+        const cardHeight = 240;
+        const cardSpacing = 30;
+        const startX = -((cardWidth * 3 + cardSpacing * 2) / 2) + cardWidth / 2;
 
-        // 精灵名称
-        const elfName = this.add.text(0, 10, elfData.name, {
-            fontSize: '24px',
-            color: '#ffffff',
-            fontStyle: 'bold'
-        }).setOrigin(0.5);
-        this.dialogContainer.add(elfName);
+        starters.forEach((starter, i) => {
+            const cardX = startX + i * (cardWidth + cardSpacing);
+            const cardY = -20;
 
-        // 属性标签
-        const typeLabel = this.add.text(0, 40, `属性：${this.getTypeDisplayName(elfData.type)}`, {
-            fontSize: '16px',
-            color: '#88ddff'
-        }).setOrigin(0.5);
-        this.dialogContainer.add(typeLabel);
+            const card = this.createStarterCard(cardX, cardY, cardWidth, cardHeight, starter, i);
+            this.dialogContainer.add(card);
+            this.starterCards.push({ container: card, starter: starter, outline: card._outline });
+        });
 
-        // 简介
-        const desc = this.add.text(0, 70, '水属性初始精灵，活泼可爱，忠诚可靠', {
-            fontSize: '14px',
-            color: '#aaccdd'
-        }).setOrigin(0.5);
-        this.dialogContainer.add(desc);
-
-        // 说明文字
-        const note = this.add.text(0, 120, '（更多初始精灵将在后续版本开放）', {
-            fontSize: '12px',
-            color: '#666688'
-        }).setOrigin(0.5);
-        this.dialogContainer.add(note);
+        // 更新初始选中状态
+        this.updateStarterSelection();
 
         // 确认按钮
-        const confirmBtn = this.createDialogButton(0, 160, '确认出发！', () => {
+        const confirmBtn = this.createDialogButton(0, 185, '确认出发！', () => {
             this.confirmNewGame();
         });
         this.dialogContainer.add(confirmBtn);
     }
 
+    createStarterCard(x, y, width, height, starter, index) {
+        const container = this.add.container(x, y);
+
+        // 卡片背景
+        const cardBg = this.add.graphics();
+        cardBg.fillGradientStyle(0x3a5a8a, 0x3a5a8a, 0x2a4a7a, 0x2a4a7a, 1);
+        cardBg.fillRoundedRect(-width / 2, -height / 2, width, height, 12);
+        container.add(cardBg);
+
+        // 选中边框（稍后通过 updateStarterSelection 控制）
+        const outline = this.add.graphics();
+        container.add(outline);
+        container._outline = outline;
+        container._width = width;
+        container._height = height;
+
+        // 精灵图标
+        const elfIcon = this.add.graphics();
+        elfIcon.fillStyle(starter.color, 1);
+        elfIcon.fillCircle(0, -55, 40);
+        elfIcon.fillStyle(this.lightenColor(starter.color), 1);
+        elfIcon.fillCircle(-10, -65, 12);
+        elfIcon.fillCircle(10, -65, 12);
+        container.add(elfIcon);
+
+        // 精灵名称
+        const nameText = this.add.text(0, 5, starter.name, {
+            fontSize: '20px',
+            color: '#ffffff',
+            fontStyle: 'bold'
+        }).setOrigin(0.5);
+        container.add(nameText);
+
+        // 属性标签
+        const typeLabel = this.add.text(0, 30, `${this.getTypeDisplayName(starter.type)}系`, {
+            fontSize: '14px',
+            color: this.getTypeColor(starter.type)
+        }).setOrigin(0.5);
+        container.add(typeLabel);
+
+        // 简介
+        const desc = this.add.text(0, 65, starter.desc, {
+            fontSize: '12px',
+            color: '#aaccdd',
+            wordWrap: { width: width - 20 },
+            align: 'center'
+        }).setOrigin(0.5);
+        container.add(desc);
+
+        // 交互区域
+        const hitArea = this.add.rectangle(0, 0, width, height).setInteractive({ useHandCursor: true });
+        container.add(hitArea);
+
+        hitArea.on('pointerdown', () => {
+            this.selectedStarterId = starter.id;
+            this.updateStarterSelection();
+        });
+
+        hitArea.on('pointerover', () => {
+            if (this.selectedStarterId !== starter.id) {
+                cardBg.clear();
+                cardBg.fillGradientStyle(0x4a6a9a, 0x4a6a9a, 0x3a5a8a, 0x3a5a8a, 1);
+                cardBg.fillRoundedRect(-width / 2, -height / 2, width, height, 12);
+            }
+        });
+
+        hitArea.on('pointerout', () => {
+            if (this.selectedStarterId !== starter.id) {
+                cardBg.clear();
+                cardBg.fillGradientStyle(0x3a5a8a, 0x3a5a8a, 0x2a4a7a, 0x2a4a7a, 1);
+                cardBg.fillRoundedRect(-width / 2, -height / 2, width, height, 12);
+            }
+        });
+
+        container._cardBg = cardBg;
+
+        return container;
+    }
+
+    updateStarterSelection() {
+        this.starterCards.forEach(({ container, starter, outline }) => {
+            const w = container._width;
+            const h = container._height;
+            const isSelected = starter.id === this.selectedStarterId;
+
+            outline.clear();
+            if (isSelected) {
+                outline.lineStyle(4, 0xffdd44, 1);
+                outline.strokeRoundedRect(-w / 2, -h / 2, w, h, 12);
+
+                // 更新背景为高亮
+                container._cardBg.clear();
+                container._cardBg.fillGradientStyle(0x5a7aaa, 0x5a7aaa, 0x4a6a9a, 0x4a6a9a, 1);
+                container._cardBg.fillRoundedRect(-w / 2, -h / 2, w, h, 12);
+            } else {
+                outline.lineStyle(2, 0x5a7a9a, 1);
+                outline.strokeRoundedRect(-w / 2, -h / 2, w, h, 12);
+
+                // 恢复普通背景
+                container._cardBg.clear();
+                container._cardBg.fillGradientStyle(0x3a5a8a, 0x3a5a8a, 0x2a4a7a, 0x2a4a7a, 1);
+                container._cardBg.fillRoundedRect(-w / 2, -h / 2, w, h, 12);
+            }
+        });
+    }
+
+    lightenColor(color) {
+        const r = Math.min(255, ((color >> 16) & 0xff) + 60);
+        const g = Math.min(255, ((color >> 8) & 0xff) + 60);
+        const b = Math.min(255, (color & 0xff) + 60);
+        return (r << 16) | (g << 8) | b;
+    }
+
+    getTypeColor(type) {
+        const colors = {
+            'grass': '#88dd88',
+            'water': '#88ccff',
+            'fire': '#ffaa77'
+        };
+        return colors[type] || '#ffffff';
+    }
+
     confirmNewGame() {
-        // 创建新存档
-        PlayerData.createNew(this.playerName);
+        // 创建新存档（使用选中的初始精灵）
+        PlayerData.createNew(this.playerName, this.selectedStarterId);
         PlayerData.currentMapId = 'spaceship';
         PlayerData.saveToStorage();
 

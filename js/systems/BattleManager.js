@@ -549,7 +549,11 @@ class BattleManager {
         result.expGained = expReward;
         result.levelUps = levelUpResults;
 
-        // 显示升级信息
+        // 显示升级信息并检查进化
+        let canEvolve = false;
+        let evolveTo = null;
+        let pendingSkills = [];  // 收集所有待学习的技能
+
         for (const levelUp of levelUpResults) {
             this.log(`${this.playerElf.getDisplayName()} 升级到 ${levelUp.newLevel} 级！`);
             for (const skillId of levelUp.newSkills) {
@@ -558,6 +562,32 @@ class BattleManager {
                     this.log(`${this.playerElf.getDisplayName()} 学会了 ${skill.name}！`);
                 }
             }
+
+            // 收集待学习的技能（技能槽已满时）
+            if (levelUp.pendingSkill) {
+                pendingSkills.push(levelUp.pendingSkill);
+            }
+
+            // 检查是否可以进化（使用最后一次升级的信息）
+            if (levelUp.canEvolve) {
+                canEvolve = true;
+                evolveTo = levelUp.evolveTo;
+            }
+        }
+
+        // 【重要】使用持久化的待学习技能列表，而不仅是本次升级的
+        // 这包括之前通过 DevMode 升级时添加的待学习技能
+        pendingSkills = this.playerElf.getPendingSkills();
+        if (pendingSkills.length > 0) {
+            console.log(`[BattleManager] 发现 ${pendingSkills.length} 个待学习技能: ${pendingSkills.join(', ')}`);
+        }
+
+        // 【重要】即使没有升级，也检查当前精灵是否已经可以进化
+        // 这处理了精灵在之前升级时已满足进化条件但未进化的情况
+        if (!canEvolve && this.playerElf.checkEvolution()) {
+            canEvolve = true;
+            evolveTo = this.playerElf.evolvesTo;
+            console.log(`[BattleManager] 检测到精灵已满足进化条件: ${this.playerElf.getDisplayName()} → ID ${evolveTo}`);
         }
 
         // 获取努力值
@@ -571,11 +601,15 @@ class BattleManager {
         // 保存游戏
         PlayerData.saveToStorage();
 
-        // 调用结束回调
+        // 调用结束回调（包含进化信息和待学习技能）
         this.onBattleEnd({
             victory: true,
             expGained: expReward,
-            levelUps: levelUpResults
+            levelUps: levelUpResults,
+            canEvolve: canEvolve,
+            evolveTo: evolveTo,
+            pendingSkills: pendingSkills,  // 新增：待学习技能列表
+            playerElf: this.playerElf  // 传递精灵实例用于进化场景
         });
     }
 

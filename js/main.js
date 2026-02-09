@@ -24,7 +24,9 @@ const gameConfig = {
         ElfManageScene,
         BattleScene,
         SettingsScene,
-        PokedexScene
+        PokedexScene,
+        EvolutionScene,
+        SkillLearnScene
     ],
 
     // Physics configuration (if needed later)

@@ -8,7 +8,7 @@ const EncounterSystem = {
     mapConfig: {
         'klose': {
             elves: [
-                { elfId: 2, weight: 100 } // 皮皮
+                { elfId: 10, weight: 100 } // 皮皮
             ],
             levelRange: { min: 2, max: 5 }
         }

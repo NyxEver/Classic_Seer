@@ -311,7 +311,7 @@ class KloseScene extends Phaser.Scene {
         console.log('遭遇野生皮皮！');
 
         // 使用 EncounterSystem 创建野生精灵并启动战斗
-        const wildElf = EncounterSystem.createWildElf(2, 2, 5); // 皮皮 ID=2, Lv.2-5
+        const wildElf = EncounterSystem.createWildElf(10, 2, 5); // 皮皮 ID=10, Lv.2-5
 
         EncounterSystem.startWildBattle(this, wildElf);
     }

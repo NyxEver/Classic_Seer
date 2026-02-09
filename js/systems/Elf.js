@@ -16,8 +16,9 @@ class Elf {
         this.type = elfData.type;
         this.baseStats = elfData.baseStats;
         this.learnableSkills = elfData.learnableSkills;
-        this.evolutionLevel = elfData.evolutionLevel;
-        this.evolvesTo = elfData.evolvesTo;
+        this.evolutionLevel = elfData.evolveLevel;  // 注意：数据层用 evolveLevel
+        this.evolvesTo = elfData.evolveTo;          // 注意：数据层用 evolveTo
+        this.evolutionChainId = elfData.evolutionChainId;
         this.catchRate = elfData.catchRate;
         this.evYield = elfData.evYield;
 
@@ -30,6 +31,7 @@ class Elf {
         this.skillPP = instanceData.skillPP || {};
         this.iv = instanceData.iv;
         this.ev = instanceData.ev;
+        this.pendingSkills = instanceData.pendingSkills || [];  // 待学习的技能（技能槽已满时）
 
         // 保持对原始实例数据的引用，用于同步更新
         this._instanceData = instanceData;
@@ -210,8 +212,17 @@ class Elf {
 
         const levelUpInfo = {
             newLevel: this.level,
-            newSkills: []
+            newSkills: [],
+            canEvolve: false,
+            evolveTo: null
         };
+
+        // 检查是否可以进化
+        if (this.checkEvolution()) {
+            levelUpInfo.canEvolve = true;
+            levelUpInfo.evolveTo = this.evolvesTo;
+            console.log(`[Elf] ${this.getDisplayName()} 可以进化！目标 ID: ${this.evolvesTo}`);
+        }
 
         // 检查是否学会新技能
         this.learnableSkills.forEach(skillInfo => {
@@ -227,9 +238,10 @@ class Elf {
                     levelUpInfo.newSkills.push(skillInfo.skillId);
                     console.log(`[Elf] ${this.getDisplayName()} 学会了新技能: ${skillData ? skillData.name : skillInfo.skillId}`);
                 } else {
-                    // 技能槽已满，需要提示玩家选择替换（后续实现）
+                    // 技能槽已满，保存到待学习列表（会持久化）
                     levelUpInfo.pendingSkill = skillInfo.skillId;
-                    console.log(`[Elf] ${this.getDisplayName()} 可以学习新技能但技能槽已满`);
+                    this.pendingSkills.push(skillInfo.skillId);  // 持久化
+                    console.log(`[Elf] ${this.getDisplayName()} 可以学习新技能但技能槽已满，已加入待学习列表`);
                 }
             }
         });
@@ -238,6 +250,77 @@ class Elf {
         console.log(`[Elf] ${this.getDisplayName()} 升级到 ${this.level} 级！`);
 
         return levelUpInfo;
+    }
+
+    /**
+     * 检查是否可以进化
+     * @returns {boolean} - 是否可以进化
+     */
+    checkEvolution() {
+        // 必须有进化目标和进化等级
+        if (!this.evolvesTo || !this.evolutionLevel) {
+            return false;
+        }
+        // 当前等级必须达到进化等级
+        return this.level >= this.evolutionLevel;
+    }
+
+    /**
+     * 执行进化
+     * 将精灵转变为进化后的形态，保留技能槽、IV、EV 等
+     * @returns {Object|null} - 进化后的精灵数据，失败返回 null
+     */
+    evolve() {
+        if (!this.checkEvolution()) {
+            console.warn('[Elf] 无法进化：条件不满足');
+            return null;
+        }
+
+        const newElfData = DataLoader.getElf(this.evolvesTo);
+        if (!newElfData) {
+            console.error(`[Elf] 进化失败：找不到目标精灵 ID=${this.evolvesTo}`);
+            return null;
+        }
+
+        const oldName = this.name;
+        const oldId = this.id;
+
+        // 更新精灵基础数据为进化后的数据
+        this.id = newElfData.id;
+        this.name = newElfData.name;
+        this.type = newElfData.type;
+        this.baseStats = newElfData.baseStats;
+        this.learnableSkills = newElfData.learnableSkills;
+        this.evolutionLevel = newElfData.evolveLevel;
+        this.evolvesTo = newElfData.evolveTo;
+        this.evolutionChainId = newElfData.evolutionChainId;
+        this.catchRate = newElfData.catchRate;
+        this.evYield = newElfData.evYield;
+
+        // 更新实例数据中的 elfId
+        this._instanceData.elfId = newElfData.id;
+
+        // 重新计算 HP（按比例保留或补满）
+        const hpRatio = this.currentHp / this.getMaxHp();
+        const newMaxHp = this.getMaxHp();
+        this.currentHp = Math.ceil(newMaxHp * hpRatio);
+        if (this.currentHp > newMaxHp) this.currentHp = newMaxHp;
+
+        this._syncInstanceData();
+
+        console.log(`[Elf] 进化完成：${oldName} → ${this.name}`);
+
+        // 标记新形态为已捕捉（图鉴更新）
+        if (typeof PlayerData !== 'undefined') {
+            PlayerData.markCaught(this.id);
+        }
+
+        return {
+            oldId: oldId,
+            oldName: oldName,
+            newId: this.id,
+            newName: this.name
+        };
     }
 
     /**
@@ -393,6 +476,36 @@ class Elf {
         this._instanceData.skillPP = this.skillPP;
         this._instanceData.iv = this.iv;
         this._instanceData.ev = this.ev;
+        this._instanceData.pendingSkills = this.pendingSkills;  // 同步待学习技能
+        this._instanceData.elfId = this.id;  // 同步精灵 ID（进化后会变）
+    }
+
+    /**
+     * 获取待学习技能列表
+     * @returns {Array<number>} - 待学习的技能 ID 数组
+     */
+    getPendingSkills() {
+        return this.pendingSkills || [];
+    }
+
+    /**
+     * 清除待学习技能列表
+     */
+    clearPendingSkills() {
+        this.pendingSkills = [];
+        this._syncInstanceData();
+    }
+
+    /**
+     * 从待学习列表中移除指定技能（学习或放弃后调用）
+     * @param {number} skillId - 技能 ID
+     */
+    removePendingSkill(skillId) {
+        const index = this.pendingSkills.indexOf(skillId);
+        if (index > -1) {
+            this.pendingSkills.splice(index, 1);
+            this._syncInstanceData();
+        }
     }
 
     /**

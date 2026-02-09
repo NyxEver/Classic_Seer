@@ -277,6 +277,69 @@ class ElfBagScene extends Phaser.Scene {
 
         // 技能区域
         this.createSkillsSection(elf, 20, 280);
+
+        // 开发者模式调试按钮
+        if (typeof DevMode !== 'undefined' && DevMode.enabled) {
+            this.createDevModeButtons(elf, index, panelWidth);
+        }
+    }
+
+    /**
+     * 创建开发者模式调试按钮
+     */
+    createDevModeButtons(elf, elfIndex, panelWidth) {
+        const btnY = 420;
+
+        // 获得 5000 经验按钮
+        const expBtnW = 140;
+        const expBtnH = 32;
+        const expBtnX = panelWidth - expBtnW / 2 - 20;
+
+        const expBtnBg = this.add.rectangle(expBtnX, btnY, expBtnW, expBtnH, 0x8a6a4a);
+        expBtnBg.setStrokeStyle(2, 0xaa8a6a);
+        expBtnBg.setInteractive({ useHandCursor: true });
+        this.detailPanel.add(expBtnBg);
+
+        const expBtnText = this.add.text(expBtnX, btnY, '🔧 +5000 经验', {
+            fontSize: '14px',
+            fontFamily: 'Arial',
+            color: '#ffffff'
+        }).setOrigin(0.5);
+        this.detailPanel.add(expBtnText);
+
+        expBtnBg.on('pointerover', () => {
+            expBtnBg.setFillStyle(0xaa8a6a);
+        });
+        expBtnBg.on('pointerout', () => {
+            expBtnBg.setFillStyle(0x8a6a4a);
+        });
+        expBtnBg.on('pointerdown', () => {
+            if (window.dev) {
+                window.dev.giveExp(elfIndex, 5000);
+                // 刷新界面
+                this.updateDetailPanel(elfIndex);
+                // 刷新左侧列表
+                this.refreshElfList();
+            }
+        });
+    }
+
+    /**
+     * 刷新精灵列表
+     */
+    refreshElfList() {
+        // 销毁现有卡片
+        this.elfCards.forEach(card => {
+            card.container.destroy();
+        });
+
+        // 重新创建列表
+        this.createElfList();
+
+        // 重新选中当前精灵
+        if (ElfBag.getCount() > 0 && this.selectedIndex < ElfBag.getCount()) {
+            this.selectElf(this.selectedIndex);
+        }
     }
 
     /**
