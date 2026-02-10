@@ -4,6 +4,9 @@
  */
 
 const DevMode = {
+    // 开发者模式奖励精灵（谱尼）
+    DEV_REWARD_ELF_ID: 300,
+
     // 开发者模式是否开启
     enabled: false,
 
@@ -15,6 +18,7 @@ const DevMode = {
      */
     enable() {
         this.enabled = true;
+        this._ensureDevRewardElf();
         this._mountDevTools();
         console.log('[DevMode] 开发者模式已开启');
     },
@@ -148,6 +152,26 @@ const DevMode = {
             delete window.dev;
             console.log('[DevMode] window.dev 工具已卸载');
         }
+    },
+
+    /**
+     * 开启开发者模式时自动发放谱尼（仅发放一次）
+     */
+    _ensureDevRewardElf() {
+        const hasPuni = (PlayerData.elves || []).some((elf) => elf.elfId === this.DEV_REWARD_ELF_ID);
+        if (hasPuni) {
+            return;
+        }
+
+        const added = PlayerData.addElf(this.DEV_REWARD_ELF_ID, 1, '谱尼');
+        if (!added) {
+            console.warn('[DevMode] 自动发放谱尼失败，可能是数据未加载');
+            return;
+        }
+
+        PlayerData.markCaught(this.DEV_REWARD_ELF_ID);
+        PlayerData.saveToStorage();
+        console.log('[DevMode] 已自动发放开发者奖励精灵：谱尼');
     },
 
     /**

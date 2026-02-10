@@ -19,7 +19,8 @@ const AssetMappings = {
         7: 'xiaohuohou',     // 小火猴
         8: 'liehuohou',      // 烈火猴
         9: 'lieyanxingxing', // 烈焰猩猩
-        10: 'pipi'           // 皮皮
+        10: 'pipi',          // 皮皮
+        300: 'puni'          // 谱尼
     },
 
     /**
@@ -128,7 +129,7 @@ const AssetMappings = {
     },
 
     /**
-     * 属性图标映射（按需求仅替换四种）
+     * 属性图标映射（全属性图标）
      * key: 属性英文名
      * value: 图标文件名（不含路径和扩展名）
      */
@@ -136,7 +137,19 @@ const AssetMappings = {
         water: '30px-water',
         fire: '30px-fire',
         grass: '30px-grass',
-        flying: '30px-flying'
+        flying: '30px-flying',
+        electric: '30px-electric',
+        ground: '30px-ground',
+        ice: '30px-ice',
+        mechanical: '30px-mechanical',
+        normal: '30px-normal',
+        psychic: '30px-psychic',
+        battle: '30px-battle',
+        light: '30px-light',
+        shadow: '30px-shadow',
+        mystery: '30px-mystery',
+        dragon: '30px-dragon',
+        spirit: '30px-spirit'
     },
 
     /**

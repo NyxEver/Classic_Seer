@@ -9,6 +9,7 @@ const DataLoader = {
     skills: null,
     typeChart: null,
     typeNames: null,
+    typeColors: null,
     items: null,
     quests: null,
 
@@ -47,6 +48,7 @@ const DataLoader = {
             }
             this.typeChart = TypeChartData.typeChart;
             this.typeNames = TypeChartData.typeNames;
+            this.typeColors = TypeChartData.typeColors || {};
 
             // 从全局对象读取物品数据
             if (typeof ItemsData === 'undefined') {
@@ -152,6 +154,18 @@ const DataLoader = {
             return type;
         }
         return this.typeNames[type] || type;
+    },
+
+    /**
+     * 获取属性颜色（数字）
+     * @param {string} type - 属性英文名
+     * @returns {number} - 0xRRGGBB
+     */
+    getTypeColor(type) {
+        if (!this.typeColors) {
+            return 0x888888;
+        }
+        return this.typeColors[type] || 0x888888;
     },
 
     /**

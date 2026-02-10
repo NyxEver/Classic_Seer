@@ -100,16 +100,16 @@ class SkillLearnScene extends Phaser.Scene {
             fontStyle: 'bold'
         }).setOrigin(0.5);
 
-        // 技能信息（四属性显示图标，其他属性保留文字）
+        // 技能信息（使用属性图标）
         const typeIconKey = AssetMappings.getTypeIconKey(skill.type);
-        let info = '';
+        let info = `威力: ${skill.power || '-'}  |  PP: ${skill.pp}`;
         if (typeIconKey && this.textures.exists(typeIconKey)) {
             const typeIcon = this.add.image(x - 145, y + 5, typeIconKey).setOrigin(0.5);
             const scale = Math.min(20 / typeIcon.width, 20 / typeIcon.height);
             typeIcon.setScale(scale);
-            info = `威力: ${skill.power || '-'}  |  PP: ${skill.pp}`;
         } else {
-            info = `属性: ${DataLoader.getTypeName(skill.type)}  |  威力: ${skill.power || '-'}  |  PP: ${skill.pp}`;
+            const fallback = this.add.circle(x - 145, y + 5, 8, DataLoader.getTypeColor(skill.type), 1).setOrigin(0.5);
+            fallback.setStrokeStyle(1, 0xffffff, 0.7);
         }
         this.add.text(x + 10, y + 5, info, {
             fontSize: '14px',

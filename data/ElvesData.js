@@ -368,6 +368,48 @@ const ElvesData = {
             ],
             catchRate: 60,
             evYield: { hp: 0, atk: 0, spAtk: 0, def: 0, spDef: 0, spd: 1 }
+        },
+        {
+            id: 300,
+            name: "谱尼",
+            type: "spirit",
+            evolutionChainId: 101,  // 独立形态（无进化）
+            evolveTo: null,
+            evolveLevel: null,
+            baseStats: {
+                hp: 130,
+                atk: 120,
+                spAtk: 135,
+                def: 115,
+                spDef: 125,
+                spd: 110
+            },
+            // 谱尼技能表
+            learnableSkills: [
+                { skillId: 518, learnLevel: 0 },   // 璨灵圣光
+                { skillId: 519, learnLevel: 0 },   // 落芳天华
+                { skillId: 520, learnLevel: 0 },   // 圣灵悲魂曲
+                { skillId: 501, learnLevel: 1 },   // 极光
+                { skillId: 502, learnLevel: 5 },   // 虚无
+                { skillId: 503, learnLevel: 10 },  // 神圣之光
+                { skillId: 504, learnLevel: 15 },  // 元素
+                { skillId: 505, learnLevel: 20 },  // 能量
+                { skillId: 506, learnLevel: 25 },  // 灵光之怒
+                { skillId: 507, learnLevel: 30 },  // 生命
+                { skillId: 508, learnLevel: 35 },  // 断空破
+                { skillId: 509, learnLevel: 40 },  // 轮回
+                { skillId: 510, learnLevel: 45 },  // 灵魂干涉
+                { skillId: 511, learnLevel: 50 },  // 圣堂之门
+                { skillId: 512, learnLevel: 55 },  // 永恒
+                { skillId: 513, learnLevel: 60 },  // 圣洁
+                { skillId: 514, learnLevel: 70 },  // 旋灭裂空阵
+                { skillId: 521, learnLevel: 71 },  // 圣影流光破
+                { skillId: 515, learnLevel: 80 },  // 千烈虚光闪
+                { skillId: 516, learnLevel: 90 },  // 圣光气
+                { skillId: 517, learnLevel: 100 }  // 圣灵魔闪光
+            ],
+            catchRate: null,
+            evYield: { hp: 0, atk: 0, spAtk: 3, def: 0, spDef: 0, spd: 0 }
         }
     ]
 };

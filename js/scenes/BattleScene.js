@@ -1890,7 +1890,7 @@ class BattleScene extends Phaser.Scene {
     }
 
     /**
-     * 属性显示：四属性显示图标，其它属性保留文字
+     * 属性显示：优先图标，缺失时回退为无文字色块图标
      */
     addTypeVisual(container, x, y, type, options = {}) {
         const iconKey = AssetMappings.getTypeIconKey(type);
@@ -1903,12 +1903,11 @@ class BattleScene extends Phaser.Scene {
             return;
         }
 
-        const typeText = this.add.text(x, y, DataLoader.getTypeName(type), {
-            fontSize: options.fallbackFontSize || '12px',
-            fontFamily: 'Arial',
-            color: options.fallbackColor || '#88aacc'
-        }).setOrigin(options.fallbackOriginX ?? 0.5, 0.5);
-        container.add(typeText);
+        const radius = Math.max(5, Math.floor(iconSize / 2));
+        const fallback = this.add.circle(x, y, radius, DataLoader.getTypeColor(type), 1)
+            .setOrigin(options.fallbackOriginX ?? 0.5, 0.5);
+        fallback.setStrokeStyle(1, 0xffffff, 0.7);
+        container.add(fallback);
     }
 
     returnToMap() {

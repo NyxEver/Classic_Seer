@@ -71,7 +71,7 @@ class BootScene extends Phaser.Scene {
             console.log(`[BootScene] 预加载 ${loadedCount} 个物品图标`);
         }
 
-        // 加载属性图标资源（当前仅水/火/草/飞行，优先 Base64）
+        // 加载属性图标资源（全属性，优先 Base64）
         if (typeof AssetMappings !== 'undefined') {
             let loadedCount = 0;
             for (const iconName of Object.values(AssetMappings.typeIcons || {})) {

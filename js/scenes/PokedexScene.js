@@ -204,52 +204,20 @@ class PokedexScene extends Phaser.Scene {
     }
 
     getTypeColor(type) {
-        const colors = {
-            'water': 0x4a9aff,
-            'fire': 0xff6a4a,
-            'grass': 0x6abb6a,
-            'electric': 0xffcc4a,
-            'normal': 0xaaaaaa,
-            'flying': 0x9ac0ff,
-            'ground': 0xbb9a6a,
-            'ice': 0x7addff,
-            'mechanical': 0x8a8a9a
-        };
-        return colors[type] || 0x888888;
+        return DataLoader.getTypeColor(type);
     }
 
     getTypeTextColor(type) {
-        const colors = {
-            'water': '#88ccff',
-            'fire': '#ffaa88',
-            'grass': '#88dd88',
-            'electric': '#ffee88',
-            'normal': '#cccccc',
-            'flying': '#aaccff',
-            'ground': '#ddbb88',
-            'ice': '#aaeeff',
-            'mechanical': '#aaaacc'
-        };
-        return colors[type] || '#aaaaaa';
+        const color = this.getTypeColor(type);
+        return `#${color.toString(16).padStart(6, '0')}`;
     }
 
     getTypeDisplayName(type) {
-        const names = {
-            'water': '水属性',
-            'fire': '火属性',
-            'grass': '草属性',
-            'electric': '电属性',
-            'normal': '普通属性',
-            'flying': '飞行属性',
-            'ground': '地面属性',
-            'ice': '冰属性',
-            'mechanical': '机械属性'
-        };
-        return names[type] || type;
+        return `${DataLoader.getTypeName(type)}属性`;
     }
 
     /**
-     * 属性显示：四属性使用图标，其它属性保留文字
+     * 属性显示：优先使用图标，缺失时回退为无文字色块图标
      */
     addTypeVisual(container, x, y, type) {
         const iconKey = AssetMappings.getTypeIconKey(type);
@@ -261,11 +229,9 @@ class PokedexScene extends Phaser.Scene {
             return;
         }
 
-        const typeLabel = this.add.text(x, y, this.getTypeDisplayName(type), {
-            fontSize: '14px',
-            color: this.getTypeTextColor(type)
-        }).setOrigin(0.5);
-        container.add(typeLabel);
+        const fallback = this.add.circle(x, y, 10, this.getTypeColor(type), 1).setOrigin(0.5);
+        fallback.setStrokeStyle(1, 0xffffff, 0.7);
+        container.add(fallback);
     }
 
     createButton(x, y, text, callback) {

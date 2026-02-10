@@ -377,7 +377,7 @@ class MainMenuScene extends Phaser.Scene {
         }).setOrigin(0.5);
         container.add(nameText);
 
-        // 属性标签（四属性显示图标，其他属性保留文字）
+        // 属性标签（使用属性图标）
         const typeIconKey = AssetMappings.getTypeIconKey(starter.type);
         if (typeIconKey && this.textures.exists(typeIconKey)) {
             const typeIcon = this.add.image(0, 32, typeIconKey).setOrigin(0.5);
@@ -385,11 +385,9 @@ class MainMenuScene extends Phaser.Scene {
             typeIcon.setScale(scale);
             container.add(typeIcon);
         } else {
-            const typeLabel = this.add.text(0, 30, `${this.getTypeDisplayName(starter.type)}系`, {
-                fontSize: '14px',
-                color: this.getTypeColor(starter.type)
-            }).setOrigin(0.5);
-            container.add(typeLabel);
+            const fallbackIcon = this.add.circle(0, 32, 10, DataLoader.getTypeColor(starter.type), 1);
+            fallbackIcon.setStrokeStyle(1, 0xffffff, 0.8);
+            container.add(fallbackIcon);
         }
 
         // 简介
@@ -466,12 +464,8 @@ class MainMenuScene extends Phaser.Scene {
     }
 
     getTypeColor(type) {
-        const colors = {
-            'grass': '#88dd88',
-            'water': '#88ccff',
-            'fire': '#ffaa77'
-        };
-        return colors[type] || '#ffffff';
+        const color = DataLoader.getTypeColor(type);
+        return `#${color.toString(16).padStart(6, '0')}`;
     }
 
     confirmNewGame() {
@@ -489,18 +483,7 @@ class MainMenuScene extends Phaser.Scene {
     }
 
     getTypeDisplayName(type) {
-        const typeNames = {
-            'water': '水',
-            'fire': '火',
-            'grass': '草',
-            'electric': '电',
-            'normal': '普通',
-            'flying': '飞行',
-            'ground': '地面',
-            'ice': '冰',
-            'mechanical': '机械'
-        };
-        return typeNames[type] || type;
+        return DataLoader.getTypeName(type);
     }
 
     createSmallButton(x, y, text, callback) {

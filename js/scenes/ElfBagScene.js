@@ -545,40 +545,18 @@ class ElfBagScene extends Phaser.Scene {
      * 获取属性类型颜色
      */
     getTypeColor(type) {
-        const colors = {
-            normal: 0xa8a878,
-            water: 0x6890f0,
-            fire: 0xf08030,
-            grass: 0x78c850,
-            electric: 0xf8d030,
-            ice: 0x98d8d8,
-            flying: 0xa890f0,
-            ground: 0xe0c068,
-            mechanical: 0xb8b8d0
-        };
-        return colors[type] || 0x888888;
+        return DataLoader.getTypeColor(type);
     }
 
     /**
      * 获取属性类型中文名
      */
     getTypeName(type) {
-        const names = {
-            normal: '普通',
-            water: '水',
-            fire: '火',
-            grass: '草',
-            electric: '电',
-            ice: '冰',
-            flying: '飞行',
-            ground: '地面',
-            mechanical: '机械'
-        };
-        return names[type] || type;
+        return DataLoader.getTypeName(type);
     }
 
     /**
-     * 添加属性显示：四属性使用图标，其它属性保留文字标签
+     * 添加属性显示：优先图标，缺失时回退为无文字色块图标
      */
     addTypeVisual(container, x, y, type, options = {}) {
         const iconKey = AssetMappings.getTypeIconKey(type);
@@ -591,18 +569,11 @@ class ElfBagScene extends Phaser.Scene {
             return;
         }
 
-        const width = options.fallbackWidth || 60;
-        const height = options.fallbackHeight || 24;
-        const fontSize = options.fallbackFontSize || '12px';
         const typeColor = this.getTypeColor(type);
-        const typeBg = this.add.rectangle(x, y, width, height, typeColor).setOrigin(0.5);
-        const typeText = this.add.text(x, y, this.getTypeName(type), {
-            fontSize,
-            fontFamily: 'Arial',
-            color: '#ffffff'
-        }).setOrigin(0.5);
-        container.add(typeBg);
-        container.add(typeText);
+        const radius = Math.max(6, Math.floor(iconSize / 2));
+        const fallback = this.add.circle(x, y, radius, typeColor).setOrigin(0.5);
+        fallback.setStrokeStyle(1, 0xffffff, 0.7);
+        container.add(fallback);
     }
 
     /**

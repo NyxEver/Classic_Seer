@@ -413,10 +413,9 @@ class ElfManageScene extends Phaser.Scene {
             typeIcon.setScale(scale);
             this.rightContent.add(typeIcon);
         } else {
-            const typeText = this.add.text(iconX, iconY, DataLoader.getTypeName(baseData.type), {
-                fontSize: '12px', color: '#9dc6e8'
-            }).setOrigin(0, 0.5);
-            this.rightContent.add(typeText);
+            const fallback = this.add.circle(iconX + 8, iconY, 7, DataLoader.getTypeColor(baseData.type), 1).setOrigin(0, 0.5);
+            fallback.setStrokeStyle(1, 0xffffff, 0.7);
+            this.rightContent.add(fallback);
         }
         ty += 28;
 
@@ -524,10 +523,9 @@ class ElfManageScene extends Phaser.Scene {
             container.add(icon);
             return;
         }
-        const text = this.add.text(x, y, DataLoader.getTypeName(type), {
-            fontSize: '10px', color: '#a6cae8'
-        }).setOrigin(1, 0);
-        container.add(text);
+        const fallback = this.add.circle(x - 7, y + 7, 7, DataLoader.getTypeColor(type), 1).setOrigin(1, 0);
+        fallback.setStrokeStyle(1, 0xffffff, 0.7);
+        container.add(fallback);
     }
 
     drawPanelBlock(container, x, y, w, h, color) {

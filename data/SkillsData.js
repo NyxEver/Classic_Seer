@@ -8,6 +8,7 @@
  * - 201-299: 水系进化链技能
  * - 301-399: 草系进化链技能
  * - 401-499: 火系进化链技能
+ * - 501-599: 谱尼技能
  */
 
 const SkillsData = {
@@ -874,6 +875,371 @@ const SkillsData = {
                 description: "自身承受1/4反伤"
             },
             description: "用烈焰包裹身体猛烈冲撞对手，自身也会受到伤害。"
+        },
+
+        // ============================================
+        // 谱尼技能 (501-599)
+        // ============================================
+        {
+            id: 501,
+            name: "极光",
+            type: "normal",
+            category: "physical",
+            power: 60,
+            accuracy: 100,
+            pp: 40,
+            priority: 0,
+            critRate: 8,
+            effect: null,
+            description: "普通系物理攻击。"
+        },
+        {
+            id: 502,
+            name: "虚无",
+            type: "normal",
+            category: "status",
+            power: 0,
+            accuracy: 100,
+            pp: 1,
+            priority: 0,
+            critRate: null,
+            effect: {
+                type: "voidShield",
+                duration: 2,
+                requiresFirstStrike: true,
+                description: "2回合内若本方先手攻击，使对方技能失效"
+            },
+            description: "2回合内若本方先手攻击，使对方技能失效。"
+        },
+        {
+            id: 503,
+            name: "神圣之光",
+            type: "spirit",
+            category: "special",
+            power: 70,
+            accuracy: 100,
+            pp: 40,
+            priority: 0,
+            critRate: 16,
+            effect: null,
+            description: "圣灵系特殊攻击。"
+        },
+        {
+            id: 504,
+            name: "元素",
+            type: "spirit",
+            category: "special",
+            power: 5,
+            accuracy: 95,
+            pp: 5,
+            priority: 0,
+            critRate: 16,
+            effect: {
+                type: "fixedDamageBonus",
+                amount: 200,
+                description: "额外附加200点固定伤害"
+            },
+            description: "造成伤害后额外附加200点固定伤害。"
+        },
+        {
+            id: 505,
+            name: "能量",
+            type: "spirit",
+            category: "physical",
+            power: 0,
+            accuracy: 100,
+            pp: 5,
+            priority: -6,
+            critRate: 16,
+            effect: {
+                type: "counter",
+                multiplier: 2,
+                description: "将所受伤害2倍反馈给对手"
+            },
+            description: "将所受伤害2倍反馈给对手。"
+        },
+        {
+            id: 506,
+            name: "灵光之怒",
+            type: "spirit",
+            category: "special",
+            power: 80,
+            accuracy: 100,
+            pp: 30,
+            priority: 0,
+            critRate: 16,
+            effect: {
+                type: "conditional",
+                condition: "targetBuffed",
+                bonusPowerPerStage: 20,
+                description: "对手能力等级越高威力越大"
+            },
+            description: "对手能力等级越高威力越大。"
+        },
+        {
+            id: 507,
+            name: "生命",
+            type: "normal",
+            category: "status",
+            power: 0,
+            accuracy: 100,
+            pp: 5,
+            priority: 0,
+            critRate: null,
+            effect: {
+                type: "skillLifeSteadyRegen",
+                duration: 5,
+                amount: 100,
+                description: "5回合内使用技能时恢复100点体力"
+            },
+            description: "5回合内使用技能时恢复100点体力。"
+        },
+        {
+            id: 508,
+            name: "断空破",
+            type: "normal",
+            category: "physical",
+            power: 90,
+            accuracy: 100,
+            pp: 20,
+            priority: 0,
+            critRate: 16,
+            effect: {
+                type: "fixedDamageBonus",
+                amount: 30,
+                description: "额外附加30点固定伤害"
+            },
+            description: "普通系物理攻击，额外附加30点固定伤害。"
+        },
+        {
+            id: 509,
+            name: "轮回",
+            type: "normal",
+            category: "status",
+            power: 0,
+            accuracy: 100,
+            pp: 1,
+            priority: 0,
+            critRate: null,
+            effect: {
+                type: "heal",
+                healRatio: 1,
+                description: "恢复自身最大体力100%"
+            },
+            description: "恢复自身最大体力100%。"
+        },
+        {
+            id: 510,
+            name: "灵魂干涉",
+            type: "normal",
+            category: "status",
+            power: 0,
+            accuracy: 70,
+            pp: 20,
+            priority: 0,
+            critRate: null,
+            effect: {
+                type: "exhausted",
+                duration: 3,
+                description: "令对手疲惫3回合"
+            },
+            description: "令对手疲惫3回合。"
+        },
+        {
+            id: 511,
+            name: "圣堂之门",
+            type: "spirit",
+            category: "special",
+            power: 100,
+            accuracy: 100,
+            pp: 15,
+            priority: 0,
+            critRate: 16,
+            effect: {
+                type: "removeTargetBuffs",
+                description: "消除对手能力提升状态"
+            },
+            description: "圣灵系特殊攻击，并消除对手能力提升状态。"
+        },
+        {
+            id: 512,
+            name: "永恒",
+            type: "normal",
+            category: "status",
+            power: 0,
+            accuracy: 100,
+            pp: 5,
+            priority: 0,
+            critRate: null,
+            effect: {
+                type: "restoreAllPP",
+                description: "恢复自身所有PP"
+            },
+            description: "恢复自身所有技能PP。"
+        },
+        {
+            id: 513,
+            name: "圣洁",
+            type: "normal",
+            category: "status",
+            power: 0,
+            accuracy: 100,
+            pp: 5,
+            priority: 0,
+            critRate: null,
+            effect: {
+                type: "selfStatusSkillImmune",
+                duration: 5,
+                description: "5回合内属性攻击对自身必定miss"
+            },
+            description: "5回合内属性攻击对自身必定miss。"
+        },
+        {
+            id: 514,
+            name: "旋灭裂空阵",
+            type: "spirit",
+            category: "physical",
+            power: 135,
+            accuracy: 100,
+            pp: 10,
+            priority: 0,
+            critRate: 16,
+            effect: {
+                type: "dotFixedDamage",
+                duration: 5,
+                amount: 30,
+                description: "5回合内每回合附加30点固定伤害"
+            },
+            description: "圣灵系物理攻击，并附加持续固定伤害。"
+        },
+        {
+            id: 515,
+            name: "千烈虚光闪",
+            type: "spirit",
+            category: "special",
+            power: 140,
+            accuracy: 100,
+            pp: 10,
+            priority: 0,
+            critRate: 16,
+            effect: {
+                type: "clearSelfDebuffs",
+                description: "解除自身能力下降状态"
+            },
+            description: "圣灵系特殊攻击，并解除自身能力下降状态。"
+        },
+        {
+            id: 516,
+            name: "圣光气",
+            type: "normal",
+            category: "status",
+            power: 0,
+            accuracy: 100,
+            pp: 10,
+            priority: 0,
+            critRate: null,
+            effect: {
+                type: "guaranteedCrit",
+                duration: 2,
+                description: "下2回合自身攻击必定致命一击"
+            },
+            description: "下2回合自身攻击必定致命一击。"
+        },
+        {
+            id: 517,
+            name: "圣灵魔闪光",
+            type: "spirit",
+            category: "special",
+            power: 160,
+            accuracy: 100,
+            pp: 5,
+            priority: 0,
+            critRate: 16,
+            effect: {
+                type: "reduceTargetHpByMaxRatio",
+                ratio: 0.125,
+                description: "降低对手1/8HP"
+            },
+            description: "圣灵系特殊攻击，并降低对手1/8最大HP。"
+        },
+        {
+            id: 518,
+            name: "璨灵圣光",
+            type: "normal",
+            category: "status",
+            power: 0,
+            accuracy: 100,
+            pp: 5,
+            priority: 0,
+            critRate: null,
+            effect: {
+                type: "compositeBuff",
+                immuneDamageDuration: 2,
+                regenDuration: 5,
+                regenRatio: 0.3333,
+                enemyTypePriorityBonus: 1,
+                guaranteedFirstStrikeDuration: 2,
+                damageMultiplierDuration: 2,
+                damageMultiplier: 2,
+                description: "2回合免疫伤害；5回合每回合回复1/3HP；遇天敌先制+1；下2回合必定先手；下2回合伤害翻倍"
+            },
+            description: "复合强化技能。"
+        },
+        {
+            id: 519,
+            name: "落芳天华",
+            type: "spirit",
+            category: "special",
+            power: 80,
+            accuracy: 100,
+            pp: 10,
+            priority: 3,
+            critRate: 16,
+            effect: {
+                type: "transferBuffAndGrowingFixedDamage",
+                maxFixedDamage: 400,
+                enemyTypeDouble: true,
+                description: "转移对手能力提升；附加固定伤害递增，最高400点，天敌时翻倍"
+            },
+            description: "高先制圣灵系特殊攻击。"
+        },
+        {
+            id: 520,
+            name: "圣灵悲魂曲",
+            type: "spirit",
+            category: "special",
+            power: 150,
+            accuracy: 95,
+            pp: 5,
+            priority: 1,
+            critRate: 16,
+            effect: {
+                type: "statusSkillSealAndReducePP",
+                duration: 3,
+                chance: 50,
+                ppReduceOnFirstStrike: 1,
+                description: "3回合50%令对手属性技能无效；先手时对手PP-1"
+            },
+            description: "圣灵系高威力特殊攻击。"
+        },
+        {
+            id: 521,
+            name: "圣影流光破",
+            type: "spirit",
+            category: "special",
+            power: 160,
+            accuracy: 95,
+            pp: 5,
+            priority: 0,
+            critRate: 16,
+            effect: {
+                type: "purgeRoundEffectNoHealAndBoostAndDrain",
+                noHealDuration: 2,
+                selfBoost: { spAtk: 1, spd: 1 },
+                maxDrain: 350,
+                description: "消除回合类效果；2回合无法回血；自身特攻+1速度+1；吸取固定体力最高350点"
+            },
+            description: "圣灵系特殊攻击并附带多重效果。"
         }
     ]
 };
