@@ -105,6 +105,7 @@ const PlayerData = {
             nickname: nickname,
             level: level,
             exp: 0,
+            obtainedAt: Date.now(),
             currentHp: maxHp,
             skills: initialSkills,
             skillPP: skillPP,

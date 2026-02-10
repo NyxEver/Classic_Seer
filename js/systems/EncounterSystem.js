@@ -83,6 +83,14 @@ const EncounterSystem = {
         // 标记精灵为已见过（图鉴系统）
         PlayerData.markSeen(wildElf.id);
 
+        // 来源场景背景（用于战斗背景滤镜化）
+        let sourceBackgroundKey = null;
+        if (typeof scene.getBattleBackgroundKey === 'function') {
+            sourceBackgroundKey = scene.getBattleBackgroundKey();
+        } else if (scene.sceneConfig && scene.sceneConfig.background) {
+            sourceBackgroundKey = scene.sceneConfig.background;
+        }
+
         // 切换到战斗场景，传递数据
         scene.scene.start('BattleScene', {
             playerElf: playerElf,
@@ -90,7 +98,8 @@ const EncounterSystem = {
             battleType: 'wild',
             canEscape: true,
             canCatch: true,
-            returnScene: scene.scene.key // 战斗结束后返回的场景
+            returnScene: scene.scene.key, // 战斗结束后返回的场景
+            battleBackgroundKey: sourceBackgroundKey
         });
     }
 };

@@ -377,12 +377,20 @@ class MainMenuScene extends Phaser.Scene {
         }).setOrigin(0.5);
         container.add(nameText);
 
-        // 属性标签
-        const typeLabel = this.add.text(0, 30, `${this.getTypeDisplayName(starter.type)}系`, {
-            fontSize: '14px',
-            color: this.getTypeColor(starter.type)
-        }).setOrigin(0.5);
-        container.add(typeLabel);
+        // 属性标签（四属性显示图标，其他属性保留文字）
+        const typeIconKey = AssetMappings.getTypeIconKey(starter.type);
+        if (typeIconKey && this.textures.exists(typeIconKey)) {
+            const typeIcon = this.add.image(0, 32, typeIconKey).setOrigin(0.5);
+            const scale = Math.min(24 / typeIcon.width, 24 / typeIcon.height);
+            typeIcon.setScale(scale);
+            container.add(typeIcon);
+        } else {
+            const typeLabel = this.add.text(0, 30, `${this.getTypeDisplayName(starter.type)}系`, {
+                fontSize: '14px',
+                color: this.getTypeColor(starter.type)
+            }).setOrigin(0.5);
+            container.add(typeLabel);
+        }
 
         // 简介
         const desc = this.add.text(0, 65, starter.desc, {

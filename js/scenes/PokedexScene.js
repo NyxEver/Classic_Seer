@@ -184,11 +184,7 @@ class PokedexScene extends Phaser.Scene {
 
         // 属性标签
         if (hasCaught) {
-            const typeLabel = this.add.text(0, 65, this.getTypeDisplayName(elfData.type), {
-                fontSize: '14px',
-                color: this.getTypeTextColor(elfData.type)
-            }).setOrigin(0.5);
-            container.add(typeLabel);
+            this.addTypeVisual(container, 0, 65, elfData.type);
 
             // 状态标记
             const statusIcon = this.add.text(w / 2 - 10, -h / 2 + 10, '✓', {
@@ -250,6 +246,26 @@ class PokedexScene extends Phaser.Scene {
             'mechanical': '机械属性'
         };
         return names[type] || type;
+    }
+
+    /**
+     * 属性显示：四属性使用图标，其它属性保留文字
+     */
+    addTypeVisual(container, x, y, type) {
+        const iconKey = AssetMappings.getTypeIconKey(type);
+        if (iconKey && this.textures.exists(iconKey)) {
+            const icon = this.add.image(x, y, iconKey).setOrigin(0.5);
+            const scale = Math.min(22 / icon.width, 22 / icon.height);
+            icon.setScale(scale);
+            container.add(icon);
+            return;
+        }
+
+        const typeLabel = this.add.text(x, y, this.getTypeDisplayName(type), {
+            fontSize: '14px',
+            color: this.getTypeTextColor(type)
+        }).setOrigin(0.5);
+        container.add(typeLabel);
     }
 
     createButton(x, y, text, callback) {

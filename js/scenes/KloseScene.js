@@ -318,6 +318,14 @@ class KloseScene extends Phaser.Scene {
         EncounterSystem.startWildBattle(this, wildElf);
     }
 
+    /**
+     * 返回当前场景背景资源 key（供 BattleScene 复用）
+     * @returns {string|null}
+     */
+    getBattleBackgroundKey() {
+        return this.sceneConfig ? this.sceneConfig.background : null;
+    }
+
     // ========== 返回按钮 ==========
     createBackButton() {
         const btn = this.add.container(80, 550);

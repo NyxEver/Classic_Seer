@@ -123,16 +123,26 @@ class ItemBagScene extends Phaser.Scene {
         bg.strokeRoundedRect(0, 0, w, h, 8);
         container.add(bg);
 
-        // 物品图标占位
+        // 物品图标背景
         const iconBg = this.add.graphics();
         iconBg.fillStyle(0x3a5a7a, 1);
         iconBg.fillRoundedRect(10, 10, h - 20, h - 20, 6);
         container.add(iconBg);
 
-        const iconText = this.add.text(10 + (h - 20) / 2, h / 2, item.data.name.charAt(0), {
-            fontSize: '20px', fontFamily: 'Arial', color: '#ffffff', fontStyle: 'bold'
-        }).setOrigin(0.5);
-        container.add(iconText);
+        // 物品图标：优先使用资源映射，缺失时回退首字
+        const itemIconKey = AssetMappings.getItemImageKey(item.id);
+        if (itemIconKey && this.textures.exists(itemIconKey)) {
+            const iconImage = this.add.image(10 + (h - 20) / 2, h / 2, itemIconKey);
+            const iconSize = h - 24;
+            const scale = Math.min(iconSize / iconImage.width, iconSize / iconImage.height);
+            iconImage.setScale(scale);
+            container.add(iconImage);
+        } else {
+            const iconText = this.add.text(10 + (h - 20) / 2, h / 2, item.data.name.charAt(0), {
+                fontSize: '20px', fontFamily: 'Arial', color: '#ffffff', fontStyle: 'bold'
+            }).setOrigin(0.5);
+            container.add(iconText);
+        }
 
         // 物品名称
         const nameText = this.add.text(h + 10, 15, item.data.name, {

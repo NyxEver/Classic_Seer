@@ -2,6 +2,7 @@
  * Elf - 精灵类
  * 结合基础数据和实例数据，提供属性计算和状态管理
  */
+const ELF_MAX_LEVEL = 100;
 
 class Elf {
     /**
@@ -24,8 +25,12 @@ class Elf {
 
         // 实例数据（来自玩家存档）
         this.nickname = instanceData.nickname;
-        this.level = instanceData.level;
+        // 等级统一限制在 [1, 100]，避免脏存档或调试入口越界
+        this.level = Math.max(1, Math.min(instanceData.level, ELF_MAX_LEVEL));
         this.exp = instanceData.exp;
+        if (this.level >= ELF_MAX_LEVEL) {
+            this.exp = 0;
+        }
         this.currentHp = instanceData.currentHp;
         this.skills = instanceData.skills || [];
         this.skillPP = instanceData.skillPP || {};
@@ -179,6 +184,9 @@ class Elf {
      * @returns {number}
      */
     getExpToNextLevel() {
+        if (this.level >= ELF_MAX_LEVEL) {
+            return 0;
+        }
         return this.level * 100;
     }
 
@@ -187,6 +195,9 @@ class Elf {
      * @returns {boolean}
      */
     canLevelUp() {
+        if (this.level >= ELF_MAX_LEVEL) {
+            return false;
+        }
         return this.exp >= this.getExpToNextLevel();
     }
 
@@ -202,6 +213,14 @@ class Elf {
         const expNeeded = this.getExpToNextLevel();
         this.exp -= expNeeded;
         this.level += 1;
+        if (this.level > ELF_MAX_LEVEL) {
+            this.level = ELF_MAX_LEVEL;
+        }
+
+        // 达到等级上限后清空经验，避免继续累计
+        if (this.level >= ELF_MAX_LEVEL) {
+            this.exp = 0;
+        }
 
         // 升级后提升 HP（保持相同 HP 百分比或补满）
         const oldMaxHp = this._instanceData.currentHp; // 之前的 currentHp
@@ -330,6 +349,14 @@ class Elf {
      */
     addExp(amount) {
         console.log(`[Elf] ${this.getDisplayName()} 获得 ${amount} 经验 (当前: ${this.exp})`);
+
+        if (this.level >= ELF_MAX_LEVEL) {
+            // 满级后不再累计经验，保持稳定状态
+            this.exp = 0;
+            this._syncInstanceData();
+            return [];
+        }
+
         this.exp += amount;
 
         const levelUpResults = [];
@@ -343,6 +370,12 @@ class Elf {
                 if (typeof QuestManager !== 'undefined') {
                     QuestManager.updateProgress('levelUp', this.id, result.newLevel);
                 }
+            }
+
+            // 防御性保护：达到上限立即停止连升
+            if (this.level >= ELF_MAX_LEVEL) {
+                this.exp = 0;
+                break;
             }
         }
 
@@ -569,7 +602,7 @@ class Elf {
         const instanceData = {
             elfId: elfId,
             nickname: null,
-            level: level,
+            level: Math.max(1, Math.min(level, ELF_MAX_LEVEL)),
             exp: 0,
             currentHp: 0, // 临时，将在构造后计算
             skills: skills,

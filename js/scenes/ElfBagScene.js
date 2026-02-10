@@ -108,18 +108,13 @@ class ElfBagScene extends Phaser.Scene {
         });
         container.add(levelText);
 
-        // 属性类型标签
-        const typeColor = this.getTypeColor(elf.type);
-        const typeBg = this.add.rectangle(280, 20, 60, 24, typeColor);
-        typeBg.setOrigin(0.5);
-        container.add(typeBg);
-
-        const typeText = this.add.text(280, 20, this.getTypeName(elf.type), {
-            fontSize: '12px',
-            fontFamily: 'Arial',
-            color: '#ffffff'
-        }).setOrigin(0.5);
-        container.add(typeText);
+        // 属性类型标签（四属性显示图标，其他属性保留文字）
+        this.addTypeVisual(container, 280, 20, elf.type, {
+            iconSize: 24,
+            fallbackWidth: 60,
+            fallbackHeight: 24,
+            fallbackFontSize: '12px'
+        });
 
         // HP 条
         const hpBarBg = this.add.rectangle(15, 60, 200, 12, 0x333355);
@@ -246,18 +241,13 @@ class ElfBagScene extends Phaser.Scene {
         }).setOrigin(1, 0);
         this.detailPanel.add(levelText);
 
-        // 属性类型
-        const typeColor = this.getTypeColor(elf.type);
-        const typeBg = this.add.rectangle(20 + 40, 60, 80, 28, typeColor);
-        typeBg.setOrigin(0.5);
-        this.detailPanel.add(typeBg);
-
-        const typeText = this.add.text(20 + 40, 60, this.getTypeName(elf.type), {
-            fontSize: '14px',
-            fontFamily: 'Arial',
-            color: '#ffffff'
-        }).setOrigin(0.5);
-        this.detailPanel.add(typeText);
+        // 属性类型（四属性显示图标，其他属性保留文字）
+        this.addTypeVisual(this.detailPanel, 60, 60, elf.type, {
+            iconSize: 28,
+            fallbackWidth: 80,
+            fallbackHeight: 28,
+            fallbackFontSize: '14px'
+        });
 
         // 经验值
         const expNeeded = elf.getExpToNextLevel();
@@ -456,16 +446,13 @@ class ElfBagScene extends Phaser.Scene {
             });
             this.detailPanel.add(skillNameText);
 
-            // 技能类型标签
-            const skillTypeBg = this.add.rectangle(sx + skillWidth - 40, sy + 15, 60, 20, typeColor);
-            this.detailPanel.add(skillTypeBg);
-
-            const skillTypeText = this.add.text(sx + skillWidth - 40, sy + 15, this.getTypeName(skill.type), {
-                fontSize: '10px',
-                fontFamily: 'Arial',
-                color: '#ffffff'
-            }).setOrigin(0.5);
-            this.detailPanel.add(skillTypeText);
+            // 技能类型标签（四属性显示图标，其他属性保留文字）
+            this.addTypeVisual(this.detailPanel, sx + skillWidth - 40, sy + 15, skill.type, {
+                iconSize: 20,
+                fallbackWidth: 60,
+                fallbackHeight: 20,
+                fallbackFontSize: '10px'
+            });
 
             // PP
             const ppText = this.add.text(sx + 10, sy + 35, `PP: ${skill.currentPP}/${skill.pp}`, {
@@ -588,6 +575,34 @@ class ElfBagScene extends Phaser.Scene {
             mechanical: '机械'
         };
         return names[type] || type;
+    }
+
+    /**
+     * 添加属性显示：四属性使用图标，其它属性保留文字标签
+     */
+    addTypeVisual(container, x, y, type, options = {}) {
+        const iconKey = AssetMappings.getTypeIconKey(type);
+        const iconSize = options.iconSize || 24;
+        if (iconKey && this.textures.exists(iconKey)) {
+            const icon = this.add.image(x, y, iconKey).setOrigin(0.5);
+            const scale = Math.min(iconSize / icon.width, iconSize / icon.height);
+            icon.setScale(scale);
+            container.add(icon);
+            return;
+        }
+
+        const width = options.fallbackWidth || 60;
+        const height = options.fallbackHeight || 24;
+        const fontSize = options.fallbackFontSize || '12px';
+        const typeColor = this.getTypeColor(type);
+        const typeBg = this.add.rectangle(x, y, width, height, typeColor).setOrigin(0.5);
+        const typeText = this.add.text(x, y, this.getTypeName(type), {
+            fontSize,
+            fontFamily: 'Arial',
+            color: '#ffffff'
+        }).setOrigin(0.5);
+        container.add(typeBg);
+        container.add(typeText);
     }
 
     /**

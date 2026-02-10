@@ -85,6 +85,7 @@ const CatchSystem = {
             nickname: null,
             level: elf.level,
             exp: elf.exp || 0,
+            obtainedAt: Date.now(),
             currentHp: elf.currentHp,
             skills: elf.skills ? [...elf.skills] : [],
             skillPP: elf.skillPP ? { ...elf.skillPP } : {},

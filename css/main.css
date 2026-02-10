@@ -34,6 +34,7 @@ body {
 /* Ensure canvas doesn't have outline when focused */
 #game-container canvas {
     outline: none;
+    display: block;
 }
 
 /* Prevent touch callout on mobile */

@@ -12,6 +12,13 @@ class BootScene extends Phaser.Scene {
      * 用于加载图片、音频等资源文件
      */
     preload() {
+        const isFileProtocol = window.location.protocol === 'file:';
+
+        // 统一监听资源加载失败，便于快速定位路径问题
+        this.load.on('loaderror', (file) => {
+            console.error(`[BootScene] 资源加载失败: key=${file.key}, path=${file.src || 'unknown'}`);
+        });
+
         // 使用 Base64 嵌入数据加载精灵贴图（绕过 file:// CORS 限制）
         if (typeof ElfSpriteData !== 'undefined' && typeof AssetMappings !== 'undefined') {
             let loadedCount = 0;
@@ -40,6 +47,68 @@ class BootScene extends Phaser.Scene {
                 this.load.image(`ui_${key}`, data);
             }
             console.log(`[BootScene] 预加载 ${Object.keys(UIAssetData).length} 个 UI 资源`);
+        }
+
+        // 加载物品图标资源（优先 Base64，避免 file:// CORS）
+        if (typeof AssetMappings !== 'undefined') {
+            const loadedNames = new Set();
+            let loadedCount = 0;
+            for (const fileName of Object.values(AssetMappings.items || {})) {
+                if (loadedNames.has(fileName)) continue;
+                loadedNames.add(fileName);
+
+                const key = `item_${fileName}`;
+                if (typeof ItemIconData !== 'undefined' && ItemIconData[fileName]) {
+                    this.load.image(key, ItemIconData[fileName]);
+                    loadedCount++;
+                } else if (!isFileProtocol) {
+                    this.load.image(key, `assets/images/items/${fileName}.png`);
+                    loadedCount++;
+                } else {
+                    console.warn(`[BootScene] 缺少 ItemIconData: ${fileName}`);
+                }
+            }
+            console.log(`[BootScene] 预加载 ${loadedCount} 个物品图标`);
+        }
+
+        // 加载属性图标资源（当前仅水/火/草/飞行，优先 Base64）
+        if (typeof AssetMappings !== 'undefined') {
+            let loadedCount = 0;
+            for (const iconName of Object.values(AssetMappings.typeIcons || {})) {
+                const key = `type_${iconName}`;
+                if (typeof TypeIconData !== 'undefined' && TypeIconData[iconName]) {
+                    this.load.image(key, TypeIconData[iconName]);
+                    loadedCount++;
+                } else if (!isFileProtocol) {
+                    this.load.image(key, `assets/images/ui/icons/type/${iconName}.png`);
+                    loadedCount++;
+                } else {
+                    console.warn(`[BootScene] 缺少 TypeIconData: ${iconName}`);
+                }
+            }
+            console.log(`[BootScene] 预加载 ${loadedCount} 个属性图标`);
+        }
+
+        // 加载背景音乐资源（优先 Base64，避免 file:// CORS）
+        if (typeof AssetMappings !== 'undefined') {
+            const loadedNames = new Set();
+            let loadedCount = 0;
+            for (const bgmName of Object.values(AssetMappings.bgm || {})) {
+                if (loadedNames.has(bgmName)) continue;
+                loadedNames.add(bgmName);
+
+                const key = `bgm_${bgmName}`;
+                if (typeof BgmData !== 'undefined' && BgmData[bgmName]) {
+                    this.load.audio(key, BgmData[bgmName]);
+                    loadedCount++;
+                } else if (!isFileProtocol) {
+                    this.load.audio(key, `assets/audio/bgm/${bgmName}.mp3`);
+                    loadedCount++;
+                } else {
+                    console.warn(`[BootScene] 缺少 BgmData: ${bgmName}`);
+                }
+            }
+            console.log(`[BootScene] 预加载 ${loadedCount} 个 BGM`);
         }
     }
 

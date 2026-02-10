@@ -106,7 +106,37 @@ const AssetMappings = {
      * value: BGM 音频名称
      */
     bgm: {
-        // 'BattleScene': 'seer_battle_1'
+        BattleScene: 'seer_battle_1'
+    },
+
+    /**
+     * 物品图标映射
+     * key: 物品 ID
+     * value: 图片资源名称（不含路径和扩展名）
+     */
+    items: {
+        1: 'basic_capsule',
+        // 当前仅提供 basic_capsule 素材，先复用
+        4: 'basic_capsule',
+        7: 'basic_capsule',
+        2: 'basic_hpPotion',
+        5: 'intermediate_hpPotion',
+        8: 'advanced_hpPotion',
+        3: 'basic_ppPotion',
+        6: 'intermediate_ppPotion',
+        9: 'advanced_ppPotion'
+    },
+
+    /**
+     * 属性图标映射（按需求仅替换四种）
+     * key: 属性英文名
+     * value: 图标文件名（不含路径和扩展名）
+     */
+    typeIcons: {
+        water: '30px-water',
+        fire: '30px-fire',
+        grass: '30px-grass',
+        flying: '30px-flying'
     },
 
     /**
@@ -139,6 +169,124 @@ const AssetMappings = {
             assets.push({
                 key: `elf_${name}`,
                 path: `assets/images/elves/${name}.png`
+            });
+        }
+        return assets;
+    },
+
+    /**
+     * 获取场景 BGM 资源 key
+     * @param {string} sceneKey - 场景 key
+     * @returns {string|null}
+     */
+    getBgmKey(sceneKey) {
+        const name = this.bgm[sceneKey];
+        return name ? `bgm_${name}` : null;
+    },
+
+    /**
+     * 获取场景 BGM 路径
+     * @param {string} sceneKey - 场景 key
+     * @returns {string|null}
+     */
+    getBgmPath(sceneKey) {
+        const name = this.bgm[sceneKey];
+        return name ? `assets/audio/bgm/${name}.mp3` : null;
+    },
+
+    /**
+     * 获取所有 BGM 资源列表（用于批量加载）
+     * @returns {Array<{key: string, path: string}>}
+     */
+    getAllBgmAssets() {
+        const assets = [];
+        for (const name of Object.values(this.bgm)) {
+            assets.push({
+                key: `bgm_${name}`,
+                path: `assets/audio/bgm/${name}.mp3`
+            });
+        }
+        return assets;
+    },
+
+    /**
+     * 获取物品图标资源 key
+     * @param {number} itemId - 物品 ID
+     * @returns {string|null}
+     */
+    getItemImageKey(itemId) {
+        const name = this.items[itemId];
+        return name ? `item_${name}` : null;
+    },
+
+    /**
+     * 获取物品图标路径
+     * @param {number} itemId - 物品 ID
+     * @returns {string|null}
+     */
+    getItemImagePath(itemId) {
+        const name = this.items[itemId];
+        return name ? `assets/images/items/${name}.png` : null;
+    },
+
+    /**
+     * 获取所有物品图标资源列表（用于批量加载）
+     * @returns {Array<{key: string, path: string}>}
+     */
+    getAllItemAssets() {
+        const assets = [];
+        const loadedNames = new Set();
+        for (const name of Object.values(this.items)) {
+            if (loadedNames.has(name)) continue;
+            loadedNames.add(name);
+            assets.push({
+                key: `item_${name}`,
+                path: `assets/images/items/${name}.png`
+            });
+        }
+        return assets;
+    },
+
+    /**
+     * 获取属性图标 key
+     * @param {string} type - 属性名（英文）
+     * @returns {string|null}
+     */
+    getTypeIconKey(type) {
+        const name = this.typeIcons[type];
+        return name ? `type_${name}` : null;
+    },
+
+    /**
+     * 获取属性图标路径
+     * @param {string} type - 属性名（英文）
+     * @returns {string|null}
+     */
+    getTypeIconPath(type) {
+        const name = this.typeIcons[type];
+        return name ? `assets/images/ui/icons/type/${name}.png` : null;
+    },
+
+    /**
+     * 是否存在该属性图标
+     * @param {string} type - 属性名（英文）
+     * @returns {boolean}
+     */
+    hasTypeIcon(type) {
+        return !!this.typeIcons[type];
+    },
+
+    /**
+     * 获取所有属性图标资源列表（用于批量加载）
+     * @returns {Array<{key: string, path: string}>}
+     */
+    getAllTypeIconAssets() {
+        const assets = [];
+        for (const [type, name] of Object.entries(this.typeIcons)) {
+            assets.push({
+                type,
+                key: `type_${name}`,
+                path: `assets/images/ui/icons/type/${name}.png`
             });
         }
         return assets;

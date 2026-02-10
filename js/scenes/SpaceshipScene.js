@@ -303,6 +303,16 @@ class SpaceshipScene extends Phaser.Scene {
         });
 
         hit.on('pointerdown', () => {
+            if (btn.scene === 'ElfManageScene') {
+                // 精灵管理以弹窗场景叠加，不切走飞船场景
+                if (this.scene.isActive('ElfManageScene')) {
+                    return;
+                }
+                this.scene.launch('ElfManageScene', { returnScene: 'SpaceshipScene' });
+                this.scene.pause('SpaceshipScene');
+                this.scene.bringToTop('ElfManageScene');
+                return;
+            }
             SceneManager.changeScene(this, btn.scene, { returnScene: 'SpaceshipScene' });
         });
 

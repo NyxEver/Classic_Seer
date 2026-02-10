@@ -15,6 +15,7 @@ class BattleScene extends Phaser.Scene {
         this.canEscape = data.canEscape !== false;
         this.canCatch = data.canCatch !== false && this.battleType === 'wild';
         this.returnScene = data.returnScene || 'BootScene';
+        this.battleBackgroundKey = data.battleBackgroundKey || null;
     }
 
     create() {
@@ -27,6 +28,12 @@ class BattleScene extends Phaser.Scene {
         this.battleEnded = false;
         this.turnTimer = null;
         this.turnTimeLeft = 10;
+        this.battleBgm = null;
+        this.isBgmFadingOut = false;
+
+        // 场景退出时确保音乐被清理，避免跨场景叠音
+        this.events.once('shutdown', this.cleanupBattleBgm, this);
+        this.events.once('destroy', this.cleanupBattleBgm, this);
 
         // 创建 UI
         this.createBackground();
@@ -34,6 +41,9 @@ class BattleScene extends Phaser.Scene {
         this.createMainBattleArea();
         this.createBottomControlPanel();
         this.createCenterPopupDialog();
+
+        // 播放战斗 BGM（淡入）
+        this.playBattleBgm();
 
         // 初始化战斗管理器
         this.battleManager = new BattleManager({
@@ -62,6 +72,13 @@ class BattleScene extends Phaser.Scene {
 
     // ========== 背景 ==========
     createBackground() {
+        // 优先使用进入战斗前场景的背景，并应用滤镜效果
+        if (this.battleBackgroundKey && this.textures.exists(this.battleBackgroundKey)) {
+            this.createFilteredSceneBackground(this.battleBackgroundKey);
+            return;
+        }
+
+        // 回退：旧版战斗背景
         const g = this.add.graphics();
         g.fillGradientStyle(0x5588bb, 0x5588bb, 0x334466, 0x334466, 1);
         g.fillRect(0, 0, this.W, this.H);
@@ -69,6 +86,42 @@ class BattleScene extends Phaser.Scene {
         g.fillRect(0, 280, this.W, 150);
         g.lineStyle(2, 0x335522);
         g.lineBetween(0, 280, this.W, 280);
+    }
+
+    /**
+     * 使用来源场景背景并叠加滤镜：
+     * - 整体变暗
+     * - 降饱和感（灰层）
+     * - 轻微模糊感（多层偏移）
+     * - 暖色调（橙棕色叠层）
+     */
+    createFilteredSceneBackground(backgroundKey) {
+        const blurOffsets = [
+            { x: -2, y: 0 },
+            { x: 2, y: 0 },
+            { x: 0, y: -2 },
+            { x: 0, y: 2 }
+        ];
+
+        // 轻微模糊感（低透明度偏移层）
+        blurOffsets.forEach((offset) => {
+            const blurLayer = this.add.image(this.W / 2 + offset.x, this.H / 2 + offset.y, backgroundKey);
+            blurLayer.setDisplaySize(this.W + 4, this.H + 4);
+            blurLayer.setAlpha(0.12);
+            blurLayer.setDepth(-30);
+        });
+
+        // 主图层
+        const base = this.add.image(this.W / 2, this.H / 2, backgroundKey);
+        base.setDisplaySize(this.W, this.H);
+        base.setDepth(-25);
+
+        // 去饱和感：灰蓝色叠层
+        this.add.rectangle(this.W / 2, this.H / 2, this.W, this.H, 0x6f7f8f, 0.18).setDepth(-20);
+        // 暗化层
+        this.add.rectangle(this.W / 2, this.H / 2, this.W, this.H, 0x000000, 0.42).setDepth(-19);
+        // 暖色调层
+        this.add.rectangle(this.W / 2, this.H / 2, this.W, this.H, 0x5b3a1b, 0.14).setDepth(-18);
     }
 
     // ========== 顶部状态栏 ==========
@@ -200,11 +253,12 @@ class BattleScene extends Phaser.Scene {
             }).setOrigin(0.5);
             container.add(nameText);
 
-            const typeName = DataLoader.getTypeName(elf.type);
-            const typeText = this.add.text(0, 20, typeName, {
-                fontSize: '14px', fontFamily: 'Arial', color: '#dddddd'
-            }).setOrigin(0.5);
-            container.add(typeText);
+            this.addTypeVisual(container, 0, 20, elf.type, {
+                iconSize: 18,
+                fallbackFontSize: '14px',
+                fallbackColor: '#dddddd',
+                fallbackOriginX: 0.5
+            });
         }
 
         return container;
@@ -301,12 +355,13 @@ class BattleScene extends Phaser.Scene {
         });
         container.add(nameText);
 
-        // 属性标签
-        const typeName = DataLoader.getTypeName(skill.type);
-        const typeText = this.add.text(10, 32, typeName, {
-            fontSize: '12px', fontFamily: 'Arial', color: '#88aacc'
+        // 属性标签（四属性显示图标，其它属性保留文字）
+        this.addTypeVisual(container, 10, 38, skill.type, {
+            iconSize: 14,
+            fallbackFontSize: '12px',
+            fallbackColor: '#88aacc',
+            fallbackOriginX: 0
         });
-        container.add(typeText);
 
         // PP值
         const ppText = this.add.text(w - 10, h / 2, `PP ${skill.currentPP}/${skill.pp}`, {
@@ -807,16 +862,25 @@ class BattleScene extends Phaser.Scene {
         bg.strokeRoundedRect(0, 0, w, h, 6);
         container.add(bg);
 
-        // 物品图标（用首字母或类型图标表示）
-        let iconChar = '📦';
-        if (item.category === 'capsule') iconChar = '🔴';
-        else if (item.category === 'hp') iconChar = '❤️';
-        else if (item.category === 'pp') iconChar = '💧';
+        // 物品图标：优先使用资源映射，缺失时回退 emoji
+        const itemIconKey = AssetMappings.getItemImageKey(item.itemId);
+        if (itemIconKey && this.textures.exists(itemIconKey)) {
+            const iconImage = this.add.image(w / 2, h / 2 - 2, itemIconKey);
+            const iconSize = w - 12;
+            const scale = Math.min(iconSize / iconImage.width, iconSize / iconImage.height);
+            iconImage.setScale(scale);
+            container.add(iconImage);
+        } else {
+            let iconChar = '📦';
+            if (item.category === 'capsule') iconChar = '🔴';
+            else if (item.category === 'hp') iconChar = '❤️';
+            else if (item.category === 'pp') iconChar = '💧';
 
-        const icon = this.add.text(w / 2, h / 2 - 5, iconChar, {
-            fontSize: '24px'
-        }).setOrigin(0.5);
-        container.add(icon);
+            const icon = this.add.text(w / 2, h / 2 - 5, iconChar, {
+                fontSize: '24px'
+            }).setOrigin(0.5);
+            container.add(icon);
+        }
 
         // 数量徽章（右下角）
         const countBg = this.add.graphics();
@@ -1213,12 +1277,13 @@ class BattleScene extends Phaser.Scene {
         });
         container.add(metaText);
 
-        // 属性图标
-        const typeName = DataLoader.getTypeName(skill.type);
-        const typeText = this.add.text(w - 8, h / 2, typeName, {
-            fontSize: '10px', fontFamily: 'Arial', color: '#aaddaa'
-        }).setOrigin(1, 0.5);
-        container.add(typeText);
+        // 属性图标（四属性显示图标，其它属性保留文字）
+        this.addTypeVisual(container, w - 12, h / 2, skill.type, {
+            iconSize: 16,
+            fallbackFontSize: '10px',
+            fallbackColor: '#aaddaa',
+            fallbackOriginX: 1
+        });
 
         return container;
     }
@@ -1709,6 +1774,7 @@ class BattleScene extends Phaser.Scene {
     handleBattleEnd(result) {
         this.battleEnded = true;
         this.disableMenu();
+        this.fadeOutBattleBgm();
 
         if (result.victory) {
             let msg = `获得 ${result.expGained} 经验值！`;
@@ -1823,8 +1889,96 @@ class BattleScene extends Phaser.Scene {
         }
     }
 
+    /**
+     * 属性显示：四属性显示图标，其它属性保留文字
+     */
+    addTypeVisual(container, x, y, type, options = {}) {
+        const iconKey = AssetMappings.getTypeIconKey(type);
+        const iconSize = options.iconSize || 16;
+        if (iconKey && this.textures.exists(iconKey)) {
+            const icon = this.add.image(x, y, iconKey).setOrigin(options.fallbackOriginX ?? 0.5, 0.5);
+            const scale = Math.min(iconSize / icon.width, iconSize / icon.height);
+            icon.setScale(scale);
+            container.add(icon);
+            return;
+        }
+
+        const typeText = this.add.text(x, y, DataLoader.getTypeName(type), {
+            fontSize: options.fallbackFontSize || '12px',
+            fontFamily: 'Arial',
+            color: options.fallbackColor || '#88aacc'
+        }).setOrigin(options.fallbackOriginX ?? 0.5, 0.5);
+        container.add(typeText);
+    }
+
     returnToMap() {
-        this.scene.start(this.returnScene);
+        this.fadeOutBattleBgm(() => {
+            this.scene.start(this.returnScene);
+        });
+    }
+
+    playBattleBgm() {
+        const bgmKey = AssetMappings.getBgmKey('BattleScene');
+        if (!bgmKey || !this.cache.audio.exists(bgmKey)) {
+            return;
+        }
+
+        // 停止同 key 的遗留实例，防止意外叠音
+        this.sound.getAll(bgmKey).forEach((sound) => {
+            sound.stop();
+            sound.destroy();
+        });
+
+        this.battleBgm = this.sound.add(bgmKey, {
+            loop: true,
+            volume: 0
+        });
+        this.battleBgm.play();
+
+        this.tweens.add({
+            targets: this.battleBgm,
+            volume: 1,
+            duration: 600,
+            ease: 'Sine.easeInOut'
+        });
+    }
+
+    fadeOutBattleBgm(onComplete = null) {
+        if (!this.battleBgm || !this.battleBgm.isPlaying) {
+            if (onComplete) onComplete();
+            return;
+        }
+
+        if (this.isBgmFadingOut) {
+            if (onComplete) this.time.delayedCall(220, onComplete);
+            return;
+        }
+
+        this.isBgmFadingOut = true;
+        this.tweens.add({
+            targets: this.battleBgm,
+            volume: 0,
+            duration: 450,
+            ease: 'Sine.easeInOut',
+            onComplete: () => {
+                if (this.battleBgm) {
+                    this.battleBgm.stop();
+                    this.battleBgm.destroy();
+                    this.battleBgm = null;
+                }
+                this.isBgmFadingOut = false;
+                if (onComplete) onComplete();
+            }
+        });
+    }
+
+    cleanupBattleBgm() {
+        if (this.battleBgm) {
+            this.battleBgm.stop();
+            this.battleBgm.destroy();
+            this.battleBgm = null;
+        }
+        this.isBgmFadingOut = false;
     }
 }
 

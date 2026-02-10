@@ -13,587 +13,558 @@ class ElfManageScene extends Phaser.Scene {
     }
 
     create() {
+        this.cameras.main.setBackgroundColor('rgba(0,0,0,0)');
         this.W = this.cameras.main.width;
         this.H = this.cameras.main.height;
         this.selectedElfIndex = 0;
-        this.healCost = 50; // 每次治疗花费 50 赛尔豆
+        this.healAllCost = 120;
+        this.maxSlots = 6;
 
-        this.createBackground();
-        this.createHeader();
-        this.createElfList();
-        this.createDetailPanel();
-        this.createBackButton();
-
-        // 默认选中第一只精灵
-        if (PlayerData.elves.length > 0) {
-            this.selectElf(0);
-        }
+        this.createModalLayout();
+        this.refreshView();
     }
 
-    // ========== 背景 ==========
-    createBackground() {
+    createModalLayout() {
+        // 半透明遮罩（弹窗风格）
+        const mask = this.add.rectangle(this.W / 2, this.H / 2, this.W, this.H, 0x000000, 0.25);
+        mask.setInteractive();
+
+        this.modalW = Math.min(960, this.W - 60);
+        this.modalH = Math.min(560, this.H - 50);
+        this.modalX = (this.W - this.modalW) / 2;
+        this.modalY = (this.H - this.modalH) / 2;
+        this.leftW = Math.floor(this.modalW * 0.4);
+        this.splitOffset = 12; // 让中线和组件留出更舒适间距
+        this.splitX = this.leftW + this.splitOffset;
+        this.rightStartX = this.splitX + 8;
+        this.rightW = this.modalW - this.rightStartX;
+
+        const panel = this.add.graphics();
+        panel.fillStyle(0x122133, 0.98);
+        panel.fillRoundedRect(this.modalX, this.modalY, this.modalW, this.modalH, 14);
+        panel.lineStyle(2, 0x4f6f8f, 1);
+        panel.strokeRoundedRect(this.modalX, this.modalY, this.modalW, this.modalH, 14);
+
+        // 左右分隔线
+        panel.lineStyle(2, 0x2a425f, 1);
+        panel.lineBetween(this.modalX + this.splitX, this.modalY + 14, this.modalX + this.splitX, this.modalY + this.modalH - 14);
+
+        this.leftContainer = this.add.container(this.modalX, this.modalY);
+        this.rightContainer = this.add.container(this.modalX + this.rightStartX, this.modalY);
+
+        this.createLeftPanelSkeleton();
+        this.createRightPanelSkeleton();
+    }
+
+    createLeftPanelSkeleton() {
+        // 标题栏
+        const headerH = 56;
         const g = this.add.graphics();
-        g.fillGradientStyle(0x1a2a4a, 0x1a2a4a, 0x0a1a2a, 0x0a1a2a, 1);
-        g.fillRect(0, 0, this.W, this.H);
-    }
+        g.fillStyle(0x20384f, 0.95);
+        g.fillRoundedRect(0, 0, this.leftW, headerH, 14);
+        g.fillRect(0, 24, this.leftW, headerH - 24);
+        this.leftContainer.add(g);
 
-    // ========== 顶部信息栏 ==========
-    createHeader() {
-        const headerH = 60;
-        const g = this.add.graphics();
-        g.fillStyle(0x2a4a6a, 0.9);
-        g.fillRect(0, 0, this.W, headerH);
-        g.lineStyle(2, 0x4a7a9a);
-        g.lineBetween(0, headerH, this.W, headerH);
-
-        // 标题
-        this.add.text(20, 30, '精灵管理', {
-            fontSize: '24px', fontFamily: 'Arial', color: '#ffffff', fontStyle: 'bold'
-        }).setOrigin(0, 0.5);
-
-        // 赛尔豆显示
-        this.seerBeansText = this.add.text(this.W - 20, 30, `💰 ${PlayerData.seerBeans}`, {
-            fontSize: '18px', fontFamily: 'Arial', color: '#ffdd44'
-        }).setOrigin(1, 0.5);
-    }
-
-    // ========== 精灵列表（左侧） ==========
-    createElfList() {
-        const listX = 20;
-        const listY = 80;
-        const listW = 320;
-        const listH = this.H - 150;
-
-        // 列表背景
-        const listBg = this.add.graphics();
-        listBg.fillStyle(0x1a2a3a, 0.9);
-        listBg.fillRoundedRect(listX, listY, listW, listH, 10);
-        listBg.lineStyle(2, 0x3a5a7a);
-        listBg.strokeRoundedRect(listX, listY, listW, listH, 10);
-
-        this.elfListContainer = this.add.container(listX, listY);
-
-        const elves = PlayerData.elves;
-        const itemH = 80;
-        const padding = 10;
-
-        if (elves.length === 0) {
-            const emptyText = this.add.text(listW / 2, listH / 2, '没有精灵', {
-                fontSize: '18px', fontFamily: 'Arial', color: '#666666'
-            }).setOrigin(0.5);
-            this.elfListContainer.add(emptyText);
-            return;
-        }
-
-        this.elfListItems = [];
-
-        elves.forEach((elfData, index) => {
-            const itemY = padding + index * (itemH + 10);
-            const item = this.createElfListItem(padding, itemY, listW - padding * 2, itemH, elfData, index);
-            this.elfListContainer.add(item);
-            this.elfListItems.push(item);
+        const title = this.add.text(18, 16, '精灵背包', {
+            fontSize: '22px', fontFamily: 'Arial', color: '#ffffff', fontStyle: 'bold'
         });
+        this.leftContainer.add(title);
+
+        // 关闭按钮
+        const closeBg = this.add.circle(this.leftW - 24, 24, 14, 0x7a3a3a).setInteractive({ useHandCursor: true });
+        const closeText = this.add.text(this.leftW - 24, 24, 'X', {
+            fontSize: '14px', fontFamily: 'Arial', color: '#ffffff', fontStyle: 'bold'
+        }).setOrigin(0.5);
+        closeBg.on('pointerdown', () => this.closePanel());
+        closeBg.on('pointerover', () => closeBg.setFillStyle(0xaa4a4a));
+        closeBg.on('pointerout', () => closeBg.setFillStyle(0x7a3a3a));
+        this.leftContainer.add(closeBg);
+        this.leftContainer.add(closeText);
+
+        // 网格容器
+        this.gridContainer = this.add.container(0, 0);
+        this.leftContainer.add(this.gridContainer);
+
+        // 底部功能按钮容器
+        this.leftActionContainer = this.add.container(0, 0);
+        this.leftContainer.add(this.leftActionContainer);
     }
 
-    createElfListItem(x, y, w, h, elfData, index) {
-        const container = this.add.container(x, y);
+    createRightPanelSkeleton() {
+        this.rightContent = this.add.container(0, 0);
+        this.rightContainer.add(this.rightContent);
+    }
 
-        // 获取精灵基础数据
+    refreshView() {
+        const elfCount = PlayerData.elves.length;
+        if (elfCount === 0) {
+            this.selectedElfIndex = -1;
+        } else if (this.selectedElfIndex < 0 || this.selectedElfIndex >= elfCount) {
+            this.selectedElfIndex = 0;
+        }
+        this.renderLeftGrid();
+        this.renderLeftActions();
+        this.renderRightDetail();
+    }
+
+    renderLeftGrid() {
+        this.gridContainer.removeAll(true);
+
+        const topY = 72;
+        const bottomActionH = 110;
+        const contentH = this.modalH - topY - bottomActionH - 20;
+        const cols = 2;
+        const rows = 3;
+        const gap = 12;
+        const cardW = Math.floor((this.leftW - 32 - gap) / cols);
+        const cardH = Math.floor((contentH - (rows - 1) * gap) / rows);
+        const startX = 16;
+        const startY = topY;
+
+        for (let i = 0; i < this.maxSlots; i++) {
+            const col = i % cols;
+            const row = Math.floor(i / cols);
+            const x = startX + col * (cardW + gap);
+            const y = startY + row * (cardH + gap);
+            const elfData = PlayerData.elves[i] || null;
+            const card = this.createElfCard(x, y, cardW, cardH, elfData, i);
+            this.gridContainer.add(card);
+        }
+    }
+
+    createElfCard(x, y, w, h, elfData, index) {
+        const container = this.add.container(x, y);
+        const selected = index === this.selectedElfIndex;
+        const hasElf = !!elfData;
+
+        const bg = this.add.graphics();
+        if (selected && hasElf) {
+            bg.fillStyle(0xc2702f, 1);
+            bg.lineStyle(2, 0xffffff, 1);
+        } else {
+            bg.fillStyle(hasElf ? 0x27435d : 0x1a2a3a, hasElf ? 1 : 0.65);
+            bg.lineStyle(1, hasElf ? 0x456685 : 0x2a3a4a, 1);
+        }
+        bg.fillRoundedRect(0, 0, w, h, 8);
+        bg.strokeRoundedRect(0, 0, w, h, 8);
+        container.add(bg);
+
+        if (!hasElf) {
+            const emptyText = this.add.text(w / 2, h / 2, '--', {
+                fontSize: '16px', color: '#445566'
+            }).setOrigin(0.5);
+            container.add(emptyText);
+            return container;
+        }
+
         const baseData = DataLoader.getElf(elfData.elfId);
         if (!baseData) return container;
+        const elf = new Elf(baseData, elfData);
 
-        // 背景
-        const bg = this.add.graphics();
-        bg.fillStyle(0x2a4a6a, 1);
-        bg.fillRoundedRect(0, 0, w, h, 8);
-        container.add(bg);
-        container._bg = bg;
-
-        // 精灵图标 - 尝试使用真实贴图
-        const imageKey = AssetMappings.getElfImageKey(baseData.id);
-        if (imageKey && this.textures.exists(imageKey)) {
-            const sprite = this.add.image(40, h / 2, imageKey);
-            const maxSize = 56;
-            const scale = Math.min(maxSize / sprite.width, maxSize / sprite.height);
+        // 左侧立绘
+        const imgKey = AssetMappings.getElfImageKey(baseData.id);
+        if (imgKey && this.textures.exists(imgKey)) {
+            const sprite = this.add.image(32, h / 2 - 2, imgKey);
+            const scale = Math.min((h - 18) / sprite.height, 58 / sprite.width);
             sprite.setScale(scale);
             container.add(sprite);
         } else {
-            // 后备：彩色圆圈 + 首字母
-            const iconBg = this.add.graphics();
-            const iconColor = this.getTypeColor(baseData.type);
-            iconBg.fillStyle(iconColor, 1);
-            iconBg.fillCircle(40, h / 2, 28);
-            container.add(iconBg);
-
-            const iconText = this.add.text(40, h / 2, baseData.name.charAt(0), {
-                fontSize: '24px', fontFamily: 'Arial', color: '#ffffff', fontStyle: 'bold'
+            const icon = this.add.circle(32, h / 2 - 2, 24, 0x4a7aaa);
+            const txt = this.add.text(32, h / 2 - 2, baseData.name.charAt(0), {
+                fontSize: '20px', color: '#ffffff', fontStyle: 'bold'
             }).setOrigin(0.5);
-            container.add(iconText);
+            container.add(icon);
+            container.add(txt);
         }
 
-        // 精灵名称
         const name = elfData.nickname || baseData.name;
-        const nameText = this.add.text(80, 15, name, {
-            fontSize: '16px', fontFamily: 'Arial', color: '#ffffff', fontStyle: 'bold'
-        });
-        container.add(nameText);
+        const nameY = 10;
+        container.add(this.add.text(66, nameY, name, {
+            fontSize: '14px', color: '#ffffff', fontStyle: 'bold'
+        }));
 
-        // 等级
-        const lvText = this.add.text(80, 38, `Lv.${elfData.level}`, {
-            fontSize: '14px', fontFamily: 'Arial', color: '#aaddaa'
-        });
-        container.add(lvText);
-
-        // HP 条
-        const elf = new Elf(baseData, elfData);
-        const maxHp = elf.getMaxHp();
-        const currentHp = elfData.currentHp;
-        const hpPct = currentHp / maxHp;
-
-        const hpBarW = 120, hpBarH = 12;
-        const hpBarX = 80, hpBarY = 58;
-
+        // 血条放在名称与等级之间（避免与右下 HP 文本重叠）
+        const hpBarX = 66;
+        const hpBarH = 8;
+        const metaY = h - 16;
+        const hpBarY = Math.floor((nameY + metaY) / 2) - Math.floor(hpBarH / 2);
+        const hpBarW = Math.max(30, w - hpBarX - 10);
         const hpBg = this.add.graphics();
-        hpBg.fillStyle(0x222222, 1);
-        hpBg.fillRoundedRect(hpBarX, hpBarY, hpBarW, hpBarH, 4);
+        hpBg.fillStyle(0x1a1a1a, 1);
+        hpBg.fillRoundedRect(hpBarX, hpBarY, hpBarW, hpBarH, 3);
         container.add(hpBg);
 
-        const hpBar = this.add.graphics();
-        let hpColor = 0x44dd44;
-        if (hpPct <= 0.2) hpColor = 0xdd4444;
-        else if (hpPct <= 0.5) hpColor = 0xddaa44;
+        const hpPct = elf.getMaxHp() > 0 ? (elfData.currentHp / elf.getMaxHp()) : 0;
         if (hpPct > 0) {
-            hpBar.fillStyle(hpColor, 1);
-            hpBar.fillRoundedRect(hpBarX + 2, hpBarY + 2, (hpBarW - 4) * hpPct, hpBarH - 4, 3);
+            const hpFill = this.add.graphics();
+            hpFill.fillStyle(this.getHpBarColor(hpPct), 1);
+            hpFill.fillRoundedRect(hpBarX + 1, hpBarY + 1, (hpBarW - 2) * hpPct, hpBarH - 2, 2);
+            container.add(hpFill);
         }
-        container.add(hpBar);
-        container._hpBar = hpBar;
-        container._hpBarX = hpBarX;
-        container._hpBarY = hpBarY;
-        container._hpBarW = hpBarW;
-        container._hpBarH = hpBarH;
 
-        // HP 文字
-        const hpText = this.add.text(hpBarX + hpBarW + 10, hpBarY + hpBarH / 2, `${currentHp}/${maxHp}`, {
-            fontSize: '11px', fontFamily: 'Arial', color: '#ffffff'
-        }).setOrigin(0, 0.5);
-        container.add(hpText);
-        container._hpText = hpText;
+        // 等级与右下 HP 文本保持同一水平线
+        container.add(this.add.text(66, metaY, `Lv.${elfData.level}`, {
+            fontSize: '12px', color: '#d6ecff'
+        }).setOrigin(0, 0.5));
 
-        // 点击区域
-        const hit = this.add.rectangle(w / 2, h / 2, w, h).setInteractive({ useHandCursor: true });
-        container.add(hit);
+        container.add(this.add.text(w - 8, metaY, `${elfData.currentHp}/${elf.getMaxHp()}`, {
+            fontSize: '12px', color: '#ffffff'
+        }).setOrigin(1, 0.5));
 
+        const hit = this.add.rectangle(w / 2, h / 2, w, h).setOrigin(0.5).setInteractive({ useHandCursor: true });
         hit.on('pointerdown', () => {
-            this.selectElf(index);
+            this.selectedElfIndex = index;
+            this.refreshView();
         });
-
-        container._index = index;
-        container._elfData = elfData;
-        container._baseData = baseData;
+        container.add(hit);
 
         return container;
     }
 
-    selectElf(index) {
-        this.selectedElfIndex = index;
+    renderLeftActions() {
+        this.leftActionContainer.removeAll(true);
 
-        // 更新列表选中状态
-        if (this.elfListItems) {
-            this.elfListItems.forEach((item, i) => {
-                const bg = item._bg;
-                if (bg) {
-                    bg.clear();
-                    if (i === index) {
-                        bg.fillStyle(0x4a7aaa, 1);
-                        bg.lineStyle(2, 0x6aaadd);
-                    } else {
-                        bg.fillStyle(0x2a4a6a, 1);
-                    }
-                    bg.fillRoundedRect(0, 0, 300, 80, 8);
-                    if (i === index) bg.strokeRoundedRect(0, 0, 300, 80, 8);
+        const y = this.modalH - 78;
+        const gap = 76;
+        const startX = this.leftW / 2 - gap * 1.5;
+        const selectedIsStarter = this.selectedElfIndex === 0;
+        const canHealAll = this.canHealAnyElf();
+
+        const starterBtn = this.createCircleActionButton(startX, y, {
+            label: '首发',
+            icon: 'S',
+            enabled: this.selectedElfIndex >= 0 && !selectedIsStarter,
+            onClick: () => this.setStarterElf()
+        });
+        const storageBtn = this.createCircleActionButton(startX + gap, y, {
+            label: '仓库',
+            icon: 'B',
+            enabled: false,
+            onClick: () => {}
+        });
+        const healBtn = this.createCircleActionButton(startX + gap * 2, y, {
+            label: `回复(${this.healAllCost})`,
+            icon: '+',
+            enabled: canHealAll,
+            onClick: () => this.healAllElves()
+        });
+        this.leftActionContainer.add(starterBtn);
+        this.leftActionContainer.add(storageBtn);
+        this.leftActionContainer.add(healBtn);
+
+        // 开发者模式关闭时不显示 +5000经验 按钮
+        if (typeof DevMode !== 'undefined' && DevMode.enabled) {
+            const devBtn = this.createCircleActionButton(startX + gap * 3, y, {
+                label: '+5000经验',
+                icon: 'D',
+                enabled: this.selectedElfIndex >= 0,
+                onClick: () => this.giveDevExp()
+            });
+            this.leftActionContainer.add(devBtn);
+        }
+
+        this.seerBeansText = this.add.text(12, this.modalH - 20, `赛尔豆: ${PlayerData.seerBeans}`, {
+            fontSize: '12px', color: '#ffdd66'
+        });
+        this.leftActionContainer.add(this.seerBeansText);
+    }
+
+    createCircleActionButton(x, y, config) {
+        const container = this.add.container(x, y);
+        const enabled = !!config.enabled;
+        const baseColor = enabled ? 0x3f6f96 : 0x5a5a5a;
+        const hoverColor = enabled ? 0x5590c0 : 0x5a5a5a;
+
+        const circle = this.add.circle(0, 0, 24, baseColor).setStrokeStyle(2, enabled ? 0xcfe9ff : 0x888888);
+        const icon = this.add.text(0, 0, config.icon, {
+            fontSize: '16px', color: '#ffffff', fontStyle: 'bold'
+        }).setOrigin(0.5);
+        const label = this.add.text(0, 34, config.label, {
+            fontSize: '11px', color: enabled ? '#d6ecff' : '#9a9a9a'
+        }).setOrigin(0.5);
+        container.add(circle);
+        container.add(icon);
+        container.add(label);
+
+        if (enabled) {
+            const hit = this.add.circle(0, 0, 24).setInteractive({ useHandCursor: true });
+            hit.on('pointerover', () => circle.setFillStyle(hoverColor));
+            hit.on('pointerout', () => circle.setFillStyle(baseColor));
+            hit.on('pointerdown', () => config.onClick());
+            container.add(hit);
+        }
+
+        return container;
+    }
+
+    setStarterElf() {
+        if (this.selectedElfIndex <= 0 || this.selectedElfIndex >= PlayerData.elves.length) return;
+        const selected = PlayerData.elves[this.selectedElfIndex];
+        PlayerData.elves.splice(this.selectedElfIndex, 1);
+        PlayerData.elves.unshift(selected);
+        this.selectedElfIndex = 0;
+        PlayerData.saveToStorage();
+        this.refreshView();
+    }
+
+    healAllElves() {
+        if (!PlayerData.spendSeerBeans(this.healAllCost)) {
+            return;
+        }
+        PlayerData.elves.forEach((elfData) => {
+            const baseData = DataLoader.getElf(elfData.elfId);
+            if (!baseData) return;
+            const elf = new Elf(baseData, elfData);
+            elfData.currentHp = elf.getMaxHp();
+            elfData.skills.forEach(skillId => {
+                const skillData = DataLoader.getSkill(skillId);
+                if (skillData) {
+                    elfData.skillPP[skillId] = skillData.pp;
                 }
             });
-        }
-
-        // 更新详情面板
-        this.updateDetailPanel(index);
-    }
-
-    // ========== 详情面板（右侧） ==========
-    createDetailPanel() {
-        const panelX = 360;
-        const panelY = 80;
-        const panelW = this.W - panelX - 20;
-        const panelH = this.H - 150;
-
-        // 面板背景
-        const panelBg = this.add.graphics();
-        panelBg.fillStyle(0x1a2a3a, 0.9);
-        panelBg.fillRoundedRect(panelX, panelY, panelW, panelH, 10);
-        panelBg.lineStyle(2, 0x3a5a7a);
-        panelBg.strokeRoundedRect(panelX, panelY, panelW, panelH, 10);
-
-        this.detailContainer = this.add.container(panelX + 20, panelY + 20);
-    }
-
-    updateDetailPanel(index) {
-        // 清空现有内容
-        this.detailContainer.removeAll(true);
-
-        const elves = PlayerData.elves;
-        if (index >= elves.length) return;
-
-        const elfData = elves[index];
-        const baseData = DataLoader.getElf(elfData.elfId);
-        if (!baseData) return;
-
-        const elf = new Elf(baseData, elfData);
-        const panelW = this.W - 400;
-
-        let y = 0;
-
-        // 精灵名称和类型
-        const name = elfData.nickname || baseData.name;
-        const nameText = this.add.text(0, y, name, {
-            fontSize: '24px', fontFamily: 'Arial', color: '#ffffff', fontStyle: 'bold'
         });
-        this.detailContainer.add(nameText);
-
-        const typeName = DataLoader.getTypeName(baseData.type);
-        const typeText = this.add.text(panelW - 40, y + 5, typeName, {
-            fontSize: '16px', fontFamily: 'Arial', color: '#88aacc'
-        }).setOrigin(1, 0);
-        this.detailContainer.add(typeText);
-
-        y += 40;
-
-        // 等级和经验
-        const lvText = this.add.text(0, y, `等级: ${elfData.level}`, {
-            fontSize: '16px', fontFamily: 'Arial', color: '#aaddaa'
-        });
-        this.detailContainer.add(lvText);
-
-        const expToNext = elf.getExpToNextLevel();
-        const expText = this.add.text(100, y, `经验: ${elfData.exp}/${expToNext}`, {
-            fontSize: '14px', fontFamily: 'Arial', color: '#888888'
-        });
-        this.detailContainer.add(expText);
-
-        y += 35;
-
-        // 属性
-        const stats = [
-            { label: 'HP', value: `${elfData.currentHp}/${elf.getMaxHp()}`, color: '#44dd44' },
-            { label: '攻击', value: elf.getAtk(), color: '#ff8844' },
-            { label: '防御', value: elf.getDef(), color: '#4488ff' },
-            { label: '特攻', value: elf.getSpAtk(), color: '#ff44aa' },
-            { label: '特防', value: elf.getSpDef(), color: '#44ffaa' },
-            { label: '速度', value: elf.getSpd(), color: '#ffff44' }
-        ];
-
-        this.add.text(this.detailContainer.x, this.detailContainer.y + y, '属性', {
-            fontSize: '16px', fontFamily: 'Arial', color: '#ffffff', fontStyle: 'bold'
-        });
-        y += 25;
-
-        stats.forEach((stat, i) => {
-            const col = i % 3;
-            const row = Math.floor(i / 3);
-            const statX = col * 100;
-            const statY = y + row * 25;
-
-            const labelText = this.add.text(statX, statY, `${stat.label}:`, {
-                fontSize: '14px', fontFamily: 'Arial', color: '#aaaaaa'
-            });
-            this.detailContainer.add(labelText);
-
-            const valueText = this.add.text(statX + 45, statY, stat.value.toString(), {
-                fontSize: '14px', fontFamily: 'Arial', color: stat.color
-            });
-            this.detailContainer.add(valueText);
-        });
-
-        y += 60;
-
-        // 技能列表
-        this.add.text(this.detailContainer.x, this.detailContainer.y + y, '技能', {
-            fontSize: '16px', fontFamily: 'Arial', color: '#ffffff', fontStyle: 'bold'
-        });
-        y += 25;
-
-        elfData.skills.forEach((skillId, i) => {
-            const skillData = DataLoader.getSkill(skillId);
-            if (!skillData) return;
-
-            const currentPP = elfData.skillPP[skillId] || 0;
-            const skillText = this.add.text(0, y, `${skillData.name}  PP: ${currentPP}/${skillData.pp}`, {
-                fontSize: '14px', fontFamily: 'Arial', color: '#88aacc'
-            });
-            this.detailContainer.add(skillText);
-            y += 22;
-        });
-
-        y += 20;
-
-        // 治疗按钮（如果 HP 未满）
-        const maxHp = elf.getMaxHp();
-        if (elfData.currentHp < maxHp) {
-            this.createHealButton(0, y, index);
-            y += 55;
-        }
-
-        // 开发者模式调试按钮
-        if (typeof DevMode !== 'undefined' && DevMode.enabled) {
-            this.createDevExpButton(0, y, index);
-        }
-    }
-
-    createDevExpButton(x, y, elfIndex) {
-        const btnW = 160, btnH = 40;
-        const container = this.add.container(x, y);
-
-        const bg = this.add.graphics();
-        bg.fillStyle(0x8a6a4a, 1);
-        bg.fillRoundedRect(0, 0, btnW, btnH, 8);
-        bg.lineStyle(2, 0xaa8a6a);
-        bg.strokeRoundedRect(0, 0, btnW, btnH, 8);
-        container.add(bg);
-
-        const text = this.add.text(btnW / 2, btnH / 2, '🔧 +5000 经验', {
-            fontSize: '15px', fontFamily: 'Arial', color: '#ffffff', fontStyle: 'bold'
-        }).setOrigin(0.5);
-        container.add(text);
-
-        const hit = this.add.rectangle(btnW / 2, btnH / 2, btnW, btnH).setInteractive({ useHandCursor: true });
-        container.add(hit);
-
-        hit.on('pointerover', () => {
-            bg.clear();
-            bg.fillStyle(0xaa8a6a, 1);
-            bg.fillRoundedRect(0, 0, btnW, btnH, 8);
-            bg.lineStyle(2, 0xccaa8a);
-            bg.strokeRoundedRect(0, 0, btnW, btnH, 8);
-        });
-
-        hit.on('pointerout', () => {
-            bg.clear();
-            bg.fillStyle(0x8a6a4a, 1);
-            bg.fillRoundedRect(0, 0, btnW, btnH, 8);
-            bg.lineStyle(2, 0xaa8a6a);
-            bg.strokeRoundedRect(0, 0, btnW, btnH, 8);
-        });
-
-        hit.on('pointerdown', () => {
-            if (window.dev) {
-                window.dev.giveExp(elfIndex, 5000);
-                // 刷新当前详情面板和列表
-                this.updateDetailPanel(elfIndex);
-                this.refreshElfList();
-            }
-        });
-
-        this.detailContainer.add(container);
-    }
-
-    refreshElfList() {
-        // 销毁现有列表
-        if (this.elfListContainer) {
-            this.elfListContainer.removeAll(true);
-        }
-        this.elfListItems = [];
-
-        // 重新创建列表
-        const listW = 320;
-        const elves = PlayerData.elves;
-        const itemH = 80;
-        const padding = 10;
-
-        if (elves.length === 0) {
-            const emptyText = this.add.text(listW / 2, (this.H - 150) / 2, '没有精灵', {
-                fontSize: '18px', fontFamily: 'Arial', color: '#666666'
-            }).setOrigin(0.5);
-            this.elfListContainer.add(emptyText);
-            return;
-        }
-
-        elves.forEach((elfData, index) => {
-            const itemY = padding + index * (itemH + 10);
-            const item = this.createElfListItem(padding, itemY, listW - padding * 2, itemH, elfData, index);
-            this.elfListContainer.add(item);
-            this.elfListItems.push(item);
-        });
-
-        // 重新高亮选中项
-        this.selectElf(this.selectedElfIndex);
-    }
-
-    createHealButton(x, y, elfIndex) {
-        const btnW = 180, btnH = 45;
-        const container = this.add.container(x, y);
-
-        const bg = this.add.graphics();
-        bg.fillStyle(0x44aa66, 1);
-        bg.fillRoundedRect(0, 0, btnW, btnH, 8);
-        bg.lineStyle(2, 0x66cc88);
-        bg.strokeRoundedRect(0, 0, btnW, btnH, 8);
-        container.add(bg);
-
-        const text = this.add.text(btnW / 2, btnH / 2, `治疗 (${this.healCost} 💰)`, {
-            fontSize: '16px', fontFamily: 'Arial', color: '#ffffff', fontStyle: 'bold'
-        }).setOrigin(0.5);
-        container.add(text);
-
-        const hit = this.add.rectangle(btnW / 2, btnH / 2, btnW, btnH).setInteractive({ useHandCursor: true });
-        container.add(hit);
-
-        hit.on('pointerover', () => {
-            bg.clear();
-            bg.fillStyle(0x55bb77, 1);
-            bg.fillRoundedRect(0, 0, btnW, btnH, 8);
-            bg.lineStyle(2, 0x77dd99);
-            bg.strokeRoundedRect(0, 0, btnW, btnH, 8);
-        });
-
-        hit.on('pointerout', () => {
-            bg.clear();
-            bg.fillStyle(0x44aa66, 1);
-            bg.fillRoundedRect(0, 0, btnW, btnH, 8);
-            bg.lineStyle(2, 0x66cc88);
-            bg.strokeRoundedRect(0, 0, btnW, btnH, 8);
-        });
-
-        hit.on('pointerdown', () => {
-            this.healElf(elfIndex);
-        });
-
-        this.detailContainer.add(container);
-    }
-
-    healElf(elfIndex) {
-        if (!PlayerData.spendSeerBeans(this.healCost)) {
-            // 赛尔豆不足
-            console.log('赛尔豆不足！');
-            return;
-        }
-
-        const elfData = PlayerData.elves[elfIndex];
-        const baseData = DataLoader.getElf(elfData.elfId);
-        const elf = new Elf(baseData, elfData);
-
-        // 完全恢复 HP
-        elfData.currentHp = elf.getMaxHp();
-
-        // 恢复所有技能 PP
-        elfData.skills.forEach(skillId => {
-            const skillData = DataLoader.getSkill(skillId);
-            if (skillData) {
-                elfData.skillPP[skillId] = skillData.pp;
-            }
-        });
-
-        // 保存
         PlayerData.saveToStorage();
-
-        // 更新 UI
-        this.seerBeansText.setText(`💰 ${PlayerData.seerBeans}`);
-        this.updateElfListItem(elfIndex);
-        this.updateDetailPanel(elfIndex);
-
-        console.log(`治疗了 ${baseData.name}！`);
+        this.refreshView();
     }
 
-    updateElfListItem(index) {
-        if (!this.elfListItems || !this.elfListItems[index]) return;
+    giveDevExp() {
+        if (typeof window.dev === 'undefined') return;
+        if (this.selectedElfIndex < 0) return;
+        window.dev.giveExp(this.selectedElfIndex, 5000);
+        this.refreshView();
+    }
 
-        const item = this.elfListItems[index];
+    canHealAnyElf() {
+        if (PlayerData.elves.length === 0) return false;
+        return PlayerData.elves.some((elfData) => {
+            const baseData = DataLoader.getElf(elfData.elfId);
+            if (!baseData) return false;
+            const elf = new Elf(baseData, elfData);
+            return elfData.currentHp < elf.getMaxHp();
+        });
+    }
+
+    renderRightDetail() {
+        this.rightContent.removeAll(true);
+        const index = this.selectedElfIndex;
+        if (index < 0 || index >= PlayerData.elves.length) {
+            const empty = this.add.text(this.rightW / 2, this.modalH / 2, '请选择一只精灵', {
+                fontSize: '20px', color: '#8ea9c6'
+            }).setOrigin(0.5);
+            this.rightContent.add(empty);
+            return;
+        }
+
         const elfData = PlayerData.elves[index];
         const baseData = DataLoader.getElf(elfData.elfId);
+        if (!baseData) return;
         const elf = new Elf(baseData, elfData);
 
-        const maxHp = elf.getMaxHp();
-        const currentHp = elfData.currentHp;
-        const hpPct = currentHp / maxHp;
+        const padding = 16;
+        const topY = 12;
+        const topH = 196;
+        const statY = topY + topH + 12;
+        const statH = 108;
+        const skillY = statY + statH + 12;
+        const skillH = this.modalH - skillY - 12;
 
-        // 更新 HP 条
-        const hpBar = item._hpBar;
-        if (hpBar) {
-            hpBar.clear();
-            let hpColor = 0x44dd44;
-            if (hpPct <= 0.2) hpColor = 0xdd4444;
-            else if (hpPct <= 0.5) hpColor = 0xddaa44;
-            if (hpPct > 0) {
-                hpBar.fillStyle(hpColor, 1);
-                hpBar.fillRoundedRect(
-                    item._hpBarX + 2, item._hpBarY + 2,
-                    (item._hpBarW - 4) * hpPct, item._hpBarH - 4, 3
-                );
+        this.drawPanelBlock(this.rightContent, padding, topY, this.rightW - padding * 2, topH, 0x1b3248);
+        this.drawPanelBlock(this.rightContent, padding, statY, this.rightW - padding * 2, statH, 0x1a2d42);
+        this.drawPanelBlock(this.rightContent, padding, skillY, this.rightW - padding * 2, skillH, 0x17293d);
+
+        this.renderTopInfo(elfData, baseData, elf, padding + 12, 20, this.rightW - padding * 2 - 24);
+        this.renderStats(elf, padding + 12, statY + 10, this.rightW - padding * 2 - 24);
+        this.renderSkills(elfData, padding + 12, skillY + 10, this.rightW - padding * 2 - 24, skillH - 20);
+    }
+
+    renderTopInfo(elfData, baseData, elf, x, y, w) {
+        // 大图
+        const imgKey = AssetMappings.getElfImageKey(baseData.id);
+        if (imgKey && this.textures.exists(imgKey)) {
+            const sprite = this.add.image(x + 95, y + 90, imgKey);
+            const scale = Math.min(150 / sprite.height, 150 / sprite.width);
+            sprite.setScale(scale);
+            this.rightContent.add(sprite);
+        } else {
+            const fallback = this.add.circle(x + 95, y + 90, 55, 0x4a7aaa);
+            this.rightContent.add(fallback);
+        }
+
+        const tx = x + 195;
+        let ty = y + 8;
+        const expNeed = elf.getExpToNextLevel();
+        const lineNo = this.add.text(tx, ty, `编号: ${baseData.id.toString().padStart(3, '0')}`, {
+            fontSize: '14px', color: '#d6ecff'
+        });
+        this.rightContent.add(lineNo);
+        ty += 28;
+
+        // 名字 + 属性图标
+        const lineName = this.add.text(tx, ty, `名字: ${elfData.nickname || baseData.name}`, {
+            fontSize: '14px', color: '#d6ecff'
+        });
+        this.rightContent.add(lineName);
+        const nameTypeKey = AssetMappings.getTypeIconKey(baseData.type);
+        const iconX = tx + lineName.width + 10;
+        const iconY = lineName.y + lineName.height / 2;
+        if (nameTypeKey && this.textures.exists(nameTypeKey)) {
+            const typeIcon = this.add.image(iconX, iconY, nameTypeKey).setOrigin(0, 0.5);
+            const scale = Math.min(18 / typeIcon.width, 18 / typeIcon.height);
+            typeIcon.setScale(scale);
+            this.rightContent.add(typeIcon);
+        } else {
+            const typeText = this.add.text(iconX, iconY, DataLoader.getTypeName(baseData.type), {
+                fontSize: '12px', color: '#9dc6e8'
+            }).setOrigin(0, 0.5);
+            this.rightContent.add(typeText);
+        }
+        ty += 28;
+
+        const restRows = [
+            `等级: Lv.${elfData.level}`,
+            `升级所需经验值: ${expNeed > 0 ? expNeed : '已满级'}`,
+            '性格: ',
+            `获得时间: ${this.formatObtainedTime(elfData)}`
+        ];
+        restRows.forEach((text) => {
+            const line = this.add.text(tx, ty, text, {
+                fontSize: '14px', color: '#d6ecff'
+            });
+            this.rightContent.add(line);
+            ty += 28;
+        });
+    }
+
+    renderStats(elf, x, y, w) {
+        const stats = [
+            { name: '攻击', value: elf.getAtk() },
+            { name: '防御', value: elf.getDef() },
+            { name: '特攻', value: elf.getSpAtk() },
+            { name: '特防', value: elf.getSpDef() },
+            { name: '速度', value: elf.getSpd() },
+            { name: '体力', value: elf.getMaxHp() }
+        ];
+        const colW = Math.floor(w / 2);
+        const rowH = 34;
+
+        stats.forEach((item, i) => {
+            const col = i % 2;
+            const row = Math.floor(i / 2);
+            const sx = x + col * colW;
+            const sy = y + row * rowH;
+            const dot = this.add.circle(sx + 8, sy + 12, 4, 0x88c8ff);
+            const label = this.add.text(sx + 18, sy + 3, `${item.name}:`, {
+                fontSize: '14px', color: '#aac8e8'
+            });
+            const value = this.add.text(sx + colW - 14, sy + 3, `${item.value}`, {
+                fontSize: '14px', color: '#ffffff'
+            }).setOrigin(1, 0);
+            this.rightContent.add(dot);
+            this.rightContent.add(label);
+            this.rightContent.add(value);
+        });
+    }
+
+    renderSkills(elfData, x, y, w, h) {
+        const skillIds = elfData.skills || [];
+        const cols = 2;
+        const rows = 2;
+        const gap = 8;
+        const cardW = Math.floor((w - gap) / cols);
+        const cardH = Math.floor((h - gap) / rows);
+
+        for (let i = 0; i < cols * rows; i++) {
+            const col = i % cols;
+            const row = Math.floor(i / cols);
+            const sx = x + col * (cardW + gap);
+            const sy = y + row * (cardH + gap);
+            const skillId = skillIds[i];
+            const skill = skillId ? DataLoader.getSkill(skillId) : null;
+
+            const bg = this.add.graphics();
+            bg.fillStyle(skill ? 0x24415d : 0x1c2f43, 1);
+            bg.fillRoundedRect(sx, sy, cardW, cardH, 6);
+            bg.lineStyle(1, skill ? 0x76a9d4 : 0x35516b);
+            bg.strokeRoundedRect(sx, sy, cardW, cardH, 6);
+            this.rightContent.add(bg);
+
+            if (!skill) {
+                const empty = this.add.text(sx + cardW / 2, sy + cardH / 2, '--', {
+                    fontSize: '14px', color: '#6c87a2'
+                }).setOrigin(0.5);
+                this.rightContent.add(empty);
+                continue;
             }
-        }
 
-        // 更新 HP 文字
-        const hpText = item._hpText;
-        if (hpText) {
-            hpText.setText(`${currentHp}/${maxHp}`);
+            const ppNow = elfData.skillPP[skill.id] || 0;
+            const name = this.add.text(sx + 8, sy + 6, skill.name, {
+                fontSize: '13px', color: '#ffffff', fontStyle: 'bold'
+            });
+            this.rightContent.add(name);
+
+            this.addTypeVisual(this.rightContent, sx + cardW - 10, sy + 10, skill.type);
+
+            const power = this.add.text(sx + 8, sy + cardH - 18, `威力 ${skill.power || '-'}`, {
+                fontSize: '12px', color: '#bcd8ef'
+            });
+            const pp = this.add.text(sx + cardW - 8, sy + cardH - 18, `PP ${ppNow}/${skill.pp}`, {
+                fontSize: '12px', color: '#d2f0a8'
+            }).setOrigin(1, 0);
+            this.rightContent.add(power);
+            this.rightContent.add(pp);
         }
     }
 
-    getTypeColor(type) {
-        const colors = {
-            water: 0x4488dd,
-            fire: 0xdd4444,
-            grass: 0x44aa44,
-            electric: 0xdddd44,
-            normal: 0xaaaaaa,
-            flying: 0x88aadd,
-            ground: 0xaa8844,
-            ice: 0x66dddd,
-            mechanical: 0x888899
-        };
-        return colors[type] || 0x666666;
-    }
-
-    // ========== 返回按钮 ==========
-    createBackButton() {
-        const btnW = 120, btnH = 45;
-        const x = this.W / 2, y = this.H - 50;
-
-        const container = this.add.container(x, y);
-
-        const bg = this.add.graphics();
-        bg.fillStyle(0x5a3a3a, 1);
-        bg.fillRoundedRect(-btnW / 2, -btnH / 2, btnW, btnH, 8);
-        bg.lineStyle(2, 0x8a5a5a);
-        bg.strokeRoundedRect(-btnW / 2, -btnH / 2, btnW, btnH, 8);
-        container.add(bg);
-
-        const text = this.add.text(0, 0, '返回', {
-            fontSize: '18px', fontFamily: 'Arial', color: '#ffffff', fontStyle: 'bold'
-        }).setOrigin(0.5);
+    addTypeVisual(container, x, y, type) {
+        const key = AssetMappings.getTypeIconKey(type);
+        if (key && this.textures.exists(key)) {
+            const icon = this.add.image(x, y, key).setOrigin(1, 0);
+            const scale = Math.min(16 / icon.width, 16 / icon.height);
+            icon.setScale(scale);
+            container.add(icon);
+            return;
+        }
+        const text = this.add.text(x, y, DataLoader.getTypeName(type), {
+            fontSize: '10px', color: '#a6cae8'
+        }).setOrigin(1, 0);
         container.add(text);
+    }
 
-        const hit = this.add.rectangle(0, 0, btnW, btnH).setInteractive({ useHandCursor: true });
-        container.add(hit);
+    drawPanelBlock(container, x, y, w, h, color) {
+        const g = this.add.graphics();
+        g.fillStyle(color, 0.95);
+        g.fillRoundedRect(x, y, w, h, 8);
+        g.lineStyle(1, 0x35506b, 1);
+        g.strokeRoundedRect(x, y, w, h, 8);
+        container.add(g);
+    }
 
-        hit.on('pointerover', () => {
-            bg.clear();
-            bg.fillStyle(0x7a5a5a, 1);
-            bg.fillRoundedRect(-btnW / 2, -btnH / 2, btnW, btnH, 8);
-            bg.lineStyle(2, 0xaa7a7a);
-            bg.strokeRoundedRect(-btnW / 2, -btnH / 2, btnW, btnH, 8);
-        });
+    getHpBarColor(pct) {
+        if (pct <= 0.2) return 0xdd4b4b;
+        if (pct <= 0.5) return 0xe0b34a;
+        return 0x53c56b;
+    }
 
-        hit.on('pointerout', () => {
-            bg.clear();
-            bg.fillStyle(0x5a3a3a, 1);
-            bg.fillRoundedRect(-btnW / 2, -btnH / 2, btnW, btnH, 8);
-            bg.lineStyle(2, 0x8a5a5a);
-            bg.strokeRoundedRect(-btnW / 2, -btnH / 2, btnW, btnH, 8);
-        });
+    formatObtainedTime(elfData) {
+        if (!elfData.obtainedAt) return '未知';
+        const date = new Date(elfData.obtainedAt);
+        if (Number.isNaN(date.getTime())) return '未知';
+        const y = date.getFullYear();
+        const m = String(date.getMonth() + 1).padStart(2, '0');
+        const d = String(date.getDate()).padStart(2, '0');
+        const hh = String(date.getHours()).padStart(2, '0');
+        const mm = String(date.getMinutes()).padStart(2, '0');
+        return `${y}-${m}-${d} ${hh}:${mm}`;
+    }
 
-        hit.on('pointerdown', () => {
-            SceneManager.changeScene(this, this.returnScene);
-        });
+    closePanel() {
+        const returnScene = this.scene.get(this.returnScene);
+        if (returnScene) {
+            this.scene.resume(this.returnScene);
+            this.scene.stop();
+            return;
+        }
+        SceneManager.changeScene(this, this.returnScene);
     }
 }
 
