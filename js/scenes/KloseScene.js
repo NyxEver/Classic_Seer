@@ -169,34 +169,189 @@ class KloseScene extends Phaser.Scene {
 
     // ========== 野生精灵 ==========
     spawnWildElves() {
-        const spawnZones = this.sceneConfig.spawnZones || [];
+        const wildElfPool = Array.isArray(this.sceneConfig.wildElfPool) ? this.sceneConfig.wildElfPool : [];
+        if (!wildElfPool.length) {
+            console.log(`[KloseScene] 子场景 ${this.currentSubScene} 暂无野生精灵配置`);
+            return;
+        }
 
-        spawnZones.forEach(zone => {
-            // 每个区域生成 2-4 只精灵
-            const count = Phaser.Math.Between(2, 4);
+        const spawnAreas = Array.isArray(this.sceneConfig.spawnAreas) ? this.sceneConfig.spawnAreas : [];
+        if (!spawnAreas.length) {
+            console.warn(`[KloseScene] 子场景 ${this.currentSubScene} 未配置 spawnAreas，跳过野生精灵刷新`);
+            return;
+        }
 
-            for (let i = 0; i < count; i++) {
-                const x = Phaser.Math.Between(zone.x, zone.x + zone.width);
-                const y = Phaser.Math.Between(zone.y, zone.y + zone.height);
-                this.createWildElf(x, y);
+        const configuredRange = Array.isArray(this.sceneConfig.spawnCountRange)
+            ? this.sceneConfig.spawnCountRange
+            : [2, 4];
+        let minCount = Math.floor(Number(configuredRange[0]));
+        let maxCount = Math.floor(Number(configuredRange[1]));
+        if (!Number.isFinite(minCount)) minCount = 2;
+        if (!Number.isFinite(maxCount)) maxCount = minCount;
+        minCount = Math.max(0, minCount);
+        maxCount = Math.max(minCount, maxCount);
+
+        const spawnCount = Phaser.Math.Between(minCount, maxCount);
+        const minDistance = Math.max(0, Number(this.sceneConfig.spawnMinDistance) || 0);
+        const moveRadius = this.getSceneWildMoveRadius();
+        const points = [];
+
+        for (let i = 0; i < spawnCount; i++) {
+            const spawnPoint = this.pickSpawnPoint(spawnAreas, points, minDistance);
+            if (!spawnPoint) break;
+
+            points.push({ x: spawnPoint.x, y: spawnPoint.y });
+            const elfId = wildElfPool[Phaser.Math.Between(0, wildElfPool.length - 1)];
+            this.createWildElf(spawnPoint.x, spawnPoint.y, elfId, {
+                spawnArea: spawnPoint.area,
+                moveRadius
+            });
+        }
+    }
+
+    getSceneWildMoveRadius() {
+        const cfg = this.sceneConfig && this.sceneConfig.wildMoveRadius ? this.sceneConfig.wildMoveRadius : {};
+        const radiusX = Math.floor(Number(cfg.x));
+        const radiusY = Math.floor(Number(cfg.y));
+        return {
+            x: Number.isFinite(radiusX) && radiusX > 0 ? radiusX : 40,
+            y: Number.isFinite(radiusY) && radiusY > 0 ? radiusY : 30
+        };
+    }
+
+    getWildWorldBounds() {
+        const { width, height } = this.cameras.main;
+        return {
+            minX: 50,
+            maxX: width - 50,
+            minY: 120,
+            maxY: height - 70
+        };
+    }
+
+    isPointInsideWildBounds(x, y) {
+        const bounds = this.getWildWorldBounds();
+        return x >= bounds.minX && x <= bounds.maxX && y >= bounds.minY && y <= bounds.maxY;
+    }
+
+    getRandomPointInAreaWithinBounds(area, attempts = 36) {
+        for (let i = 0; i < attempts; i++) {
+            const point = this.getRandomPointInArea(area);
+            if (point && this.isPointInsideWildBounds(point.x, point.y)) {
+                return point;
             }
+        }
+        return null;
+    }
+
+    pickSpawnPoint(spawnAreas, existingPoints, minDistance) {
+        const attempts = 120;
+        for (let i = 0; i < attempts; i++) {
+            const area = spawnAreas[Phaser.Math.Between(0, spawnAreas.length - 1)];
+            const point = this.getRandomPointInAreaWithinBounds(area);
+            if (!point) continue;
+            if (!minDistance || this.isPointFarEnough(point, existingPoints, minDistance)) {
+                return { x: point.x, y: point.y, area };
+            }
+        }
+
+        // 兜底：在区域内找任意一点，避免因约束过强导致完全不刷新
+        for (let i = 0; i < spawnAreas.length * 6; i++) {
+            const area = spawnAreas[Phaser.Math.Between(0, spawnAreas.length - 1)];
+            const point = this.getRandomPointInAreaWithinBounds(area, 48);
+            if (point) return { x: point.x, y: point.y, area };
+        }
+        return null;
+    }
+
+    getRandomPointInArea(area) {
+        if (!area || typeof area !== 'object') return null;
+
+        const type = area.type || 'rect';
+        if (type === 'ellipse') {
+            const centerX = Number(area.x);
+            const centerY = Number(area.y);
+            const radiusX = Number(area.radiusX);
+            const radiusY = Number(area.radiusY);
+            if (!Number.isFinite(centerX) || !Number.isFinite(centerY)
+                || !Number.isFinite(radiusX) || !Number.isFinite(radiusY)
+                || radiusX <= 0 || radiusY <= 0) {
+                return null;
+            }
+
+            const angle = Phaser.Math.FloatBetween(0, Math.PI * 2);
+            const scale = Math.sqrt(Math.random());
+            return {
+                x: centerX + Math.cos(angle) * radiusX * scale,
+                y: centerY + Math.sin(angle) * radiusY * scale
+            };
+        }
+
+        const x = Number(area.x);
+        const y = Number(area.y);
+        const width = Number(area.width);
+        const height = Number(area.height);
+        if (!Number.isFinite(x) || !Number.isFinite(y)
+            || !Number.isFinite(width) || !Number.isFinite(height)
+            || width <= 0 || height <= 0) {
+            return null;
+        }
+
+        return {
+            x: Phaser.Math.FloatBetween(x, x + width),
+            y: Phaser.Math.FloatBetween(y, y + height)
+        };
+    }
+
+    isPointInsideArea(x, y, area) {
+        if (!area || typeof area !== 'object') return false;
+        const type = area.type || 'rect';
+
+        if (type === 'ellipse') {
+            const centerX = Number(area.x);
+            const centerY = Number(area.y);
+            const radiusX = Number(area.radiusX);
+            const radiusY = Number(area.radiusY);
+            if (!Number.isFinite(centerX) || !Number.isFinite(centerY)
+                || !Number.isFinite(radiusX) || !Number.isFinite(radiusY)
+                || radiusX <= 0 || radiusY <= 0) {
+                return false;
+            }
+            const nx = (x - centerX) / radiusX;
+            const ny = (y - centerY) / radiusY;
+            return (nx * nx + ny * ny) <= 1;
+        }
+
+        const areaX = Number(area.x);
+        const areaY = Number(area.y);
+        const width = Number(area.width);
+        const height = Number(area.height);
+        if (!Number.isFinite(areaX) || !Number.isFinite(areaY)
+            || !Number.isFinite(width) || !Number.isFinite(height)
+            || width <= 0 || height <= 0) {
+            return false;
+        }
+
+        return x >= areaX && x <= areaX + width && y >= areaY && y <= areaY + height;
+    }
+
+    isPointFarEnough(point, existingPoints, minDistance) {
+        const minDistanceSq = minDistance * minDistance;
+        return existingPoints.every((p) => {
+            const dx = point.x - p.x;
+            const dy = point.y - p.y;
+            return (dx * dx + dy * dy) >= minDistanceSq;
         });
     }
 
-    createWildElf(x, y) {
+    createWildElf(x, y, elfId = 10, options = {}) {
         const container = this.add.container(x, y);
+        const hasDynamicSprite = this.createWildDynamicSprite(container, elfId, 60);
 
-        // 皮皮精灵 ID = 10
-        const pipiId = 10;
-        const imageKey = AssetMappings.getElfImageKey(pipiId);
+        if (!hasDynamicSprite) {
+            const baseData = DataLoader.getElf(elfId);
+            const displayName = baseData ? baseData.name : `#${elfId}`;
 
-        if (imageKey && this.textures.exists(imageKey)) {
-            const sprite = this.add.image(0, 0, imageKey);
-            const maxSize = 60;
-            const scale = Math.min(maxSize / sprite.width, maxSize / sprite.height);
-            sprite.setScale(scale);
-            container.add(sprite);
-        } else {
             // 后备：简单圆形
             const graphics = this.add.graphics();
             graphics.fillStyle(0xffaacc, 1);
@@ -206,7 +361,7 @@ class KloseScene extends Phaser.Scene {
             graphics.fillCircle(8, -8, 8);
             container.add(graphics);
 
-            const label = this.add.text(0, 35, '皮皮', {
+            const label = this.add.text(0, 35, displayName, {
                 fontSize: '10px',
                 color: '#ffffff',
                 stroke: '#000000',
@@ -215,25 +370,160 @@ class KloseScene extends Phaser.Scene {
             container.add(label);
         }
 
-        container.setDepth(5);
+        container.setDepth(Math.max(5, Math.floor(y)));
         container.setSize(60, 60);
         container.setInteractive({ useHandCursor: true });
 
         container.on('pointerdown', (pointer) => {
             pointer.event.stopPropagation();
-            this.startBattle();
+            this.startBattle(container._wildElfId || elfId);
         });
 
-        this.addWildElfMovement(container, x, y);
+        this.addWildElfMovement(container, x, y, options.spawnArea || null, options.moveRadius || null);
         this.wildElves.push(container);
     }
 
-    addWildElfMovement(container, originX, originY) {
+    createWildDynamicSprite(container, elfId, maxSize) {
+        const atlasKey = this.getWildDynamicAtlasKey(elfId, 'front');
+        if (!atlasKey) return false;
+
+        const firstFrame = this.getFirstWildFrame(atlasKey);
+        if (!firstFrame) return false;
+
+        const sprite = this.add.sprite(0, 0, atlasKey, firstFrame);
+        const scale = Math.min(maxSize / sprite.width, maxSize / sprite.height);
+        sprite.setScale(scale);
+        container.add(sprite);
+
+        container._wildElfId = elfId;
+        container._wildSprite = sprite;
+        container._wildDirection = 'front';
+
+        this.playWildDirection(container, 'front');
+        return true;
+    }
+
+    getWildDynamicAtlasKey(elfId, direction) {
+        if (typeof AssetMappings === 'undefined' || typeof AssetMappings.getExternalDynamicKeys !== 'function') {
+            return null;
+        }
+
+        const keys = AssetMappings.getExternalDynamicKeys(elfId, direction);
+        if (!Array.isArray(keys) || !keys.length) return null;
+
+        const available = keys.filter((key) => this.textures.exists(key));
+        return available.length ? available[0] : null;
+    }
+
+    getWildFrames(atlasKey) {
+        if (!this._wildFrameCache) this._wildFrameCache = {};
+        if (this._wildFrameCache[atlasKey]) return this._wildFrameCache[atlasKey];
+
+        let frames = [];
+        const atlasJson = this.cache && this.cache.json ? this.cache.json.get(atlasKey) : null;
+        if (atlasJson && atlasJson.frames && typeof atlasJson.frames === 'object') {
+            frames = Object.keys(atlasJson.frames);
+        } else {
+            const texture = this.textures.get(atlasKey);
+            if (!texture) {
+                this._wildFrameCache[atlasKey] = [];
+                return [];
+            }
+            // 按图集原始顺序播放，避免重排打乱导出动画节奏
+            frames = texture.getFrameNames().filter((name) => name !== '__BASE');
+        }
+
+        this._wildFrameCache[atlasKey] = frames;
+        return frames;
+    }
+
+    getFirstWildFrame(atlasKey) {
+        const frames = this.getWildFrames(atlasKey);
+        return frames.length ? frames[0] : null;
+    }
+
+    ensureWildAnimation(atlasKey, direction) {
+        const animKey = `wild_${atlasKey}_${direction}`;
+        if (this.anims.exists(animKey)) {
+            return animKey;
+        }
+
+        const frames = this.getWildFrames(atlasKey);
+        if (!frames.length) return null;
+
+        this.anims.create({
+            key: animKey,
+            frames: frames.map((frame) => ({ key: atlasKey, frame })),
+            frameRate: Math.max(6, Math.min(14, frames.length * 2)),
+            repeat: -1
+        });
+
+        return animKey;
+    }
+
+    playWildDirection(container, direction) {
+        if (!container || !container._wildSprite) return;
+
+        const elfId = container._wildElfId;
+        const atlasKey = this.getWildDynamicAtlasKey(elfId, direction);
+        if (!atlasKey) return;
+
+        const animKey = this.ensureWildAnimation(atlasKey, direction);
+        if (!animKey) return;
+
+        const currentAnim = container._wildSprite.anims ? container._wildSprite.anims.currentAnim : null;
+        if (container._wildDirection === direction && currentAnim && currentAnim.key === animKey) {
+            return;
+        }
+
+        container._wildDirection = direction;
+        container._wildSprite.play(animKey, true);
+    }
+
+    getDirectionFromVector(dx, dy) {
+        if (Math.abs(dx) > Math.abs(dy)) {
+            return dx >= 0 ? 'right' : 'left';
+        }
+        return dy >= 0 ? 'front' : 'back';
+    }
+
+    addWildElfMovement(container, originX, originY, spawnArea = null, moveRadius = null) {
+        const radiusX = moveRadius && Number.isFinite(Number(moveRadius.x))
+            ? Math.max(0, Math.floor(Number(moveRadius.x)))
+            : 40;
+        const radiusY = moveRadius && Number.isFinite(Number(moveRadius.y))
+            ? Math.max(0, Math.floor(Number(moveRadius.y)))
+            : 30;
+
         const moveElf = () => {
             if (!container || !container.scene) return;
 
-            const newX = originX + Phaser.Math.Between(-40, 40);
-            const newY = originY + Phaser.Math.Between(-30, 30);
+            let target = null;
+            for (let i = 0; i < 24; i++) {
+                const candidateX = originX + Phaser.Math.Between(-radiusX, radiusX);
+                const candidateY = originY + Phaser.Math.Between(-radiusY, radiusY);
+                const insideArea = !spawnArea || this.isPointInsideArea(candidateX, candidateY, spawnArea);
+                if (insideArea && this.isPointInsideWildBounds(candidateX, candidateY)) {
+                    target = { x: candidateX, y: candidateY };
+                    break;
+                }
+            }
+
+            if (!target && spawnArea) {
+                target = this.getRandomPointInAreaWithinBounds(spawnArea, 48);
+            }
+            if (!target) {
+                const bounds = this.getWildWorldBounds();
+                target = {
+                    x: Phaser.Math.Clamp(originX, bounds.minX, bounds.maxX),
+                    y: Phaser.Math.Clamp(originY, bounds.minY, bounds.maxY)
+                };
+            }
+
+            const newX = target.x;
+            const newY = target.y;
+            const moveDirection = this.getDirectionFromVector(newX - container.x, newY - container.y);
+            this.playWildDirection(container, moveDirection);
 
             this.tweens.add({
                 targets: container,
@@ -241,6 +531,9 @@ class KloseScene extends Phaser.Scene {
                 y: newY,
                 duration: Phaser.Math.Between(2000, 4000),
                 ease: 'Sine.easeInOut',
+                onUpdate: () => {
+                    container.setDepth(Math.max(5, Math.floor(container.y)));
+                },
                 onComplete: () => {
                     this.time.delayedCall(Phaser.Math.Between(1000, 3000), moveElf);
                 }
@@ -312,9 +605,11 @@ class KloseScene extends Phaser.Scene {
     }
 
     // ========== 战斗触发 ==========
-    startBattle() {
-        console.log('遭遇野生皮皮！');
-        const wildElf = EncounterSystem.createWildElf(10, 2, 5);
+    startBattle(elfId = 10) {
+        const baseData = DataLoader.getElf(elfId);
+        const displayName = baseData ? baseData.name : `#${elfId}`;
+        console.log(`遭遇野生${displayName}！`);
+        const wildElf = EncounterSystem.createWildElf(elfId, 2, 5);
         EncounterSystem.startWildBattle(this, wildElf);
     }
 

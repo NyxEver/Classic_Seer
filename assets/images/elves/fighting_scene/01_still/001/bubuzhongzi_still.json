@@ -1,0 +1,255 @@
+{
+  "frames": {
+    "bubuzhongzi (4).png": {
+      "frame": {
+        "x": 0,
+        "y": 0,
+        "w": 79,
+        "h": 120
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 79,
+        "h": 120
+      },
+      "sourceSize": {
+        "w": 79,
+        "h": 120
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "bubuzhongzi (5).png": {
+      "frame": {
+        "x": 80,
+        "y": 0,
+        "w": 78,
+        "h": 120
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 78,
+        "h": 120
+      },
+      "sourceSize": {
+        "w": 78,
+        "h": 120
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "bubuzhongzi (6).png": {
+      "frame": {
+        "x": 159,
+        "y": 0,
+        "w": 78,
+        "h": 120
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 78,
+        "h": 120
+      },
+      "sourceSize": {
+        "w": 78,
+        "h": 120
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "bubuzhongzi (3).png": {
+      "frame": {
+        "x": 238,
+        "y": 0,
+        "w": 79,
+        "h": 119
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 79,
+        "h": 119
+      },
+      "sourceSize": {
+        "w": 79,
+        "h": 119
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "bubuzhongzi (7).png": {
+      "frame": {
+        "x": 318,
+        "y": 0,
+        "w": 79,
+        "h": 119
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 79,
+        "h": 119
+      },
+      "sourceSize": {
+        "w": 79,
+        "h": 119
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "bubuzhongzi (2).png": {
+      "frame": {
+        "x": 398,
+        "y": 0,
+        "w": 79,
+        "h": 118
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 79,
+        "h": 118
+      },
+      "sourceSize": {
+        "w": 79,
+        "h": 118
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "bubuzhongzi (8).png": {
+      "frame": {
+        "x": 478,
+        "y": 0,
+        "w": 79,
+        "h": 118
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 79,
+        "h": 118
+      },
+      "sourceSize": {
+        "w": 79,
+        "h": 118
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "bubuzhongzi (9).png": {
+      "frame": {
+        "x": 558,
+        "y": 0,
+        "w": 79,
+        "h": 118
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 79,
+        "h": 118
+      },
+      "sourceSize": {
+        "w": 79,
+        "h": 118
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "bubuzhongzi (10).png": {
+      "frame": {
+        "x": 638,
+        "y": 0,
+        "w": 79,
+        "h": 117
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 79,
+        "h": 117
+      },
+      "sourceSize": {
+        "w": 79,
+        "h": 117
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "bubuzhongzi (1).png": {
+      "frame": {
+        "x": 638,
+        "y": 0,
+        "w": 79,
+        "h": 117
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 79,
+        "h": 117
+      },
+      "sourceSize": {
+        "w": 79,
+        "h": 117
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    }
+  },
+  "meta": {
+    "app": "https://www.flintbyte.com/",
+    "version": "1.0.0",
+    "image": "bubuzhongzi.png",
+    "format": "RGBA8888",
+    "size": {
+      "w": 717,
+      "h": 120
+    },
+    "scale": 1
+  }
+}

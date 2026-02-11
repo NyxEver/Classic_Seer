@@ -348,6 +348,15 @@ class BattleManager {
             // 显示使用技能消息
             this.log(`${attacker.getDisplayName()} 使用了 ${skill.name}！`);
 
+            // 记录技能施放事件（场景层据此播放分类动画）
+            result.events.push({
+                type: 'skillCast',
+                actor: actor,
+                target: isPlayer ? 'enemy' : 'player',
+                skillId: skill.id,
+                skillCategory: skill.category || 'status'
+            });
+
             // 命中检定
             const hit = DamageCalculator.checkHit(skill, -defenderStages.accuracy);
             if (!hit) {

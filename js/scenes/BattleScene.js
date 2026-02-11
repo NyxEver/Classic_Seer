@@ -30,6 +30,7 @@ class BattleScene extends Phaser.Scene {
         this.turnTimeLeft = 10;
         this.battleBgm = null;
         this.isBgmFadingOut = false;
+        this.deferredBattleEndResult = null;
 
         // 场景退出时确保音乐被清理，避免跨场景叠音
         this.events.once('shutdown', this.cleanupBattleBgm, this);
@@ -53,7 +54,9 @@ class BattleScene extends Phaser.Scene {
             canEscape: this.canEscape,
             canCatch: this.canCatch,
             onMessage: (msg) => this.addLog(msg),
-            onBattleEnd: (result) => this.handleBattleEnd(result)
+            onBattleEnd: (result) => {
+                this.deferredBattleEndResult = result;
+            }
         });
 
         // 开场日志
@@ -228,16 +231,22 @@ class BattleScene extends Phaser.Scene {
         const container = this.add.container(x, y);
         const size = 80;
 
-        // 尝试获取精灵图片
-        const imageKey = AssetMappings.getElfImageKey(elf.id);
-        if (imageKey && this.textures.exists(imageKey)) {
-            // 使用真实精灵贴图
-            const sprite = this.add.image(0, 0, imageKey);
-            // 根据尺寸缩放图片
+        // 优先使用战斗动画图集（01_still）
+        const stillAtlasKey = this.pickBattleAtlas(elf.id, 'still');
+        const firstStillFrame = stillAtlasKey ? this.getFirstAtlasFrameName(stillAtlasKey) : null;
+
+        if (stillAtlasKey && firstStillFrame) {
+            const sprite = this.add.sprite(0, 0, stillAtlasKey, firstStillFrame);
             const maxSize = size * 2;
             const scale = Math.min(maxSize / sprite.width, maxSize / sprite.height);
             sprite.setScale(scale);
             container.add(sprite);
+
+            container._animSprite = sprite;
+            container._elfId = elf.id;
+
+            // 默认循环播放待机动画
+            this.playElfClip(container, 'still', true);
         } else {
             // 后备：使用彩色圆圈占位符
             const circle = this.add.graphics();
@@ -262,6 +271,300 @@ class BattleScene extends Phaser.Scene {
         }
 
         return container;
+    }
+
+    getAvailableBattleAtlases(elfId, clipType) {
+        if (typeof AssetMappings === 'undefined' || typeof AssetMappings.getBattleClipKeys !== 'function') {
+            return [];
+        }
+        const keys = AssetMappings.getBattleClipKeys(elfId, clipType);
+        if (!Array.isArray(keys)) return [];
+        return keys.filter((key) => this.textures.exists(key));
+    }
+
+    pickBattleAtlas(elfId, clipType) {
+        const keys = this.getAvailableBattleAtlases(elfId, clipType);
+        if (!keys.length) return null;
+        return keys[0];
+    }
+
+    getFrameOrderValue(frameName, fallbackIndex) {
+        const parenMatch = frameName.match(/\((\d+)\)/);
+        if (parenMatch) return { group: 0, value: parseInt(parenMatch[1], 10), fallbackIndex };
+
+        const plainNumber = frameName.match(/^(\d+)(?:\.[a-zA-Z0-9]+)?$/);
+        if (plainNumber) return { group: 1, value: parseInt(plainNumber[1], 10), fallbackIndex };
+
+        const tailNumber = frameName.match(/(\d+)(?!.*\d)/);
+        if (tailNumber) return { group: 2, value: parseInt(tailNumber[1], 10), fallbackIndex };
+
+        return { group: 3, value: Number.MAX_SAFE_INTEGER, fallbackIndex };
+    }
+
+    getAtlasFrameNames(atlasKey) {
+        if (!this._atlasFrameCache) {
+            this._atlasFrameCache = {};
+        }
+        if (this._atlasFrameCache[atlasKey]) {
+            return this._atlasFrameCache[atlasKey];
+        }
+
+        let frameNames = [];
+        const atlasJson = this.cache && this.cache.json ? this.cache.json.get(atlasKey) : null;
+        if (atlasJson && atlasJson.frames && typeof atlasJson.frames === 'object') {
+            frameNames = Object.keys(atlasJson.frames);
+        } else {
+            const texture = this.textures.get(atlasKey);
+            if (!texture) {
+                this._atlasFrameCache[atlasKey] = [];
+                return [];
+            }
+            frameNames = texture.getFrameNames().filter((name) => name !== '__BASE');
+        }
+
+        const ordered = frameNames
+            .map((name, index) => ({ name, order: this.getFrameOrderValue(name, index) }))
+            .sort((a, b) => {
+                if (a.order.group !== b.order.group) return a.order.group - b.order.group;
+                if (a.order.value !== b.order.value) return a.order.value - b.order.value;
+                if (a.order.fallbackIndex !== b.order.fallbackIndex) {
+                    return a.order.fallbackIndex - b.order.fallbackIndex;
+                }
+                return a.name.localeCompare(b.name, 'en');
+            })
+            .map((item) => item.name);
+
+        this._atlasFrameCache[atlasKey] = ordered;
+        return ordered;
+    }
+
+    getFirstAtlasFrameName(atlasKey) {
+        const frames = this.getAtlasFrameNames(atlasKey);
+        return frames.length ? frames[0] : null;
+    }
+
+    getBattleFrameRate(loop) {
+        return loop ? 8 : 12;
+    }
+
+    getClipDurationMs(elfId, clipType) {
+        const atlasKeys = this.getAvailableBattleAtlases(elfId, clipType);
+        if (!atlasKeys.length) return 0;
+
+        const frameRate = this.getBattleFrameRate(false);
+        let totalFrames = 0;
+        for (const atlasKey of atlasKeys) {
+            const frames = this.getAtlasFrameNames(atlasKey);
+            totalFrames += frames.length;
+        }
+
+        if (totalFrames <= 0) return 0;
+        return Math.ceil((totalFrames / frameRate) * 1000);
+    }
+
+    ensureBattleAnimation(atlasKey, loop) {
+        const suffix = loop ? 'loop' : 'once';
+        const animKey = `battle_anim_${atlasKey}_${suffix}`;
+
+        if (this.anims.exists(animKey)) {
+            return animKey;
+        }
+
+        const frameNames = this.getAtlasFrameNames(atlasKey);
+        if (!frameNames.length) return null;
+
+        const frameRate = this.getBattleFrameRate(loop);
+        this.anims.create({
+            key: animKey,
+            frames: frameNames.map((frame) => ({ key: atlasKey, frame })),
+            frameRate,
+            repeat: loop ? -1 : 0
+        });
+
+        return animKey;
+    }
+
+    playAtlasClip(container, atlasKey, loop = false) {
+        if (!container || !container.scene || !container._animSprite || !atlasKey) {
+            return Promise.resolve(false);
+        }
+
+        const animKey = this.ensureBattleAnimation(atlasKey, loop);
+        if (!animKey) {
+            return Promise.resolve(false);
+        }
+
+        const sprite = container._animSprite;
+        if (loop) {
+            sprite.play(animKey, true);
+            return Promise.resolve(true);
+        }
+
+        return new Promise((resolve) => {
+            let settled = false;
+            const frames = this.getAtlasFrameNames(atlasKey);
+            const frameRate = this.getBattleFrameRate(false);
+            const safetyMs = Math.max(260, Math.ceil((frames.length / frameRate) * 1000) + 280);
+
+            const finish = () => {
+                if (settled) return;
+                settled = true;
+                resolve(true);
+            };
+
+            const timer = this.time.delayedCall(safetyMs, finish);
+            sprite.once(Phaser.Animations.Events.ANIMATION_COMPLETE, () => {
+                if (timer && !timer.hasDispatched) {
+                    timer.remove(false);
+                }
+                finish();
+            });
+
+            sprite.play(animKey, true);
+        });
+    }
+
+    playElfClip(container, clipType, loop = false) {
+        if (!container || !container.scene || !container._animSprite) {
+            return Promise.resolve(false);
+        }
+
+        let atlasKeys = this.getAvailableBattleAtlases(container._elfId, clipType);
+        if (!atlasKeys.length && clipType !== 'still') {
+            atlasKeys = this.getAvailableBattleAtlases(container._elfId, 'still');
+        }
+        if (!atlasKeys.length) {
+            return Promise.resolve(false);
+        }
+
+        if (loop) {
+            return this.playAtlasClip(container, atlasKeys[0], true);
+        }
+
+        return atlasKeys.reduce((prev, atlasKey) => {
+            return prev.then(async (playedAny) => {
+                const played = await this.playAtlasClip(container, atlasKey, false);
+                return playedAny || played;
+            });
+        }, Promise.resolve(false));
+    }
+
+    waitMs(ms) {
+        return new Promise((resolve) => {
+            this.time.delayedCall(ms, resolve);
+        });
+    }
+
+    moveBattleSprite(container, x, y, duration = 260) {
+        if (!container || !container.scene) {
+            return Promise.resolve();
+        }
+        this.tweens.killTweensOf(container);
+        return new Promise((resolve) => {
+            this.tweens.add({
+                targets: container,
+                x,
+                y,
+                duration,
+                ease: 'Sine.easeInOut',
+                onComplete: resolve
+            });
+        });
+    }
+
+    playStrikeMotionWithStill(attacker, strikeX) {
+        if (!attacker || !attacker.scene) {
+            return Promise.resolve(false);
+        }
+
+        const startX = attacker.x;
+        const startY = attacker.y;
+        const attackDuration = Math.max(360, this.getClipDurationMs(attacker._elfId, 'still'));
+        const attackFrameRate = this.getBattleFrameRate(false);
+        const leadFrames = 5.5;
+        let leadInMs = Math.round((leadFrames / attackFrameRate) * 1000);
+        const maxLeadInMs = Math.max(80, attackDuration - 160);
+        leadInMs = Math.min(Math.max(80, leadInMs), maxLeadInMs);
+
+        const motionDuration = Math.max(160, attackDuration - leadInMs);
+        const forwardDuration = Math.max(70, Math.round(motionDuration * 0.45));
+        const backwardDuration = Math.max(70, motionDuration - forwardDuration);
+
+        const motionPromise = new Promise((resolve) => {
+            this.tweens.killTweensOf(attacker);
+            this.time.delayedCall(leadInMs, () => {
+                if (!attacker || !attacker.scene) {
+                    resolve(false);
+                    return;
+                }
+
+                this.tweens.add({
+                    targets: attacker,
+                    x: strikeX,
+                    y: startY,
+                    duration: forwardDuration,
+                    ease: 'Sine.easeOut',
+                    onComplete: () => {
+                        this.tweens.add({
+                            targets: attacker,
+                            x: startX,
+                            y: startY,
+                            duration: backwardDuration,
+                            ease: 'Sine.easeInOut',
+                            onComplete: () => {
+                                attacker.setPosition(startX, startY);
+                                resolve(true);
+                            }
+                        });
+                    }
+                });
+            });
+        });
+
+        const stillPromise = this.playElfClip(attacker, 'still', false);
+        return Promise.all([motionPromise, stillPromise]).then(([, played]) => {
+            attacker.setPosition(startX, startY);
+            return played;
+        });
+    }
+
+    getPhysicalStrikeX(attackerIsPlayer) {
+        if (attackerIsPlayer) {
+            if (this.enemyStatus && this.enemyStatus.container) {
+                return this.enemyStatus.container.x - 40;
+            }
+            return this.W - 320;
+        }
+
+        if (this.playerStatus && this.playerStatus.container) {
+            return this.playerStatus.container.x + 290;
+        }
+        return 320;
+    }
+
+    async playSkillCastAnimation(skillEvent) {
+        const attacker = skillEvent.actor === 'player' ? this.playerSprite : this.enemySprite;
+        const defender = skillEvent.actor === 'player' ? this.enemySprite : this.playerSprite;
+        const defenderElf = skillEvent.actor === 'player' ? this.enemyElf : this.playerElf;
+
+        const skillCategory = skillEvent.skillCategory || 'status';
+        const shouldStrike = skillCategory === 'physical' || skillCategory === 'special';
+
+        if (shouldStrike) {
+            const attackerIsPlayer = skillEvent.actor === 'player';
+            const strikeX = this.getPhysicalStrikeX(attackerIsPlayer);
+
+            await this.playStrikeMotionWithStill(attacker, strikeX);
+            await this.waitMs(60);
+            await this.playElfClip(defender, 'hit', false);
+        } else {
+            await this.waitMs(120);
+        }
+
+        await this.playElfClip(attacker, 'still', true);
+        if (!defenderElf.isFainted()) {
+            await this.playElfClip(defender, 'still', true);
+        }
     }
 
     // ========== 底部控制区 ==========
@@ -1086,7 +1389,9 @@ class BattleScene extends Phaser.Scene {
         container.add(bg);
 
         // 精灵图标
-        const imageKey = AssetMappings.getElfImageKey(baseData.id);
+        const imageKey = typeof AssetMappings.getExternalStillKey === 'function'
+            ? AssetMappings.getExternalStillKey(baseData.id)
+            : AssetMappings.getElfImageKey(baseData.id);
         if (imageKey && this.textures.exists(imageKey)) {
             const sprite = this.add.image(size / 2, size / 2, imageKey);
             const scale = Math.min((size - 8) / sprite.width, (size - 8) / sprite.height);
@@ -1506,6 +1811,7 @@ class BattleScene extends Phaser.Scene {
     }
 
     async executeTurn() {
+        this.deferredBattleEndResult = null;
         const result = await this.battleManager.executeTurn();
 
         // 检查是否是捕捉操作
@@ -1522,10 +1828,15 @@ class BattleScene extends Phaser.Scene {
             }
         }
 
-        // 动画
+        // 技能动画：按技能类别切换精灵动画，并串行播放
         for (const event of result.events) {
-            if (event.type === 'attack' && event.hit && event.damage > 0) {
-                await this.playAttackAnim(event.actor);
+            if (event.type === 'skillCast') {
+                await this.playSkillCastAnimation(event);
+
+                // 每次技能动画后立即刷新数值，避免整回合结束才一起变化
+                this.updateStatusHp('player');
+                this.updateStatusHp('enemy');
+                this.updateSkillPP();
             }
         }
 
@@ -1545,6 +1856,11 @@ class BattleScene extends Phaser.Scene {
 
         // 检查战斗结束
         if (result.battleEnded) {
+            const battleEndResult = this.deferredBattleEndResult || {
+                victory: result.winner === 'player'
+            };
+            this.deferredBattleEndResult = null;
+            this.handleBattleEnd(battleEndResult);
             return;
         }
 
@@ -1737,37 +2053,6 @@ class BattleScene extends Phaser.Scene {
                     onComplete: onComplete
                 });
             }
-        });
-    }
-
-    playAttackAnim(actor) {
-        return new Promise(resolve => {
-            const isPlayer = actor === 'player';
-            const atkSprite = isPlayer ? this.playerSprite : this.enemySprite;
-            const defSprite = isPlayer ? this.enemySprite : this.playerSprite;
-            const moveX = isPlayer ? 60 : -60;
-
-            this.tweens.add({
-                targets: atkSprite,
-                x: atkSprite.x + moveX,
-                duration: 100,
-                ease: 'Power2',
-                yoyo: true,
-                onComplete: () => {
-                    this.tweens.add({
-                        targets: defSprite,
-                        alpha: 0.3,
-                        duration: 60,
-                        yoyo: true,
-                        repeat: 2,
-                        onComplete: () => {
-                            defSprite.alpha = 1;
-                            this.updateStatusHp(isPlayer ? 'enemy' : 'player');
-                            resolve();
-                        }
-                    });
-                }
-            });
         });
     }
 

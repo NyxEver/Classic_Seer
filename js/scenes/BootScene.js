@@ -19,18 +19,40 @@ class BootScene extends Phaser.Scene {
             console.error(`[BootScene] 资源加载失败: key=${file.key}, path=${file.src || 'unknown'}`);
         });
 
-        // 使用 Base64 嵌入数据加载精灵贴图（绕过 file:// CORS 限制）
-        if (typeof ElfSpriteData !== 'undefined' && typeof AssetMappings !== 'undefined') {
+        // 加载战斗精灵动画图集
+        if (typeof AssetMappings !== 'undefined' && typeof AssetMappings.getAllBattleAtlases === 'function') {
+            const atlases = AssetMappings.getAllBattleAtlases();
             let loadedCount = 0;
-            for (const [elfId, fileName] of Object.entries(AssetMappings.elves)) {
-                const imageKey = `elf_${fileName}`;
-                const base64Data = ElfSpriteData[fileName];
-                if (base64Data) {
-                    this.load.image(imageKey, base64Data);
-                    loadedCount++;
-                }
+            for (const atlas of atlases) {
+                if (!atlas || !atlas.key || !atlas.texturePath || !atlas.atlasPath) continue;
+                this.load.atlas(atlas.key, atlas.texturePath, atlas.atlasPath);
+                loadedCount++;
             }
-            console.log(`[BootScene] 预加载 ${loadedCount} 个精灵贴图（Base64 模式）`);
+            console.log(`[BootScene] 预加载 ${loadedCount} 组战斗精灵动画图集`);
+        }
+
+        // 加载场景外静态精灵图（背包等）
+        if (typeof AssetMappings !== 'undefined' && typeof AssetMappings.getAllExternalStillAssets === 'function') {
+            const stillAssets = AssetMappings.getAllExternalStillAssets();
+            let loadedCount = 0;
+            for (const asset of stillAssets) {
+                if (!asset || !asset.key || !asset.path) continue;
+                this.load.image(asset.key, asset.path);
+                loadedCount++;
+            }
+            console.log(`[BootScene] 预加载 ${loadedCount} 张场景外静态精灵图`);
+        }
+
+        // 加载场景外动态图集（野外四方向）
+        if (typeof AssetMappings !== 'undefined' && typeof AssetMappings.getAllExternalDynamicAtlases === 'function') {
+            const atlases = AssetMappings.getAllExternalDynamicAtlases();
+            let loadedCount = 0;
+            for (const atlas of atlases) {
+                if (!atlas || !atlas.key || !atlas.texturePath || !atlas.atlasPath) continue;
+                this.load.atlas(atlas.key, atlas.texturePath, atlas.atlasPath);
+                loadedCount++;
+            }
+            console.log(`[BootScene] 预加载 ${loadedCount} 组场景外动态图集`);
         }
 
         // 加载背景图片

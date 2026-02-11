@@ -116,6 +116,13 @@ class ElfBagScene extends Phaser.Scene {
             fallbackFontSize: '12px'
         });
 
+        // 精灵静态图（external_scene/still）
+        if (!this.addElfStillImage(container, 325, 42, elf.id, 54)) {
+            const fallback = this.add.circle(325, 42, 22, 0x5a6a8a, 0.9);
+            fallback.setStrokeStyle(2, 0x9ab0d0, 0.8);
+            container.add(fallback);
+        }
+
         // HP 条
         const hpBarBg = this.add.rectangle(15, 60, 200, 12, 0x333355);
         hpBarBg.setOrigin(0, 0.5);
@@ -240,6 +247,13 @@ class ElfBagScene extends Phaser.Scene {
             color: '#88aadd'
         }).setOrigin(1, 0);
         this.detailPanel.add(levelText);
+
+        // 右侧精灵展示图（external_scene/still）
+        if (!this.addElfStillImage(this.detailPanel, panelWidth - 90, 88, elf.id, 130)) {
+            const fallback = this.add.circle(panelWidth - 90, 88, 42, 0x4a5a7a, 0.9);
+            fallback.setStrokeStyle(2, 0x8aa0c0, 0.8);
+            this.detailPanel.add(fallback);
+        }
 
         // 属性类型（四属性显示图标，其他属性保留文字）
         this.addTypeVisual(this.detailPanel, 60, 60, elf.type, {
@@ -574,6 +588,59 @@ class ElfBagScene extends Phaser.Scene {
         const fallback = this.add.circle(x, y, radius, typeColor).setOrigin(0.5);
         fallback.setStrokeStyle(1, 0xffffff, 0.7);
         container.add(fallback);
+    }
+
+    /**
+     * 添加精灵静态图（external_scene/still）
+     * @returns {boolean} 是否成功添加
+     */
+    addElfStillImage(container, x, y, elfId, maxSize) {
+        let stillKey = null;
+        if (typeof AssetMappings !== 'undefined' && typeof AssetMappings.getExternalStillKey === 'function') {
+            stillKey = AssetMappings.getExternalStillKey(elfId);
+        }
+
+        if (stillKey && this.textures.exists(stillKey)) {
+            const image = this.add.image(x, y, stillKey).setOrigin(0.5);
+            const scale = Math.min(maxSize / image.width, maxSize / image.height);
+            image.setScale(scale);
+            container.add(image);
+            return true;
+        }
+
+        if (typeof AssetMappings !== 'undefined' && typeof AssetMappings.getBattleClipKeys === 'function') {
+            const battleStillKeys = AssetMappings.getBattleClipKeys(elfId, 'still');
+            for (const atlasKey of battleStillKeys) {
+                if (!this.textures.exists(atlasKey)) continue;
+
+                const texture = this.textures.get(atlasKey);
+                if (!texture) continue;
+
+                let frameNames = [];
+                const atlasJson = this.cache && this.cache.json ? this.cache.json.get(atlasKey) : null;
+                if (atlasJson && atlasJson.frames && typeof atlasJson.frames === 'object') {
+                    frameNames = Object.keys(atlasJson.frames);
+                } else {
+                    frameNames = texture.getFrameNames().filter((name) => name !== '__BASE');
+                }
+                if (!frameNames.length) continue;
+
+                const sprite = this.add.sprite(x, y, atlasKey, frameNames[0]).setOrigin(0.5);
+                const scale = Math.min(maxSize / sprite.width, maxSize / sprite.height);
+                sprite.setScale(scale);
+                container.add(sprite);
+                return true;
+            }
+        }
+
+        if (!this._missingPortraitWarned) {
+            this._missingPortraitWarned = new Set();
+        }
+        if (!this._missingPortraitWarned.has(elfId)) {
+            console.warn(`[ElfBagScene] 精灵图片缺失: elfId=${elfId}, stillKey=${stillKey || 'null'}`);
+            this._missingPortraitWarned.add(elfId);
+        }
+        return false;
     }
 
     /**

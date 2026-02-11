@@ -377,18 +377,18 @@ const ElvesData = {
             evolveTo: null,
             evolveLevel: null,
             baseStats: {
-                hp: 130,
-                atk: 120,
-                spAtk: 135,
-                def: 115,
-                spDef: 125,
+                hp: 120,
+                atk: 110,
+                spAtk: 120,
+                def: 100,
+                spDef: 100,
                 spd: 110
             },
             // 谱尼技能表
             learnableSkills: [
-                { skillId: 518, learnLevel: 0 },   // 璨灵圣光
-                { skillId: 519, learnLevel: 0 },   // 落芳天华
-                { skillId: 520, learnLevel: 0 },   // 圣灵悲魂曲
+                { skillId: 518, learnLevel: 85 },   // 璨灵圣光
+                { skillId: 519, learnLevel: 85 },   // 落芳天华
+                { skillId: 520, learnLevel: 85 },   // 圣灵悲魂曲
                 { skillId: 501, learnLevel: 1 },   // 极光
                 { skillId: 502, learnLevel: 5 },   // 虚无
                 { skillId: 503, learnLevel: 10 },  // 神圣之光

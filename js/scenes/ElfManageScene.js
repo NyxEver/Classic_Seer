@@ -162,13 +162,7 @@ class ElfManageScene extends Phaser.Scene {
         const elf = new Elf(baseData, elfData);
 
         // 左侧立绘
-        const imgKey = AssetMappings.getElfImageKey(baseData.id);
-        if (imgKey && this.textures.exists(imgKey)) {
-            const sprite = this.add.image(32, h / 2 - 2, imgKey);
-            const scale = Math.min((h - 18) / sprite.height, 58 / sprite.width);
-            sprite.setScale(scale);
-            container.add(sprite);
-        } else {
+        if (!this.addElfPortrait(container, 32, h / 2 - 2, baseData.id, 58, h - 18)) {
             const icon = this.add.circle(32, h / 2 - 2, 24, 0x4a7aaa);
             const txt = this.add.text(32, h / 2 - 2, baseData.name.charAt(0), {
                 fontSize: '20px', color: '#ffffff', fontStyle: 'bold'
@@ -379,13 +373,7 @@ class ElfManageScene extends Phaser.Scene {
 
     renderTopInfo(elfData, baseData, elf, x, y, w) {
         // 大图
-        const imgKey = AssetMappings.getElfImageKey(baseData.id);
-        if (imgKey && this.textures.exists(imgKey)) {
-            const sprite = this.add.image(x + 95, y + 90, imgKey);
-            const scale = Math.min(150 / sprite.height, 150 / sprite.width);
-            sprite.setScale(scale);
-            this.rightContent.add(sprite);
-        } else {
+        if (!this.addElfPortrait(this.rightContent, x + 95, y + 90, baseData.id, 150, 150)) {
             const fallback = this.add.circle(x + 95, y + 90, 55, 0x4a7aaa);
             this.rightContent.add(fallback);
         }
@@ -535,6 +523,55 @@ class ElfManageScene extends Phaser.Scene {
         g.lineStyle(1, 0x35506b, 1);
         g.strokeRoundedRect(x, y, w, h, 8);
         container.add(g);
+    }
+
+    addElfPortrait(container, x, y, elfId, maxWidth, maxHeight) {
+        let stillKey = null;
+        if (typeof AssetMappings !== 'undefined' && typeof AssetMappings.getExternalStillKey === 'function') {
+            stillKey = AssetMappings.getExternalStillKey(elfId);
+        }
+
+        if (stillKey && this.textures.exists(stillKey)) {
+            const image = this.add.image(x, y, stillKey).setOrigin(0.5);
+            const scale = Math.min(maxWidth / image.width, maxHeight / image.height);
+            image.setScale(scale);
+            container.add(image);
+            return true;
+        }
+
+        if (typeof AssetMappings !== 'undefined' && typeof AssetMappings.getBattleClipKeys === 'function') {
+            const battleStillKeys = AssetMappings.getBattleClipKeys(elfId, 'still');
+            for (const atlasKey of battleStillKeys) {
+                if (!this.textures.exists(atlasKey)) continue;
+
+                const texture = this.textures.get(atlasKey);
+                if (!texture) continue;
+
+                let frameNames = [];
+                const atlasJson = this.cache && this.cache.json ? this.cache.json.get(atlasKey) : null;
+                if (atlasJson && atlasJson.frames && typeof atlasJson.frames === 'object') {
+                    frameNames = Object.keys(atlasJson.frames);
+                } else {
+                    frameNames = texture.getFrameNames().filter((name) => name !== '__BASE');
+                }
+                if (!frameNames.length) continue;
+
+                const sprite = this.add.sprite(x, y, atlasKey, frameNames[0]).setOrigin(0.5);
+                const scale = Math.min(maxWidth / sprite.width, maxHeight / sprite.height);
+                sprite.setScale(scale);
+                container.add(sprite);
+                return true;
+            }
+        }
+
+        if (!this._missingPortraitWarned) {
+            this._missingPortraitWarned = new Set();
+        }
+        if (!this._missingPortraitWarned.has(elfId)) {
+            console.warn(`[ElfManageScene] 精灵图片缺失: elfId=${elfId}, stillKey=${stillKey || 'null'}`);
+            this._missingPortraitWarned.add(elfId);
+        }
+        return false;
     }
 
     getHpBarColor(pct) {
