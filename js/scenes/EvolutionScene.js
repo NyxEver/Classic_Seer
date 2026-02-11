@@ -81,8 +81,15 @@ class EvolutionScene extends Phaser.Scene {
     createElfDisplay(x, y, elfData, fallbackColor) {
         const container = this.add.container(x, y);
 
-        // 尝试使用真实精灵贴图
-        const imageKey = AssetMappings.getElfImageKey(elfData.id);
+        // 优先使用 external_scene/still 贴图
+        let imageKey = null;
+        if (typeof AssetMappings.getExternalStillKey === 'function') {
+            imageKey = AssetMappings.getExternalStillKey(elfData.id);
+        }
+        if (!imageKey && typeof AssetMappings.getElfImageKey === 'function') {
+            imageKey = AssetMappings.getElfImageKey(elfData.id);
+        }
+
         if (imageKey && this.textures.exists(imageKey)) {
             const sprite = this.add.image(0, 0, imageKey);
             const maxSize = 140;

@@ -112,8 +112,15 @@ class PokedexScene extends Phaser.Scene {
         const iconContainer = this.add.container(0, -20);
         container.add(iconContainer);
 
-        // 尝试使用真实精灵贴图
-        const imageKey = AssetMappings.getElfImageKey(elfData.id);
+        // 优先使用 external_scene/still
+        let imageKey = null;
+        if (typeof AssetMappings.getExternalStillKey === 'function') {
+            imageKey = AssetMappings.getExternalStillKey(elfData.id);
+        }
+        if (!imageKey && typeof AssetMappings.getElfImageKey === 'function') {
+            imageKey = AssetMappings.getElfImageKey(elfData.id);
+        }
+
         if (hasCaught && imageKey && this.textures.exists(imageKey)) {
             // 已捕捉：显示彩色精灵贴图
             const sprite = this.add.image(0, 0, imageKey);

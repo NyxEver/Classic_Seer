@@ -230,6 +230,7 @@ class BattleScene extends Phaser.Scene {
     createCharacterSprite(x, y, elf, isPlayer) {
         const container = this.add.container(x, y);
         const size = 80;
+        container._isPlayerSide = isPlayer;
 
         // 优先使用战斗动画图集（01_still）
         const stillAtlasKey = this.pickBattleAtlas(elf.id, 'still');
@@ -244,6 +245,7 @@ class BattleScene extends Phaser.Scene {
 
             container._animSprite = sprite;
             container._elfId = elf.id;
+            this.applyBattleSideFlip(container);
 
             // 默认循环播放待机动画
             this.playElfClip(container, 'still', true);
@@ -271,6 +273,12 @@ class BattleScene extends Phaser.Scene {
         }
 
         return container;
+    }
+
+    applyBattleSideFlip(container) {
+        if (!container || !container._animSprite) return;
+        const shouldFlip = container._isPlayerSide === false;
+        container._animSprite.setFlipX(shouldFlip);
     }
 
     getAvailableBattleAtlases(elfId, clipType) {
@@ -395,6 +403,7 @@ class BattleScene extends Phaser.Scene {
         }
 
         const sprite = container._animSprite;
+        this.applyBattleSideFlip(container);
         if (loop) {
             sprite.play(animKey, true);
             return Promise.resolve(true);
@@ -571,6 +580,8 @@ class BattleScene extends Phaser.Scene {
     createBottomControlPanel() {
         const panelY = 430;
         const panelH = 170;
+        this.bottomPanelY = panelY;
+        this.isItemPanelOpen = false;
 
         const panelBg = this.add.graphics();
         panelBg.fillStyle(0x1a2a3a, 0.95);
@@ -615,10 +626,12 @@ class BattleScene extends Phaser.Scene {
         const skills = this.playerElf.getSkillDetails();
         const skillBtnW = 175;
         const skillBtnH = 55;
-        const startX = x + 15;
-        const startY = y + 20;
         const gapX = 10;
         const gapY = 10;
+        const totalW = skillBtnW * 2 + gapX;
+        const totalH = skillBtnH * 2 + gapY;
+        const startX = x + Math.floor((w - totalW) / 2);
+        const startY = y + Math.floor((h - totalH) / 2);
 
         this.skillButtons = [];
         for (let i = 0; i < 4; i++) {
@@ -741,14 +754,18 @@ class BattleScene extends Phaser.Scene {
         const btnW = 120, btnH = 45;
         const gap = 10;
 
+        if (this.actionContainer) {
+            this.actionContainer.destroy();
+        }
         this.actionContainer = this.add.container(0, 0);
 
         // 检查是否有多只精灵可切换
         const hasMultipleElves = PlayerData.elves.length > 1;
+        const itemPanelOpen = this.isItemPanelOpen === true;
 
         const buttons = [
-            { label: '战斗', action: () => { }, disabled: true },
-            { label: '道具', action: () => this.showItemPanel(), disabled: false },
+            { label: '战斗', action: () => this.showSkillPanel(), disabled: !itemPanelOpen },
+            { label: '道具', action: () => this.showItemPanel(), disabled: itemPanelOpen },
             { label: '精灵', action: () => this.showElfSwitchPanel(), disabled: !hasMultipleElves },
             { label: '逃跑', action: () => this.doEscape(), disabled: false }
         ];
@@ -763,6 +780,17 @@ class BattleScene extends Phaser.Scene {
             this.actionButtons.push(btn);
             this.actionContainer.add(btn);
         }
+    }
+
+    refreshActionButtons() {
+        this.createRightActionButtons(this.bottomPanelY || 430);
+        if (!this.menuEnabled && this.actionContainer) {
+            this.actionContainer.setAlpha(0.4);
+        }
+    }
+
+    showSkillPanel() {
+        this.closeItemPanel();
     }
 
     createActionButton(x, y, w, h, config) {
@@ -996,7 +1024,7 @@ class BattleScene extends Phaser.Scene {
 
     // ========== 道具面板 ==========
     showItemPanel() {
-        this.closeItemPanel();
+        if (this.itemPanelContainer) return;
         this.closeElfSwitchPanel();
         this.closeCapsulePanel();
 
@@ -1010,7 +1038,29 @@ class BattleScene extends Phaser.Scene {
         this.itemPanelContainer = this.add.container(310, panelY + 10);
         this.itemPanelContainer.setDepth(50);
 
-        const panelW = 330, panelH = 140;
+        const panelW = 380, panelH = 150;
+        const panelPadding = 10;
+        const catBtnW = 56;
+        const catGap = 5;
+        const gridW = panelW - panelPadding * 3 - catBtnW;
+        const gridH = panelH - panelPadding * 2;
+
+        this.itemPanelLayout = {
+            panelW,
+            panelH,
+            panelPadding,
+            gridX: panelPadding,
+            gridY: panelPadding,
+            gridW,
+            gridH,
+            cols: 4,
+            rows: 2,
+            slotGapX: 8,
+            slotGapY: 8
+        };
+
+        this.isItemPanelOpen = true;
+        this.refreshActionButtons();
 
         // 背景（与技能面板一致）
         const bg = this.add.graphics();
@@ -1031,19 +1081,19 @@ class BattleScene extends Phaser.Scene {
             { key: 'capsule', label: '胶囊', icon: '🔴' }
         ];
 
-        const catX = panelW - 55;
-        const catY = 5;
-        const catBtnW = 50, catBtnH = 40;
+        const catX = panelW - panelPadding - catBtnW;
+        const catY = panelPadding;
+        const catBtnH = Math.floor((gridH - catGap * 2) / 3);
 
         this.categoryButtons = [];
         categories.forEach((cat, i) => {
-            const btn = this.createCategoryButton(catX, catY + i * (catBtnH + 5), catBtnW, catBtnH, cat);
+            const btn = this.createCategoryButton(catX, catY + i * (catBtnH + catGap), catBtnW, catBtnH, cat);
             this.itemPanelContainer.add(btn);
             this.categoryButtons.push(btn);
         });
 
         // ========== 主物品网格区 ==========
-        this.itemGridContainer = this.add.container(10, 10);
+        this.itemGridContainer = this.add.container(this.itemPanelLayout.gridX, this.itemPanelLayout.gridY);
         this.itemPanelContainer.add(this.itemGridContainer);
 
         // 加载物品
@@ -1082,6 +1132,8 @@ class BattleScene extends Phaser.Scene {
 
         container._bg = bg;
         container._cat = cat;
+        container._w = w;
+        container._h = h;
 
         return container;
     }
@@ -1090,16 +1142,26 @@ class BattleScene extends Phaser.Scene {
         this.categoryButtons.forEach(btn => {
             const bg = btn._bg;
             const cat = btn._cat;
+            const w = btn._w;
+            const h = btn._h;
             bg.clear();
             bg.fillStyle(this.itemCategory === cat.key ? 0x3a6a9a : 0x2a4a6a, 1);
-            bg.fillRoundedRect(0, 0, 55, 45, 5);
+            bg.fillRoundedRect(0, 0, w, h, 5);
             bg.lineStyle(1, this.itemCategory === cat.key ? 0x6a9aca : 0x4a7aaa);
-            bg.strokeRoundedRect(0, 0, 55, 45, 5);
+            bg.strokeRoundedRect(0, 0, w, h, 5);
         });
     }
 
     updateItemGrid() {
         this.itemGridContainer.removeAll(true);
+        const layout = this.itemPanelLayout || {
+            gridW: 264,
+            gridH: 120,
+            cols: 4,
+            rows: 2,
+            slotGapX: 6,
+            slotGapY: 6
+        };
 
         // 获取物品列表
         const allItems = ItemBag.getAll();
@@ -1121,10 +1183,13 @@ class BattleScene extends Phaser.Scene {
             }
         });
 
-        // 4列 x 2行 网格（适应较小面板）
-        const cols = 4, rows = 2;
-        const slotW = 55, slotH = 55;
-        const gapX = 6, gapY = 6;
+        // 4列 x 2行 网格
+        const cols = layout.cols;
+        const rows = layout.rows;
+        const gapX = layout.slotGapX;
+        const gapY = layout.slotGapY;
+        const slotW = Math.floor((layout.gridW - gapX * (cols - 1)) / cols);
+        const slotH = Math.floor((layout.gridH - gapY * (rows - 1)) / rows);
         const visibleItems = items.slice(this.itemScrollOffset, this.itemScrollOffset + cols * rows);
 
         visibleItems.forEach((item, i) => {
@@ -1139,7 +1204,7 @@ class BattleScene extends Phaser.Scene {
 
         // 如果没有物品显示提示
         if (visibleItems.length === 0) {
-            const emptyText = this.add.text(150, 60, '没有此类道具', {
+            const emptyText = this.add.text(Math.floor(layout.gridW / 2), Math.floor(layout.gridH / 2), '没有此类道具', {
                 fontSize: '14px', fontFamily: 'Arial', color: '#888888'
             }).setOrigin(0.5);
             this.itemGridContainer.add(emptyText);
@@ -1147,9 +1212,10 @@ class BattleScene extends Phaser.Scene {
 
         // 简单滚动指示（如果物品超过10个）
         if (items.length > cols * rows) {
-            const scrollInfo = this.add.text(350, 140, `▲ ▼ (${this.itemScrollOffset / (cols * rows) + 1}/${Math.ceil(items.length / (cols * rows))})`, {
+            const scrollInfo = this.add.text(layout.gridW - 4, layout.gridH - 2,
+                `▲ ▼ ${this.itemScrollOffset / (cols * rows) + 1}/${Math.ceil(items.length / (cols * rows))}`, {
                 fontSize: '12px', fontFamily: 'Arial', color: '#aaaaaa'
-            }).setOrigin(0.5);
+            }).setOrigin(1, 1);
             this.itemGridContainer.add(scrollInfo);
         }
     }
@@ -1295,6 +1361,9 @@ class BattleScene extends Phaser.Scene {
             this.itemPanelContainer.destroy();
             this.itemPanelContainer = null;
         }
+        this.itemPanelLayout = null;
+        this.isItemPanelOpen = false;
+        this.refreshActionButtons();
         // 恢复技能面板
         if (this.skillContainer) {
             this.skillContainer.setVisible(true);
@@ -1303,6 +1372,7 @@ class BattleScene extends Phaser.Scene {
 
     // ========== 精灵切换面板 ==========
     showElfSwitchPanel(forceSwitch = false) {
+        this.closeItemPanel();
         this.closeElfSwitchPanel();
         this.closeCapsulePanel();
 
@@ -1663,9 +1733,13 @@ class BattleScene extends Phaser.Scene {
         const skills = this.playerElf.getSkillDetails();
         const panelY = 430;
         const x = 310, y = panelY + 10;
+        const w = 380, h = 150;
         const skillBtnW = 175, skillBtnH = 55;
-        const startX = x + 15, startY = y + 20;
         const gapX = 10, gapY = 10;
+        const totalW = skillBtnW * 2 + gapX;
+        const totalH = skillBtnH * 2 + gapY;
+        const startX = x + Math.floor((w - totalW) / 2);
+        const startY = y + Math.floor((h - totalH) / 2);
 
         this.skillButtons = [];
         for (let i = 0; i < 4; i++) {

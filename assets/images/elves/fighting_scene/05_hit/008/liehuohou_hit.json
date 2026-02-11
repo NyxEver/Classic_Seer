@@ -1,0 +1,183 @@
+{
+  "frames": {
+    "4.png": {
+      "frame": {
+        "x": 0,
+        "y": 0,
+        "w": 117,
+        "h": 181
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 117,
+        "h": 181
+      },
+      "sourceSize": {
+        "w": 117,
+        "h": 181
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "5.png": {
+      "frame": {
+        "x": 118,
+        "y": 0,
+        "w": 117,
+        "h": 181
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 117,
+        "h": 181
+      },
+      "sourceSize": {
+        "w": 117,
+        "h": 181
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "6.png": {
+      "frame": {
+        "x": 236,
+        "y": 0,
+        "w": 116,
+        "h": 177
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 116,
+        "h": 177
+      },
+      "sourceSize": {
+        "w": 116,
+        "h": 177
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "2.png": {
+      "frame": {
+        "x": 236,
+        "y": 0,
+        "w": 116,
+        "h": 177
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 116,
+        "h": 177
+      },
+      "sourceSize": {
+        "w": 116,
+        "h": 177
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "3.png": {
+      "frame": {
+        "x": 353,
+        "y": 0,
+        "w": 116,
+        "h": 177
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 116,
+        "h": 177
+      },
+      "sourceSize": {
+        "w": 116,
+        "h": 177
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "7.png": {
+      "frame": {
+        "x": 470,
+        "y": 0,
+        "w": 131,
+        "h": 165
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 131,
+        "h": 165
+      },
+      "sourceSize": {
+        "w": 131,
+        "h": 165
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "1.png": {
+      "frame": {
+        "x": 470,
+        "y": 0,
+        "w": 131,
+        "h": 165
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 131,
+        "h": 165
+      },
+      "sourceSize": {
+        "w": 131,
+        "h": 165
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    }
+  },
+  "meta": {
+    "app": "https://www.flintbyte.com/",
+    "version": "1.0.0",
+    "image": "liehuohou_hit.png",
+    "format": "RGBA8888",
+    "size": {
+      "w": 601,
+      "h": 181
+    },
+    "scale": 1
+  }
+}

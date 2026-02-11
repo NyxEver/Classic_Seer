@@ -12,7 +12,8 @@ const CatchSystem = {
      */
     calculateCatchRate(elf, capsule) {
         // 获取精灵基础捕捉率
-        const elfData = DataLoader.getElf(elf.elfId);
+        const targetElfId = elf && typeof elf.id === 'number' ? elf.id : elf.elfId;
+        const elfData = DataLoader.getElf(targetElfId);
         const baseCatchRate = elfData ? elfData.catchRate : 50;
 
         // HP 加成：HP 越低越容易抓

@@ -97,6 +97,125 @@ const SkillsData = {
             },
             description: "用迷人的眼神迷惑对手，降低对手的命中率。"
         },
+        {
+            id: 105,
+            name: "手下留情",
+            type: "normal",
+            category: "physical",
+            power: 40,
+            accuracy: 100,
+            pp: 40,
+            priority: 0,
+            critRate: 16,
+            effect: {
+                type: "leaveOneHp",
+                minimumTargetHp: 1,
+                description: "本次攻击至少保留对手1点体力"
+            },
+            description: "留有余力地攻击对手，不会将对手直接击倒。"
+        },
+        {
+            id: 106,
+            name: "同生共死",
+            type: "normal",
+            category: "physical",
+            power: 0,
+            accuracy: 100,
+            pp: 5,
+            priority: 0,
+            critRate: 16,
+            effect: {
+                type: "equalizeHp",
+                requireTargetHigherHp: true,
+                description: "将对手体力降至与自身相同（需对手体力高于自己）"
+            },
+            description: "以拼命一击逼近胜负，将对手体力压到与自身相同。"
+        },
+        {
+            id: 107,
+            name: "吹飞",
+            type: "normal",
+            category: "status",
+            power: 0,
+            accuracy: 100,
+            pp: 20,
+            priority: 0,
+            critRate: null,
+            effect: {
+                type: "statChange",
+                target: "enemy",
+                stat: "spd",
+                stages: -1,
+                chance: 100
+            },
+            description: "刮起强风扰乱对手，降低对手速度。"
+        },
+        {
+            id: 108,
+            name: "燕返",
+            type: "flying",
+            category: "physical",
+            power: 60,
+            accuracy: 100,
+            pp: 20,
+            priority: 0,
+            critRate: 16,
+            effect: null,
+            description: "以迅捷回旋突进敌阵，稳定命中并造成伤害。"
+        },
+        {
+            id: 109,
+            name: "突进",
+            type: "normal",
+            category: "physical",
+            power: 90,
+            accuracy: 85,
+            pp: 20,
+            priority: 0,
+            critRate: 16,
+            effect: {
+                type: "recoil",
+                recoilRatio: 0.25,
+                description: "自身承受1/4反伤"
+            },
+            description: "不顾防御地猛烈冲撞，自身也会受到反作用伤害。"
+        },
+        {
+            id: 110,
+            name: "高速移动",
+            type: "normal",
+            category: "status",
+            power: 0,
+            accuracy: 100,
+            pp: 20,
+            priority: 0,
+            critRate: null,
+            effect: {
+                type: "statChange",
+                target: "self",
+                stat: "spd",
+                stages: 2,
+                chance: 100
+            },
+            description: "急速提升机动力，大幅提高自身速度。"
+        },
+        {
+            id: 111,
+            name: "猛禽",
+            type: "flying",
+            category: "physical",
+            power: 120,
+            accuracy: 85,
+            pp: 15,
+            priority: 0,
+            critRate: 16,
+            effect: {
+                type: "recoil",
+                recoilRatio: 0.25,
+                description: "自身承受1/4反伤"
+            },
+            description: "以凶猛俯冲发动重击，对目标造成巨大伤害并承受反冲。"
+        },
 
         // ============================================
         // 水系进化链技能 (201-299)
@@ -633,6 +752,300 @@ const SkillsData = {
                 chance: 100
             },
             description: "发起叶刃风暴攻击对手，使用后自身特攻下降。"
+        },
+        {
+            id: 315,
+            name: "针刺",
+            type: "grass",
+            category: "special",
+            power: 35,
+            accuracy: 100,
+            pp: 10,
+            priority: 0,
+            critRate: 16,
+            effect: null,
+            description: "射出尖锐针刺攻击对手。"
+        },
+        {
+            id: 316,
+            name: "催眠粉",
+            type: "normal",
+            category: "status",
+            power: 0,
+            accuracy: 50,
+            pp: 15,
+            priority: 0,
+            critRate: null,
+            effect: {
+                type: "status",
+                status: "sleep",
+                chance: 100,
+                description: "命中后令对手睡眠"
+            },
+            description: "散布催眠粉末，使对手陷入睡眠。"
+        },
+        {
+            id: 317,
+            name: "毒粉",
+            type: "normal",
+            category: "status",
+            power: 0,
+            accuracy: 100,
+            pp: 35,
+            priority: 0,
+            critRate: null,
+            effect: {
+                type: "status",
+                status: "poison",
+                chance: 100,
+                description: "命中后令对手中毒"
+            },
+            description: "喷洒有毒粉末，使对手中毒。"
+        },
+        {
+            id: 318,
+            name: "香甜气息",
+            type: "normal",
+            category: "status",
+            power: 0,
+            accuracy: 100,
+            pp: 20,
+            priority: 0,
+            critRate: null,
+            effect: {
+                type: "statChange",
+                target: "self",
+                stat: "accuracy",
+                stages: 1,
+                chance: 100
+            },
+            description: "散发甜香稳定呼吸，提升自身命中率。"
+        },
+        {
+            id: 319,
+            name: "生长",
+            type: "normal",
+            category: "status",
+            power: 0,
+            accuracy: 100,
+            pp: 40,
+            priority: 0,
+            critRate: null,
+            effect: {
+                type: "statChange",
+                target: "self",
+                stat: "spAtk",
+                stages: 1,
+                chance: 100
+            },
+            description: "激发体内能量，提升自身特攻。"
+        },
+        {
+            id: 320,
+            name: "花瓣舞",
+            type: "grass",
+            category: "special",
+            power: 50,
+            accuracy: 100,
+            pp: 20,
+            priority: 0,
+            critRate: 16,
+            effect: {
+                type: "multiHit",
+                minHits: 2,
+                maxHits: 3,
+                description: "1回合攻击2~3次"
+            },
+            description: "舞动连绵花瓣进行连续打击。"
+        },
+        {
+            id: 321,
+            name: "阳光烈焰",
+            type: "grass",
+            category: "special",
+            power: 120,
+            accuracy: 90,
+            pp: 10,
+            priority: 0,
+            critRate: 16,
+            effect: null,
+            description: "汇聚阳光后放出炽烈能量，造成高额伤害。"
+        },
+        {
+            id: 322,
+            name: "弹跳踢",
+            type: "normal",
+            category: "physical",
+            power: 30,
+            accuracy: 100,
+            pp: 20,
+            priority: 0,
+            critRate: 16,
+            effect: {
+                type: "multiHit",
+                minHits: 2,
+                maxHits: 3,
+                description: "1回合攻击2~3次"
+            },
+            description: "以连续弹跳踢击对手。"
+        },
+        {
+            id: 323,
+            name: "毒泡",
+            type: "grass",
+            category: "special",
+            power: 45,
+            accuracy: 100,
+            pp: 25,
+            priority: 0,
+            critRate: 16,
+            effect: null,
+            description: "喷射毒性气泡攻击对手。"
+        },
+        {
+            id: 324,
+            name: "毒气冲击",
+            type: "grass",
+            category: "physical",
+            power: 60,
+            accuracy: 100,
+            pp: 20,
+            priority: 0,
+            critRate: 16,
+            effect: {
+                type: "status",
+                status: "poison",
+                chance: 10,
+                description: "10%令对手中毒"
+            },
+            description: "裹挟毒气撞击对手，偶尔令对手中毒。"
+        },
+        {
+            id: 325,
+            name: "栖息",
+            type: "normal",
+            category: "status",
+            power: 0,
+            accuracy: 100,
+            pp: 10,
+            priority: 0,
+            critRate: null,
+            effect: {
+                type: "heal",
+                healRatio: 0.5,
+                description: "恢复自身最大体力1/2"
+            },
+            description: "短暂休整身体，恢复大量体力。"
+        },
+        {
+            id: 326,
+            name: "毒雾",
+            type: "grass",
+            category: "special",
+            power: 60,
+            accuracy: 95,
+            pp: 20,
+            priority: 0,
+            critRate: 16,
+            effect: {
+                type: "status",
+                status: "poison",
+                chance: 10,
+                description: "10%令对手中毒"
+            },
+            description: "释放浓厚毒雾伤害对手，偶尔造成中毒。"
+        },
+        {
+            id: 327,
+            name: "毒气集中",
+            type: "normal",
+            category: "status",
+            power: 0,
+            accuracy: 100,
+            pp: 30,
+            priority: 0,
+            critRate: null,
+            effect: {
+                type: "statChange",
+                target: "self",
+                stat: "spAtk",
+                stages: 1,
+                chance: 100
+            },
+            description: "聚拢体内毒能，提升自身特攻。"
+        },
+        {
+            id: 328,
+            name: "四方刀叶",
+            type: "grass",
+            category: "special",
+            power: 80,
+            accuracy: 100,
+            pp: 20,
+            priority: 0,
+            critRate: 16,
+            effect: null,
+            description: "从四方卷起刀叶斩击对手。"
+        },
+        {
+            id: 329,
+            name: "防护罩",
+            type: "normal",
+            category: "status",
+            power: 0,
+            accuracy: 100,
+            pp: 10,
+            priority: 0,
+            critRate: null,
+            effect: {
+                type: "protect",
+                duration: 1,
+                description: "抵挡下一次攻击"
+            },
+            description: "展开防护罩，抵挡即将到来的攻击。"
+        },
+        {
+            id: 330,
+            name: "泰山压顶",
+            type: "normal",
+            category: "physical",
+            power: 120,
+            accuracy: 90,
+            pp: 5,
+            priority: 0,
+            critRate: 16,
+            effect: {
+                type: "selfExhausted",
+                duration: 1,
+                description: "自身疲惫1回合"
+            },
+            description: "以山岳之势压向对手，随后自身短暂疲惫。"
+        },
+        {
+            id: 331,
+            name: "光能射线",
+            type: "grass",
+            category: "special",
+            power: 100,
+            accuracy: 100,
+            pp: 10,
+            priority: 0,
+            critRate: 16,
+            effect: null,
+            description: "聚焦光能发射射线，造成稳定高伤害。"
+        },
+        {
+            id: 332,
+            name: "光源波",
+            type: "grass",
+            category: "special",
+            power: 120,
+            accuracy: 100,
+            pp: 5,
+            priority: 0,
+            critRate: 16,
+            effect: null,
+            description: "释放高密度光波冲击对手。"
         },
 
         // ============================================

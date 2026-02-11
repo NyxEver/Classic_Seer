@@ -344,30 +344,292 @@ const ElvesData = {
             catchRate: null,
             evYield: { hp: 0, atk: 0, spAtk: 0, def: 0, spDef: 0, spd: 3 }
         },
+        // ============================================
+        // 飞行系进化链 (evolutionChainId: 100)
+        // 皮皮 → 比波 → 波克尔
+        // ============================================
         {
             id: 10,
             name: "皮皮",
             type: "flying",
-            evolutionChainId: 100,  // 独立进化链
-            evolveTo: null,
-            evolveLevel: null,
+            evolutionChainId: 100,
+            evolveTo: 11,
+            evolveLevel: 14,
             baseStats: {
                 hp: 40,
-                atk: 40,
+                atk: 55,
                 spAtk: 30,
-                def: 35,
-                spDef: 35,
-                spd: 50
+                def: 30,
+                spDef: 30,
+                spd: 60
             },
             learnableSkills: [
                 { skillId: 101, learnLevel: 1 },
                 { skillId: 2, learnLevel: 3 },
                 { skillId: 102, learnLevel: 5 },
                 { skillId: 103, learnLevel: 9 },
-                { skillId: 104, learnLevel: 13 }
+                { skillId: 104, learnLevel: 13 },
+                { skillId: 105, learnLevel: 16 },
+                { skillId: 106, learnLevel: 18 },
+                { skillId: 107, learnLevel: 23 },
+                { skillId: 108, learnLevel: 28 },
+                { skillId: 109, learnLevel: 33 },
+                { skillId: 411, learnLevel: 37 },
+                { skillId: 110, learnLevel: 41 },
+                { skillId: 111, learnLevel: 49 }
             ],
             catchRate: 60,
             evYield: { hp: 0, atk: 0, spAtk: 0, def: 0, spDef: 0, spd: 1 }
+        },
+        {
+            id: 11,
+            name: "比波",
+            type: "flying",
+            evolutionChainId: 100,
+            evolveTo: 12,
+            evolveLevel: 34,
+            baseStats: {
+                hp: 55,
+                atk: 75,
+                spAtk: 40,
+                def: 50,
+                spDef: 40,
+                spd: 80
+            },
+            learnableSkills: [
+                { skillId: 101, learnLevel: 1 },
+                { skillId: 2, learnLevel: 3 },
+                { skillId: 102, learnLevel: 5 },
+                { skillId: 103, learnLevel: 9 },
+                { skillId: 104, learnLevel: 13 },
+                { skillId: 105, learnLevel: 16 },
+                { skillId: 106, learnLevel: 18 },
+                { skillId: 107, learnLevel: 23 },
+                { skillId: 108, learnLevel: 28 },
+                { skillId: 109, learnLevel: 33 },
+                { skillId: 411, learnLevel: 37 },
+                { skillId: 110, learnLevel: 41 },
+                { skillId: 111, learnLevel: 49 }
+            ],
+            catchRate: 45,
+            evYield: { hp: 0, atk: 0, spAtk: 0, def: 0, spDef: 0, spd: 2 }
+        },
+        {
+            id: 12,
+            name: "波克尔",
+            type: "flying",
+            evolutionChainId: 100,
+            evolveTo: null,
+            evolveLevel: null,
+            baseStats: {
+                hp: 85,
+                atk: 120,
+                spAtk: 50,
+                def: 70,
+                spDef: 55,
+                spd: 100
+            },
+            learnableSkills: [
+                { skillId: 101, learnLevel: 1 },
+                { skillId: 2, learnLevel: 3 },
+                { skillId: 102, learnLevel: 5 },
+                { skillId: 103, learnLevel: 9 },
+                { skillId: 104, learnLevel: 13 },
+                { skillId: 105, learnLevel: 16 },
+                { skillId: 106, learnLevel: 18 },
+                { skillId: 107, learnLevel: 23 },
+                { skillId: 108, learnLevel: 28 },
+                { skillId: 109, learnLevel: 33 },
+                { skillId: 411, learnLevel: 37 },
+                { skillId: 110, learnLevel: 41 },
+                { skillId: 111, learnLevel: 49 }
+            ],
+            catchRate: 30,
+            evYield: { hp: 0, atk: 1, spAtk: 0, def: 0, spDef: 0, spd: 2 }
+        },
+
+        // ============================================
+        // 草系进化链 (evolutionChainId: 102)
+        // 仙人球 → 仙人掌 → 巨型仙人掌
+        // ============================================
+        {
+            id: 16,
+            name: "仙人球",
+            type: "grass",
+            evolutionChainId: 102,
+            evolveTo: 17,
+            evolveLevel: 16,
+            baseStats: {
+                hp: 60,
+                atk: 62,
+                spAtk: 80,
+                def: 63,
+                spDef: 80,
+                spd: 60
+            },
+            learnableSkills: [
+                { skillId: 301, learnLevel: 1 },
+                { skillId: 2, learnLevel: 3 },
+                { skillId: 310, learnLevel: 7 },
+                { skillId: 315, learnLevel: 9 },
+                { skillId: 316, learnLevel: 13 },
+                { skillId: 317, learnLevel: 14 },
+                { skillId: 109, learnLevel: 15 },
+                { skillId: 304, learnLevel: 20 },
+                { skillId: 318, learnLevel: 23 },
+                { skillId: 319, learnLevel: 28 },
+                { skillId: 308, learnLevel: 31 },
+                { skillId: 320, learnLevel: 32 },
+                { skillId: 311, learnLevel: 45 },
+                { skillId: 321, learnLevel: 53 }
+            ],
+            catchRate: 55,
+            evYield: { hp: 0, atk: 0, spAtk: 1, def: 0, spDef: 0, spd: 0 }
+        },
+        {
+            id: 17,
+            name: "仙人掌",
+            type: "grass",
+            evolutionChainId: 102,
+            evolveTo: 18,
+            evolveLevel: 32,
+            baseStats: {
+                hp: 60,
+                atk: 62,
+                spAtk: 80,
+                def: 63,
+                spDef: 80,
+                spd: 60
+            },
+            learnableSkills: [
+                { skillId: 301, learnLevel: 1 },
+                { skillId: 2, learnLevel: 3 },
+                { skillId: 310, learnLevel: 7 },
+                { skillId: 315, learnLevel: 9 },
+                { skillId: 316, learnLevel: 13 },
+                { skillId: 317, learnLevel: 14 },
+                { skillId: 109, learnLevel: 15 },
+                { skillId: 304, learnLevel: 20 },
+                { skillId: 318, learnLevel: 23 },
+                { skillId: 319, learnLevel: 28 },
+                { skillId: 308, learnLevel: 31 },
+                { skillId: 320, learnLevel: 32 },
+                { skillId: 311, learnLevel: 45 },
+                { skillId: 321, learnLevel: 53 }
+            ],
+            catchRate: 40,
+            evYield: { hp: 0, atk: 0, spAtk: 2, def: 0, spDef: 0, spd: 0 }
+        },
+        {
+            id: 18,
+            name: "巨型仙人掌",
+            type: "grass",
+            evolutionChainId: 102,
+            evolveTo: null,
+            evolveLevel: null,
+            baseStats: {
+                hp: 80,
+                atk: 82,
+                spAtk: 100,
+                def: 83,
+                spDef: 100,
+                spd: 80
+            },
+            learnableSkills: [
+                { skillId: 301, learnLevel: 1 },
+                { skillId: 2, learnLevel: 3 },
+                { skillId: 310, learnLevel: 7 },
+                { skillId: 315, learnLevel: 9 },
+                { skillId: 316, learnLevel: 13 },
+                { skillId: 317, learnLevel: 14 },
+                { skillId: 109, learnLevel: 15 },
+                { skillId: 304, learnLevel: 20 },
+                { skillId: 318, learnLevel: 23 },
+                { skillId: 319, learnLevel: 28 },
+                { skillId: 308, learnLevel: 31 },
+                { skillId: 320, learnLevel: 32 },
+                { skillId: 311, learnLevel: 45 },
+                { skillId: 321, learnLevel: 53 }
+            ],
+            catchRate: 25,
+            evYield: { hp: 0, atk: 0, spAtk: 3, def: 0, spDef: 0, spd: 0 }
+        },
+
+        // ============================================
+        // 草系进化链 (evolutionChainId: 103)
+        // 小蘑菇 → 蘑菇怪
+        // ============================================
+        {
+            id: 46,
+            name: "小蘑菇",
+            type: "grass",
+            evolutionChainId: 103,
+            evolveTo: 47,
+            evolveLevel: 20,
+            baseStats: {
+                hp: 50,
+                atk: 40,
+                spAtk: 52,
+                def: 44,
+                spDef: 47,
+                spd: 30
+            },
+            learnableSkills: [
+                { skillId: 301, learnLevel: 1 },
+                { skillId: 402, learnLevel: 4 },
+                { skillId: 315, learnLevel: 7 },
+                { skillId: 317, learnLevel: 10 },
+                { skillId: 322, learnLevel: 13 },
+                { skillId: 323, learnLevel: 17 },
+                { skillId: 324, learnLevel: 21 },
+                { skillId: 325, learnLevel: 24 },
+                { skillId: 326, learnLevel: 27 },
+                { skillId: 327, learnLevel: 31 },
+                { skillId: 309, learnLevel: 35 },
+                { skillId: 328, learnLevel: 39 },
+                { skillId: 329, learnLevel: 43 },
+                { skillId: 330, learnLevel: 47 },
+                { skillId: 331, learnLevel: 51 },
+                { skillId: 332, learnLevel: 55 }
+            ],
+            catchRate: 55,
+            evYield: { hp: 0, atk: 0, spAtk: 0, def: 0, spDef: 1, spd: 0 }
+        },
+        {
+            id: 47,
+            name: "蘑菇怪",
+            type: "grass",
+            evolutionChainId: 103,
+            evolveTo: null,
+            evolveLevel: null,
+            baseStats: {
+                hp: 90,
+                atk: 85,
+                spAtk: 85,
+                def: 90,
+                spDef: 95,
+                spd: 60
+            },
+            learnableSkills: [
+                { skillId: 301, learnLevel: 1 },
+                { skillId: 402, learnLevel: 4 },
+                { skillId: 315, learnLevel: 7 },
+                { skillId: 317, learnLevel: 10 },
+                { skillId: 322, learnLevel: 13 },
+                { skillId: 323, learnLevel: 17 },
+                { skillId: 324, learnLevel: 21 },
+                { skillId: 325, learnLevel: 24 },
+                { skillId: 326, learnLevel: 27 },
+                { skillId: 327, learnLevel: 31 },
+                { skillId: 309, learnLevel: 35 },
+                { skillId: 328, learnLevel: 39 },
+                { skillId: 329, learnLevel: 43 },
+                { skillId: 330, learnLevel: 47 },
+                { skillId: 331, learnLevel: 51 },
+                { skillId: 332, learnLevel: 55 }
+            ],
+            catchRate: 20,
+            evYield: { hp: 0, atk: 0, spAtk: 0, def: 0, spDef: 2, spd: 0 }
         },
         {
             id: 300,

@@ -350,8 +350,15 @@ class MainMenuScene extends Phaser.Scene {
         container._width = width;
         container._height = height;
 
-        // 精灵图标 - 尝试使用真实贴图
-        const imageKey = AssetMappings.getElfImageKey(starter.id);
+        // 精灵图标 - 优先使用 external_scene/still
+        let imageKey = null;
+        if (typeof AssetMappings.getExternalStillKey === 'function') {
+            imageKey = AssetMappings.getExternalStillKey(starter.id);
+        }
+        if (!imageKey && typeof AssetMappings.getElfImageKey === 'function') {
+            imageKey = AssetMappings.getElfImageKey(starter.id);
+        }
+
         if (imageKey && this.textures.exists(imageKey)) {
             const sprite = this.add.image(0, -55, imageKey);
             const maxSize = 80;

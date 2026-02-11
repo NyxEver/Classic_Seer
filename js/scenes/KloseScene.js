@@ -379,6 +379,7 @@ class KloseScene extends Phaser.Scene {
             this.startBattle(container._wildElfId || elfId);
         });
 
+        container._wildMoveProfile = this.getWildMoveProfile(container._wildElfId || elfId);
         this.addWildElfMovement(container, x, y, options.spawnArea || null, options.moveRadius || null);
         this.wildElves.push(container);
     }
@@ -471,6 +472,9 @@ class KloseScene extends Phaser.Scene {
         const animKey = this.ensureWildAnimation(atlasKey, direction);
         if (!animKey) return;
 
+        const shouldFlipX = direction === 'left' && atlasKey.includes('_right');
+        container._wildSprite.setFlipX(shouldFlipX);
+
         const currentAnim = container._wildSprite.anims ? container._wildSprite.anims.currentAnim : null;
         if (container._wildDirection === direction && currentAnim && currentAnim.key === animKey) {
             return;
@@ -487,6 +491,27 @@ class KloseScene extends Phaser.Scene {
         return dy >= 0 ? 'front' : 'back';
     }
 
+    getMoguguaiMoveProfile() {
+        return {
+            useDistanceDuration: true,
+            msPerPixel: 14,
+            minDuration: 900,
+            maxDuration: 2200,
+            startDelayMin: 350,
+            startDelayMax: 1100,
+            idleDelayMin: 650,
+            idleDelayMax: 1700
+        };
+    }
+
+    getWildMoveProfile(elfId) {
+        // 仅为蘑菇怪配置单独移动参数，其他精灵沿用原有移动节奏
+        if (elfId === 47) {
+            return this.getMoguguaiMoveProfile();
+        }
+        return null;
+    }
+
     addWildElfMovement(container, originX, originY, spawnArea = null, moveRadius = null) {
         const radiusX = moveRadius && Number.isFinite(Number(moveRadius.x))
             ? Math.max(0, Math.floor(Number(moveRadius.x)))
@@ -494,6 +519,7 @@ class KloseScene extends Phaser.Scene {
         const radiusY = moveRadius && Number.isFinite(Number(moveRadius.y))
             ? Math.max(0, Math.floor(Number(moveRadius.y)))
             : 30;
+        const moveProfile = container._wildMoveProfile || this.getWildMoveProfile(container._wildElfId || 0);
 
         const moveElf = () => {
             if (!container || !container.scene) return;
@@ -525,22 +551,36 @@ class KloseScene extends Phaser.Scene {
             const moveDirection = this.getDirectionFromVector(newX - container.x, newY - container.y);
             this.playWildDirection(container, moveDirection);
 
+            let duration = Phaser.Math.Between(2000, 4000);
+            if (moveProfile && moveProfile.useDistanceDuration) {
+                const distance = Phaser.Math.Distance.Between(container.x, container.y, newX, newY);
+                duration = Phaser.Math.Clamp(
+                    Math.floor(distance * moveProfile.msPerPixel),
+                    moveProfile.minDuration,
+                    moveProfile.maxDuration
+                );
+            }
+
             this.tweens.add({
                 targets: container,
                 x: newX,
                 y: newY,
-                duration: Phaser.Math.Between(2000, 4000),
+                duration: duration,
                 ease: 'Sine.easeInOut',
                 onUpdate: () => {
                     container.setDepth(Math.max(5, Math.floor(container.y)));
                 },
                 onComplete: () => {
-                    this.time.delayedCall(Phaser.Math.Between(1000, 3000), moveElf);
+                    const idleDelayMin = moveProfile ? moveProfile.idleDelayMin : 1000;
+                    const idleDelayMax = moveProfile ? moveProfile.idleDelayMax : 3000;
+                    this.time.delayedCall(Phaser.Math.Between(idleDelayMin, idleDelayMax), moveElf);
                 }
             });
         };
 
-        this.time.delayedCall(Phaser.Math.Between(500, 2000), moveElf);
+        const startDelayMin = moveProfile ? moveProfile.startDelayMin : 500;
+        const startDelayMax = moveProfile ? moveProfile.startDelayMax : 2000;
+        this.time.delayedCall(Phaser.Math.Between(startDelayMin, startDelayMax), moveElf);
     }
 
     // ========== 传送热点 ==========

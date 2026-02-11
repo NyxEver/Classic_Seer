@@ -26,6 +26,13 @@ const AssetMappings = {
         8: 'liehuohou',      // 烈火猴
         9: 'lieyanxingxing', // 烈焰猩猩
         10: 'pipi',          // 皮皮
+        11: 'bibuo',         // 比波
+        12: 'bokeer',        // 波克尔
+        16: 'xianrenqiu',    // 仙人球
+        17: 'xianrenzhang',  // 仙人掌
+        18: 'juxingxianrenzhang', // 巨型仙人掌
+        46: 'xiaomogu',      // 小蘑菇
+        47: 'moguguai',      // 蘑菇怪
         300: 'puni'          // 谱尼
     },
 
@@ -60,6 +67,141 @@ const AssetMappings = {
         btl_003_hit: {
             texture: 'assets/images/elves/fighting_scene/05_hit/003/bubuhua_hit.png',
             atlas: 'assets/images/elves/fighting_scene/05_hit/003/bubuhua_hit.json'
+        },
+
+        btl_004_still: {
+            texture: 'assets/images/elves/fighting_scene/01_still/004/yiyou_still.png',
+            atlas: 'assets/images/elves/fighting_scene/01_still/004/yiyou_still.json'
+        },
+        btl_004_hit: {
+            texture: 'assets/images/elves/fighting_scene/05_hit/004/yiyou_hit.png',
+            atlas: 'assets/images/elves/fighting_scene/05_hit/004/yiyou_hit.json'
+        },
+
+        btl_005_still: {
+            texture: 'assets/images/elves/fighting_scene/01_still/005/youlian_still.png',
+            atlas: 'assets/images/elves/fighting_scene/01_still/005/youlian_still.json'
+        },
+        btl_005_hit: {
+            texture: 'assets/images/elves/fighting_scene/05_hit/005/youlian_hit.png',
+            atlas: 'assets/images/elves/fighting_scene/05_hit/005/youlian_hit.json'
+        },
+
+        btl_006_still: {
+            texture: 'assets/images/elves/fighting_scene/01_still/006/balusi_still.png',
+            atlas: 'assets/images/elves/fighting_scene/01_still/006/balusi_still.json'
+        },
+        btl_006_hit: {
+            texture: 'assets/images/elves/fighting_scene/05_hit/006/balusi_hit.png',
+            atlas: 'assets/images/elves/fighting_scene/05_hit/006/balusi_hit.json'
+        },
+
+        btl_007_still: {
+            texture: 'assets/images/elves/fighting_scene/01_still/007/xiaohuohou_still.png',
+            atlas: 'assets/images/elves/fighting_scene/01_still/007/xiaohuohou_still.json'
+        },
+        btl_007_hit: {
+            texture: 'assets/images/elves/fighting_scene/05_hit/007/xiaohuohou_hit.png',
+            atlas: 'assets/images/elves/fighting_scene/05_hit/007/xiaohuohou_hit.json'
+        },
+
+        btl_008_still: {
+            texture: 'assets/images/elves/fighting_scene/01_still/008/liehuohou_still.png',
+            atlas: 'assets/images/elves/fighting_scene/01_still/008/liehuohou_still.json'
+        },
+        btl_008_hit: {
+            texture: 'assets/images/elves/fighting_scene/05_hit/008/liehuohou_hit.png',
+            atlas: 'assets/images/elves/fighting_scene/05_hit/008/liehuohou_hit.json'
+        },
+
+        btl_009_still: {
+            texture: 'assets/images/elves/fighting_scene/01_still/009/lieyanxingxing_still.png',
+            atlas: 'assets/images/elves/fighting_scene/01_still/009/lieyanxingxing_still.json'
+        },
+        btl_009_hit: {
+            texture: 'assets/images/elves/fighting_scene/05_hit/009/lieyanxingxing_hit.png',
+            atlas: 'assets/images/elves/fighting_scene/05_hit/009/lieyanxingxing_hit.json'
+        },
+
+        btl_010_still: {
+            texture: 'assets/images/elves/fighting_scene/01_still/010/pipi_still.png',
+            atlas: 'assets/images/elves/fighting_scene/01_still/010/pipi_still.json'
+        },
+        btl_010_hit: {
+            texture: 'assets/images/elves/fighting_scene/05_hit/010/pipi_hit.png',
+            atlas: 'assets/images/elves/fighting_scene/05_hit/010/pipi_hit.json'
+        },
+
+        btl_011_still: {
+            texture: 'assets/images/elves/fighting_scene/01_still/011/bibuo_still.png',
+            atlas: 'assets/images/elves/fighting_scene/01_still/011/bibuo_still.json'
+        },
+        btl_011_hit: {
+            texture: 'assets/images/elves/fighting_scene/05_hit/011/bibuo_hit.png',
+            atlas: 'assets/images/elves/fighting_scene/05_hit/011/bibuo_hit.json'
+        },
+
+        btl_012_still: {
+            texture: 'assets/images/elves/fighting_scene/01_still/012/bokeer_still.png',
+            atlas: 'assets/images/elves/fighting_scene/01_still/012/bokeer_still.json'
+        },
+        btl_012_hit: {
+            texture: 'assets/images/elves/fighting_scene/05_hit/012/bokeer_hit.png',
+            atlas: 'assets/images/elves/fighting_scene/05_hit/012/bokeer_hit.json'
+        },
+
+        btl_016_still: {
+            texture: 'assets/images/elves/fighting_scene/01_still/016/xianrenqiu_still.png',
+            atlas: 'assets/images/elves/fighting_scene/01_still/016/xianrenqiu_still.json'
+        },
+        btl_016_hit: {
+            texture: 'assets/images/elves/fighting_scene/05_hit/016/xianrenqiu_hit.png',
+            atlas: 'assets/images/elves/fighting_scene/05_hit/016/xianrenqiu_hit.json'
+        },
+
+        btl_017_still: {
+            texture: 'assets/images/elves/fighting_scene/01_still/017/xianrenzhang_still.png',
+            atlas: 'assets/images/elves/fighting_scene/01_still/017/xianrenzhang_still.json'
+        },
+        btl_017_hit: {
+            texture: 'assets/images/elves/fighting_scene/05_hit/017/xianrenzhang_hit.png',
+            atlas: 'assets/images/elves/fighting_scene/05_hit/017/xianrenzhang_hit.json'
+        },
+
+        btl_018_still: {
+            texture: 'assets/images/elves/fighting_scene/01_still/018/juxingxianrenzhang_still.png',
+            atlas: 'assets/images/elves/fighting_scene/01_still/018/juxingxianrenzhang_still.json'
+        },
+        btl_018_hit: {
+            texture: 'assets/images/elves/fighting_scene/05_hit/018/juxingxianrenzhang_hit.png',
+            atlas: 'assets/images/elves/fighting_scene/05_hit/018/juxingxianrenzhang_hit.json'
+        },
+
+        btl_046_still: {
+            texture: 'assets/images/elves/fighting_scene/01_still/046/xiaomogu_still.png',
+            atlas: 'assets/images/elves/fighting_scene/01_still/046/xiaomogu_still.json'
+        },
+        btl_046_hit: {
+            texture: 'assets/images/elves/fighting_scene/05_hit/046/xiaomogu_hit.png',
+            atlas: 'assets/images/elves/fighting_scene/05_hit/046/xiaomogu_hit.json'
+        },
+
+        btl_047_still: {
+            texture: 'assets/images/elves/fighting_scene/01_still/047/moguguai_still.png',
+            atlas: 'assets/images/elves/fighting_scene/01_still/047/moguguai_still.json'
+        },
+        btl_047_hit: {
+            texture: 'assets/images/elves/fighting_scene/05_hit/047/moguguai_hit.png',
+            atlas: 'assets/images/elves/fighting_scene/05_hit/047/moguguai_hit.json'
+        },
+
+        btl_300_still: {
+            texture: 'assets/images/elves/fighting_scene/01_still/300/puni_still.png',
+            atlas: 'assets/images/elves/fighting_scene/01_still/300/puni_still.json'
+        },
+        btl_300_hit: {
+            texture: 'assets/images/elves/fighting_scene/05_hit/300/puni_hit.png',
+            atlas: 'assets/images/elves/fighting_scene/05_hit/300/puni_hit.json'
         }
     },
 
@@ -79,6 +221,66 @@ const AssetMappings = {
         3: {
             still: ['btl_003_still'],
             hit: ['btl_003_hit']
+        },
+        4: {
+            still: ['btl_004_still'],
+            hit: ['btl_004_hit']
+        },
+        5: {
+            still: ['btl_005_still'],
+            hit: ['btl_005_hit']
+        },
+        6: {
+            still: ['btl_006_still'],
+            hit: ['btl_006_hit']
+        },
+        7: {
+            still: ['btl_007_still'],
+            hit: ['btl_007_hit']
+        },
+        8: {
+            still: ['btl_008_still'],
+            hit: ['btl_008_hit']
+        },
+        9: {
+            still: ['btl_009_still'],
+            hit: ['btl_009_hit']
+        },
+        10: {
+            still: ['btl_010_still'],
+            hit: ['btl_010_hit']
+        },
+        11: {
+            still: ['btl_011_still'],
+            hit: ['btl_011_hit']
+        },
+        12: {
+            still: ['btl_012_still'],
+            hit: ['btl_012_hit']
+        },
+        16: {
+            still: ['btl_016_still'],
+            hit: ['btl_016_hit']
+        },
+        17: {
+            still: ['btl_017_still'],
+            hit: ['btl_017_hit']
+        },
+        18: {
+            still: ['btl_018_still'],
+            hit: ['btl_018_hit']
+        },
+        46: {
+            still: ['btl_046_still'],
+            hit: ['btl_046_hit']
+        },
+        47: {
+            still: ['btl_047_still'],
+            hit: ['btl_047_hit']
+        },
+        300: {
+            still: ['btl_300_still'],
+            hit: ['btl_300_hit']
         }
     },
 
@@ -91,8 +293,21 @@ const AssetMappings = {
         1: 'ext_still_001',
         2: 'ext_still_002',
         3: 'ext_still_003',
+        4: 'ext_still_004',
+        5: 'ext_still_005',
+        6: 'ext_still_006',
+        7: 'ext_still_007',
+        8: 'ext_still_008',
+        9: 'ext_still_009',
         10: 'ext_still_010',
-        16: 'ext_still_016'
+        11: 'ext_still_011',
+        12: 'ext_still_012',
+        16: 'ext_still_016',
+        17: 'ext_still_017',
+        18: 'ext_still_018',
+        46: 'ext_still_046',
+        47: 'ext_still_047',
+        300: 'ext_still_300'
     },
 
     /**
@@ -172,7 +387,7 @@ const AssetMappings = {
         47: {
             front: ['ext_dyn_047_front'],
             back: ['ext_dyn_047_back'],
-            left: ['ext_dyn_047_left'],
+            left: ['ext_dyn_047_right'],
             right: ['ext_dyn_047_right']
         }
     },
@@ -214,13 +429,16 @@ const AssetMappings = {
             background: 'bg_klose_2',
             // 玩家入口位置（右侧）
             entryPoint: { x: 920, y: 350 },
-            // 暂未配置刷新精灵
-            wildElfPool: [],
+            // 刷新仙人球
+            wildElfPool: [16],
             // 精灵刷新区域（中部两处）
             spawnAreas: [
                 { type: 'rect', x: 400, y: 150, width: 180, height: 120 },
                 { type: 'rect', x: 300, y: 380, width: 300, height: 150 }
             ],
+            spawnCountRange: [3, 4],
+            spawnMinDistance: 70,
+            wildMoveRadius: { x: 80, y: 60 },
             // 传送热点
             hotspots: [
                 {
@@ -246,12 +464,14 @@ const AssetMappings = {
             background: 'bg_klose_3',
             // 玩家入口位置（右上）
             entryPoint: { x: 880, y: 100 },
-            // 暂未配置刷新精灵
-            wildElfPool: [],
+            // 刷新蘑菇怪 BOSS
+            wildElfPool: [47],
             // 精灵刷新区域（左侧大区域）
             spawnAreas: [
                 { type: 'rect', x: 50, y: 100, width: 350, height: 400 }
             ],
+            spawnCountRange: [1, 1],
+            wildMoveRadius: { x: 60, y: 40 },
             // 传送热点
             hotspots: [
                 {
@@ -405,8 +625,21 @@ const AssetMappings = {
             ext_still_001: 'assets/images/elves/external_scene/still/001/bubuzhongzi.png',
             ext_still_002: 'assets/images/elves/external_scene/still/002/bubucao.png',
             ext_still_003: 'assets/images/elves/external_scene/still/003/bubuhua.png',
+            ext_still_004: 'assets/images/elves/external_scene/still/004/yiyou.png',
+            ext_still_005: 'assets/images/elves/external_scene/still/005/youlian.png',
+            ext_still_006: 'assets/images/elves/external_scene/still/006/balusi.png',
+            ext_still_007: 'assets/images/elves/external_scene/still/007/xiaohuohou.png',
+            ext_still_008: 'assets/images/elves/external_scene/still/008/liehuohou.png',
+            ext_still_009: 'assets/images/elves/external_scene/still/009/lieyanxingxing.png',
             ext_still_010: 'assets/images/elves/external_scene/still/010/pipi.png',
-            ext_still_016: 'assets/images/elves/external_scene/still/016/xianrenqiu.png'
+            ext_still_011: 'assets/images/elves/external_scene/still/011/bibuo.png',
+            ext_still_012: 'assets/images/elves/external_scene/still/012/bokeer.png',
+            ext_still_016: 'assets/images/elves/external_scene/still/016/xianrenqiu.png',
+            ext_still_017: 'assets/images/elves/external_scene/still/017/xianrenzhang.png',
+            ext_still_018: 'assets/images/elves/external_scene/still/018/juxingxianrenzhang.png',
+            ext_still_046: 'assets/images/elves/external_scene/still/046/xiaomogu.png',
+            ext_still_047: 'assets/images/elves/external_scene/still/047/moguguai.png',
+            ext_still_300: 'assets/images/elves/external_scene/still/300/puni.png'
         };
 
         for (const [key, path] of Object.entries(pathMap)) {
