@@ -130,10 +130,7 @@ class BattleManager {
      * @returns {number}
      */
     getEffectiveSpeed(elf, statStages) {
-        const baseSpd = elf.getSpd();
-        const stage = statStages.spd;
-        const multiplier = this.getStatMultiplier(stage);
-        return Math.floor(baseSpd * multiplier);
+        return BattleEffects.getEffectiveSpeed(elf, statStages);
     }
 
     /**
@@ -142,13 +139,7 @@ class BattleManager {
      * @returns {number}
      */
     getStatMultiplier(stage) {
-        // 标准属性倍率表
-        const multipliers = {
-            '-6': 2 / 8, '-5': 2 / 7, '-4': 2 / 6, '-3': 2 / 5, '-2': 2 / 4, '-1': 2 / 3,
-            '0': 1,
-            '1': 3 / 2, '2': 4 / 2, '3': 5 / 2, '4': 6 / 2, '5': 7 / 2, '6': 8 / 2
-        };
-        return multipliers[stage.toString()] || 1;
+        return BattleEffects.getStatMultiplier(stage);
     }
 
     /**
@@ -156,24 +147,7 @@ class BattleManager {
      * @returns {Array} - ['player', 'enemy'] 或 ['enemy', 'player']
      */
     determineOrder() {
-        // 检查先制技能
-        const playerPriority = this.getActionPriority(this.playerAction);
-        const enemyPriority = this.getActionPriority(this.enemyAction);
-
-        if (playerPriority !== enemyPriority) {
-            return playerPriority > enemyPriority ? ['player', 'enemy'] : ['enemy', 'player'];
-        }
-
-        // 先制相同，比较速度
-        const playerSpeed = this.getEffectiveSpeed(this.playerElf, this.playerStatStages);
-        const enemySpeed = this.getEffectiveSpeed(this.enemyElf, this.enemyStatStages);
-
-        if (playerSpeed !== enemySpeed) {
-            return playerSpeed > enemySpeed ? ['player', 'enemy'] : ['enemy', 'player'];
-        }
-
-        // 速度相同，随机决定
-        return Math.random() < 0.5 ? ['player', 'enemy'] : ['enemy', 'player'];
+        return BattleEffects.determineOrder(this);
     }
 
     /**
@@ -182,11 +156,7 @@ class BattleManager {
      * @returns {number}
      */
     getActionPriority(action) {
-        if (!action || action.type !== BattleManager.ACTION.SKILL) {
-            return 0;
-        }
-        const skill = DataLoader.getSkill(action.skillId);
-        return skill ? (skill.priority || 0) : 0;
+        return BattleEffects.getActionPriority(action);
     }
 
     /**
@@ -419,52 +389,14 @@ class BattleManager {
      * 应用技能效果
      */
     applySkillEffect(effect, attacker, defender, attackerStages, defenderStages, result) {
-        // 检查触发概率
-        if (effect.chance && effect.chance < 100) {
-            const roll = Math.random() * 100;
-            if (roll > effect.chance) {
-                return; // 效果未触发
-            }
-        }
-
-        if (effect.type === 'statChange') {
-            const targetStages = effect.target === 'enemy' ? defenderStages : attackerStages;
-            const targetElf = effect.target === 'enemy' ? defender : attacker;
-            const stat = effect.stat;
-            const stages = effect.stages;
-
-            // 应用等级变化
-            const oldStage = targetStages[stat];
-            targetStages[stat] = Math.max(-6, Math.min(6, targetStages[stat] + stages));
-            const newStage = targetStages[stat];
-
-            if (oldStage !== newStage) {
-                const statNames = {
-                    atk: '攻击',
-                    def: '防御',
-                    spAtk: '特攻',
-                    spDef: '特防',
-                    spd: '速度',
-                    accuracy: '命中'
-                };
-                const statName = statNames[stat] || stat;
-                const changeText = stages > 0 ? '提高了' : '降低了';
-                const amount = Math.abs(stages) === 1 ? '' : `${Math.abs(stages)}级`;
-
-                this.log(`${targetElf.getDisplayName()} 的${statName}${changeText}${amount}！`);
-
-                result.events.push({
-                    type: 'statChange',
-                    target: effect.target,
-                    stat: stat,
-                    stages: stages
-                });
-            } else {
-                // 已到极限
-                const text = stages > 0 ? '已经不能再提高了' : '已经不能再降低了';
-                this.log(`${targetElf.getDisplayName()} 的${stat}${text}！`);
-            }
-        }
+        BattleEffects.applySkillEffect(effect, {
+            attacker,
+            defender,
+            attackerStages,
+            defenderStages,
+            result,
+            log: (message) => this.log(message)
+        });
     }
 
     /**
@@ -511,20 +443,7 @@ class BattleManager {
      * @returns {Object} - { ended, winner, needSwitch }
      */
     checkBattleEnd() {
-        if (this.enemyElf.isFainted()) {
-            return { ended: true, winner: 'player', needSwitch: false };
-        }
-        if (this.playerElf.isFainted()) {
-            // 检查是否有其他精灵可战斗
-            const availableElves = PlayerData.elves.filter(e => e.currentHp > 0);
-            if (availableElves.length > 0) {
-                // 还有精灵可切换，不结束战斗
-                return { ended: false, winner: null, needSwitch: true };
-            }
-            // 没有精灵可战斗，战斗失败
-            return { ended: true, winner: 'enemy', needSwitch: false };
-        }
-        return { ended: false, winner: null, needSwitch: false };
+        return BattleEffects.checkBattleEnd(this);
     }
 
     /**
@@ -532,13 +451,7 @@ class BattleManager {
      * @returns {number}
      */
     calculateExpReward() {
-        // 基础经验 = 敌方精灵等级 * 15
-        const baseExp = this.enemyElf.level * 15;
-
-        // 野生精灵经验较少
-        const typeMultiplier = this.battleType === 'trainer' ? 1.5 : 1;
-
-        return Math.floor(baseExp * typeMultiplier);
+        return BattleEffects.calculateExpReward(this);
     }
 
     /**
