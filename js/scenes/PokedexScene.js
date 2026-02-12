@@ -112,51 +112,42 @@ class PokedexScene extends Phaser.Scene {
         const iconContainer = this.add.container(0, -20);
         container.add(iconContainer);
 
-        // 优先使用 external_scene/still
-        let imageKey = null;
-        if (typeof AssetMappings.getExternalStillKey === 'function') {
-            imageKey = AssetMappings.getExternalStillKey(elfData.id);
-        }
-        if (!imageKey && typeof AssetMappings.getElfImageKey === 'function') {
-            imageKey = AssetMappings.getElfImageKey(elfData.id);
-        }
+        if (hasCaught) {
+            const portrait = ElfPortraitView.addStillPortrait(this, iconContainer, 0, 0, elfData.id, {
+                maxSize: 70,
+                warnTag: 'PokedexScene'
+            });
 
-        if (hasCaught && imageKey && this.textures.exists(imageKey)) {
-            // 已捕捉：显示彩色精灵贴图
-            const sprite = this.add.image(0, 0, imageKey);
-            const maxSize = 70;
-            const scale = Math.min(maxSize / sprite.width, maxSize / sprite.height);
-            sprite.setScale(scale);
-            iconContainer.add(sprite);
-        } else if (hasSeen && imageKey && this.textures.exists(imageKey)) {
-            // 已见未捕捉：显示灰色剪影
-            const sprite = this.add.image(0, 0, imageKey);
-            const maxSize = 70;
-            const scale = Math.min(maxSize / sprite.width, maxSize / sprite.height);
-            sprite.setScale(scale);
-            sprite.setTint(0x333333);
-            iconContainer.add(sprite);
-        } else if (hasCaught) {
-            // 后备：已捕捉显示彩色圆
-            const icon = this.add.graphics();
-            icon.fillStyle(this.getTypeColor(elfData.type), 1);
-            icon.fillCircle(0, 0, 35);
-            icon.fillStyle(0xffffff, 0.3);
-            icon.fillCircle(-10, -10, 12);
-            iconContainer.add(icon);
+            if (!portrait) {
+                // 后备：已捕捉显示彩色圆
+                const icon = this.add.graphics();
+                icon.fillStyle(this.getTypeColor(elfData.type), 1);
+                icon.fillCircle(0, 0, 35);
+                icon.fillStyle(0xffffff, 0.3);
+                icon.fillCircle(-10, -10, 12);
+                iconContainer.add(icon);
+            }
         } else if (hasSeen) {
-            // 后备：已见未捕捉显示灰色剪影
-            const icon = this.add.graphics();
-            icon.fillStyle(0x333333, 1);
-            icon.fillCircle(0, 0, 35);
-            iconContainer.add(icon);
+            const portrait = ElfPortraitView.addStillPortrait(this, iconContainer, 0, 0, elfData.id, {
+                maxSize: 70,
+                tint: 0x333333,
+                warnTag: 'PokedexScene'
+            });
 
-            const question = this.add.text(0, 0, '?', {
-                fontSize: '32px',
-                color: '#555555',
-                fontStyle: 'bold'
-            }).setOrigin(0.5);
-            iconContainer.add(question);
+            if (!portrait) {
+                // 后备：已见未捕捉显示灰色剪影
+                const icon = this.add.graphics();
+                icon.fillStyle(0x333333, 1);
+                icon.fillCircle(0, 0, 35);
+                iconContainer.add(icon);
+
+                const question = this.add.text(0, 0, '?', {
+                    fontSize: '32px',
+                    color: '#555555',
+                    fontStyle: 'bold'
+                }).setOrigin(0.5);
+                iconContainer.add(question);
+            }
         } else {
             // 未见：显示问号
             const icon = this.add.graphics();
@@ -227,18 +218,12 @@ class PokedexScene extends Phaser.Scene {
      * 属性显示：优先使用图标，缺失时回退为无文字色块图标
      */
     addTypeVisual(container, x, y, type) {
-        const iconKey = AssetMappings.getTypeIconKey(type);
-        if (iconKey && this.textures.exists(iconKey)) {
-            const icon = this.add.image(x, y, iconKey).setOrigin(0.5);
-            const scale = Math.min(22 / icon.width, 22 / icon.height);
-            icon.setScale(scale);
-            container.add(icon);
-            return;
-        }
-
-        const fallback = this.add.circle(x, y, 10, this.getTypeColor(type), 1).setOrigin(0.5);
-        fallback.setStrokeStyle(1, 0xffffff, 0.7);
-        container.add(fallback);
+        TypeIconView.render(this, container, x, y, type, {
+            iconSize: 22,
+            originX: 0.5,
+            originY: 0.5,
+            fallbackRadius: 10
+        });
     }
 
     createButton(x, y, text, callback) {

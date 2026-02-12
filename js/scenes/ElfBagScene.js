@@ -573,21 +573,12 @@ class ElfBagScene extends Phaser.Scene {
      * 添加属性显示：优先图标，缺失时回退为无文字色块图标
      */
     addTypeVisual(container, x, y, type, options = {}) {
-        const iconKey = AssetMappings.getTypeIconKey(type);
-        const iconSize = options.iconSize || 24;
-        if (iconKey && this.textures.exists(iconKey)) {
-            const icon = this.add.image(x, y, iconKey).setOrigin(0.5);
-            const scale = Math.min(iconSize / icon.width, iconSize / icon.height);
-            icon.setScale(scale);
-            container.add(icon);
-            return;
-        }
-
-        const typeColor = this.getTypeColor(type);
-        const radius = Math.max(6, Math.floor(iconSize / 2));
-        const fallback = this.add.circle(x, y, radius, typeColor).setOrigin(0.5);
-        fallback.setStrokeStyle(1, 0xffffff, 0.7);
-        container.add(fallback);
+        TypeIconView.render(this, container, x, y, type, {
+            iconSize: options.iconSize || 24,
+            originX: 0.5,
+            originY: 0.5,
+            fallbackRadius: Math.max(6, Math.floor((options.iconSize || 24) / 2))
+        });
     }
 
     /**
@@ -595,52 +586,11 @@ class ElfBagScene extends Phaser.Scene {
      * @returns {boolean} 是否成功添加
      */
     addElfStillImage(container, x, y, elfId, maxSize) {
-        let stillKey = null;
-        if (typeof AssetMappings !== 'undefined' && typeof AssetMappings.getExternalStillKey === 'function') {
-            stillKey = AssetMappings.getExternalStillKey(elfId);
-        }
-
-        if (stillKey && this.textures.exists(stillKey)) {
-            const image = this.add.image(x, y, stillKey).setOrigin(0.5);
-            const scale = Math.min(maxSize / image.width, maxSize / image.height);
-            image.setScale(scale);
-            container.add(image);
-            return true;
-        }
-
-        if (typeof AssetMappings !== 'undefined' && typeof AssetMappings.getBattleClipKeys === 'function') {
-            const battleStillKeys = AssetMappings.getBattleClipKeys(elfId, 'still');
-            for (const atlasKey of battleStillKeys) {
-                if (!this.textures.exists(atlasKey)) continue;
-
-                const texture = this.textures.get(atlasKey);
-                if (!texture) continue;
-
-                let frameNames = [];
-                const atlasJson = this.cache && this.cache.json ? this.cache.json.get(atlasKey) : null;
-                if (atlasJson && atlasJson.frames && typeof atlasJson.frames === 'object') {
-                    frameNames = Object.keys(atlasJson.frames);
-                } else {
-                    frameNames = texture.getFrameNames().filter((name) => name !== '__BASE');
-                }
-                if (!frameNames.length) continue;
-
-                const sprite = this.add.sprite(x, y, atlasKey, frameNames[0]).setOrigin(0.5);
-                const scale = Math.min(maxSize / sprite.width, maxSize / sprite.height);
-                sprite.setScale(scale);
-                container.add(sprite);
-                return true;
-            }
-        }
-
-        if (!this._missingPortraitWarned) {
-            this._missingPortraitWarned = new Set();
-        }
-        if (!this._missingPortraitWarned.has(elfId)) {
-            console.warn(`[ElfBagScene] 精灵图片缺失: elfId=${elfId}, stillKey=${stillKey || 'null'}`);
-            this._missingPortraitWarned.add(elfId);
-        }
-        return false;
+        const portrait = ElfPortraitView.addStillPortrait(this, container, x, y, elfId, {
+            maxSize,
+            warnTag: 'ElfBagScene'
+        });
+        return !!portrait;
     }
 
     /**

@@ -1459,16 +1459,13 @@ class BattleScene extends Phaser.Scene {
         container.add(bg);
 
         // 精灵图标
-        const imageKey = typeof AssetMappings.getExternalStillKey === 'function'
-            ? AssetMappings.getExternalStillKey(baseData.id)
-            : AssetMappings.getElfImageKey(baseData.id);
-        if (imageKey && this.textures.exists(imageKey)) {
-            const sprite = this.add.image(size / 2, size / 2, imageKey);
-            const scale = Math.min((size - 8) / sprite.width, (size - 8) / sprite.height);
-            sprite.setScale(scale);
-            if (!canFight) sprite.setTint(0x666666);
-            container.add(sprite);
-        } else {
+        const portrait = ElfPortraitView.addStillPortrait(this, container, size / 2, size / 2, baseData.id, {
+            maxSize: size - 8,
+            tint: canFight ? null : 0x666666,
+            warnTag: 'BattleScene'
+        });
+
+        if (!portrait) {
             // 后备：使用首字母
             const iconText = this.add.text(size / 2, size / 2, baseData.name.charAt(0), {
                 fontSize: '18px', fontFamily: 'Arial',
@@ -2252,21 +2249,11 @@ class BattleScene extends Phaser.Scene {
      * 属性显示：优先图标，缺失时回退为无文字色块图标
      */
     addTypeVisual(container, x, y, type, options = {}) {
-        const iconKey = AssetMappings.getTypeIconKey(type);
-        const iconSize = options.iconSize || 16;
-        if (iconKey && this.textures.exists(iconKey)) {
-            const icon = this.add.image(x, y, iconKey).setOrigin(options.fallbackOriginX ?? 0.5, 0.5);
-            const scale = Math.min(iconSize / icon.width, iconSize / icon.height);
-            icon.setScale(scale);
-            container.add(icon);
-            return;
-        }
-
-        const radius = Math.max(5, Math.floor(iconSize / 2));
-        const fallback = this.add.circle(x, y, radius, DataLoader.getTypeColor(type), 1)
-            .setOrigin(options.fallbackOriginX ?? 0.5, 0.5);
-        fallback.setStrokeStyle(1, 0xffffff, 0.7);
-        container.add(fallback);
+        TypeIconView.render(this, container, x, y, type, {
+            iconSize: options.iconSize || 16,
+            originX: options.fallbackOriginX ?? 0.5,
+            originY: 0.5
+        });
     }
 
     returnToMap() {

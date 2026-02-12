@@ -88,5 +88,6 @@ const gameConfig = {
 
 // Create and start the game
 const game = new Phaser.Game(gameConfig);
+window.__seerGame = game;
 
 console.log('Project Seer initialized with Phaser', Phaser.VERSION);

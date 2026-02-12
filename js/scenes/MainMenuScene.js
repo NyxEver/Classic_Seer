@@ -350,22 +350,13 @@ class MainMenuScene extends Phaser.Scene {
         container._width = width;
         container._height = height;
 
-        // 精灵图标 - 优先使用 external_scene/still
-        let imageKey = null;
-        if (typeof AssetMappings.getExternalStillKey === 'function') {
-            imageKey = AssetMappings.getExternalStillKey(starter.id);
-        }
-        if (!imageKey && typeof AssetMappings.getElfImageKey === 'function') {
-            imageKey = AssetMappings.getElfImageKey(starter.id);
-        }
+        // 精灵图标 - 统一 still 回退链
+        const portrait = ElfPortraitView.addStillPortrait(this, container, 0, -55, starter.id, {
+            maxSize: 80,
+            warnTag: 'MainMenuScene'
+        });
 
-        if (imageKey && this.textures.exists(imageKey)) {
-            const sprite = this.add.image(0, -55, imageKey);
-            const maxSize = 80;
-            const scale = Math.min(maxSize / sprite.width, maxSize / sprite.height);
-            sprite.setScale(scale);
-            container.add(sprite);
-        } else {
+        if (!portrait) {
             // 后备：彩色圆圈
             const elfIcon = this.add.graphics();
             elfIcon.fillStyle(starter.color, 1);
@@ -384,18 +375,14 @@ class MainMenuScene extends Phaser.Scene {
         }).setOrigin(0.5);
         container.add(nameText);
 
-        // 属性标签（使用属性图标）
-        const typeIconKey = AssetMappings.getTypeIconKey(starter.type);
-        if (typeIconKey && this.textures.exists(typeIconKey)) {
-            const typeIcon = this.add.image(0, 32, typeIconKey).setOrigin(0.5);
-            const scale = Math.min(24 / typeIcon.width, 24 / typeIcon.height);
-            typeIcon.setScale(scale);
-            container.add(typeIcon);
-        } else {
-            const fallbackIcon = this.add.circle(0, 32, 10, DataLoader.getTypeColor(starter.type), 1);
-            fallbackIcon.setStrokeStyle(1, 0xffffff, 0.8);
-            container.add(fallbackIcon);
-        }
+        // 属性标签（统一图标渲染）
+        TypeIconView.render(this, container, 0, 32, starter.type, {
+            iconSize: 24,
+            originX: 0.5,
+            originY: 0.5,
+            fallbackRadius: 10,
+            strokeAlpha: 0.8
+        });
 
         // 简介
         const desc = this.add.text(0, 65, starter.desc, {
