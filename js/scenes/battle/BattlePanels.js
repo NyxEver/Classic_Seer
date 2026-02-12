@@ -35,6 +35,7 @@ const BattlePanels = {
         this.createLeftInfoPanel(panelY);
         this.createMiddleSkillPanel(panelY);
         this.createRightActionButtons(panelY);
+        this.refreshPanelVisibility();
     },
 
     createMiddleSkillPanel(panelY) {
@@ -191,12 +192,15 @@ const BattlePanels = {
 
         const hasMultipleElves = PlayerData.elves.length > 1;
         const itemPanelOpen = this.isItemPanelOpen === true;
+        const menuEnabled = this.menuEnabled === true;
+        const battleEnded = this.battleEnded === true;
+        const interactionBlocked = !menuEnabled || battleEnded;
 
         const buttons = [
-            { label: '战斗', action: () => this.showSkillPanel(), disabled: !itemPanelOpen },
-            { label: '道具', action: () => this.showItemPanel(), disabled: itemPanelOpen },
-            { label: '精灵', action: () => this.showElfSwitchPanel(), disabled: !hasMultipleElves },
-            { label: '逃跑', action: () => this.doEscape(), disabled: false }
+            { label: '战斗', action: () => this.showSkillPanel(), disabled: interactionBlocked || !itemPanelOpen },
+            { label: '道具', action: () => this.showItemPanel(), disabled: interactionBlocked || itemPanelOpen },
+            { label: '精灵', action: () => this.showElfSwitchPanel(), disabled: interactionBlocked || !hasMultipleElves },
+            { label: '逃跑', action: () => this.doEscape(), disabled: interactionBlocked }
         ];
 
         this.actionButtons = [];
@@ -213,13 +217,46 @@ const BattlePanels = {
 
     refreshActionButtons() {
         this.createRightActionButtons(this.bottomPanelY || 430);
-        if (!this.menuEnabled && this.actionContainer) {
-            this.actionContainer.setAlpha(0.4);
+        this.refreshPanelVisibility();
+    },
+
+    refreshPanelVisibility() {
+        const showSkillPanel = this.isItemPanelOpen !== true;
+        if (this.skillContainer) {
+            this.skillContainer.setVisible(showSkillPanel);
+        }
+
+        if (this.itemPanelContainer) {
+            this.itemPanelContainer.setVisible(this.isItemPanelOpen === true);
+        }
+
+        const locked = !this.menuEnabled || this.battleEnded;
+        const alpha = locked ? 0.4 : 1;
+
+        if (this.skillContainer) {
+            this.skillContainer.setAlpha(alpha);
+        }
+        if (this.actionContainer) {
+            this.actionContainer.setAlpha(alpha);
         }
     },
 
+    submitPanelIntent(intent, payload = {}) {
+        if (this.forceSwitchMode && intent !== BattleManager.ACTION.SWITCH && intent !== 'switch') {
+            return false;
+        }
+        if (typeof this.submitBattleIntent !== 'function') {
+            return false;
+        }
+        return this.submitBattleIntent(intent, payload);
+    },
+
     showSkillPanel() {
-        this.closeItemPanel();
+        if (this.isItemPanelOpen) {
+            this.closeItemPanel();
+            return;
+        }
+        this.refreshActionButtons();
     },
 
     createActionButton(x, y, w, h, config) {
@@ -272,6 +309,13 @@ const BattlePanels = {
     },
 
     showCapsulePanel() {
+        if (!this.menuEnabled || this.battleEnded || this.forceSwitchMode) {
+            return;
+        }
+        if (this.capsulePanelContainer) {
+            return;
+        }
+
         if (!this.canCatch) {
             this.addLog('无法在此战斗中捕捉！');
             return;
@@ -282,6 +326,9 @@ const BattlePanels = {
             this.addLog('没有可用的精灵胶囊！');
             return;
         }
+
+        this.closeItemPanel();
+        this.closeElfSwitchPanel();
 
         this.capsulePanelContainer = this.add.container(this.W / 2, this.H / 2);
         this.capsulePanelContainer.setDepth(90);
@@ -355,8 +402,7 @@ const BattlePanels = {
             });
 
             hit.on('pointerdown', () => {
-                this.closeCapsulePanel();
-                this.doCatch(capsuleInfo.itemData);
+                this.doCatch(capsuleInfo.itemData.id);
             });
 
             this.capsulePanelContainer.add(itemContainer);
@@ -387,22 +433,31 @@ const BattlePanels = {
         }
     },
 
-    doCatch(capsule) {
-        this.disableMenu();
-        this.battleManager.setPlayerAction(BattleManager.ACTION.CATCH, { capsule });
-        this.executeTurn();
+    doCatch(capsuleOrItemId) {
+        const itemId = typeof capsuleOrItemId === 'number'
+            ? capsuleOrItemId
+            : (capsuleOrItemId && typeof capsuleOrItemId.id === 'number' ? capsuleOrItemId.id : null);
+
+        if (!itemId) {
+            return false;
+        }
+
+        const submitted = this.submitPanelIntent(BattleManager.ACTION.CATCH, { itemId });
+        if (submitted) {
+            this.closeCapsulePanel();
+        }
+        return submitted;
     },
 
     showItemPanel() {
+        if (!this.menuEnabled || this.battleEnded || this.forceSwitchMode) {
+            return;
+        }
         if (this.itemPanelContainer) {
             return;
         }
         this.closeElfSwitchPanel();
         this.closeCapsulePanel();
-
-        if (this.skillContainer) {
-            this.skillContainer.setVisible(false);
-        }
 
         const panelY = 430;
         this.itemPanelContainer = this.add.container(310, panelY + 10);
@@ -668,62 +723,21 @@ const BattlePanels = {
 
     useItem(item) {
         const itemData = item.itemData;
+        if (!itemData || typeof item.itemId !== 'number') {
+            return;
+        }
 
         if (itemData.type === 'capsule') {
-            if (!this.canCatch) {
-                this.addLog('无法在此战斗中使用胶囊！');
-                return;
+            const submitted = this.submitPanelIntent(BattleManager.ACTION.CATCH, { itemId: item.itemId });
+            if (submitted) {
+                this.closeItemPanel();
             }
+            return;
+        }
+
+        const submitted = this.submitPanelIntent(BattleManager.ACTION.ITEM, { itemId: item.itemId });
+        if (submitted) {
             this.closeItemPanel();
-            this.doCatch(itemData);
-        } else if (itemData.type === 'hpPotion' && itemData.effect) {
-            const healAmount = itemData.effect.hpRestore || 20;
-            const maxHp = this.playerElf.getMaxHp();
-            const oldHp = this.playerElf.currentHp;
-            this.playerElf.currentHp = Math.min(maxHp, oldHp + healAmount);
-            const healed = this.playerElf.currentHp - oldHp;
-
-            if (healed > 0) {
-                ItemBag.removeItem(item.itemId, 1);
-                this.addLog(`使用了 ${itemData.name}，恢复了 ${healed} HP！`);
-
-                this.updateStatusHp('player');
-                this.playerElf._syncInstanceData();
-                PlayerData.saveToStorage();
-
-                this.closeItemPanel();
-                this.disableMenu();
-                this.battleManager.setPlayerAction(BattleManager.ACTION.ITEM, { itemId: item.itemId });
-                this.executeTurn();
-            } else {
-                this.addLog(`${this.playerElf.getDisplayName()} 的 HP 已满！`);
-            }
-        } else if (itemData.type === 'ppPotion' && itemData.effect) {
-            const restoreAmount = itemData.effect.ppRestore || 5;
-            const skills = this.playerElf.getSkillDetails();
-            let restored = false;
-
-            skills.forEach((skill) => {
-                if (this.playerElf.skillPP[skill.id] < skill.pp) {
-                    this.playerElf.skillPP[skill.id] = Math.min(skill.pp, this.playerElf.skillPP[skill.id] + restoreAmount);
-                    restored = true;
-                }
-            });
-
-            if (restored) {
-                ItemBag.removeItem(item.itemId, 1);
-                this.addLog(`使用了 ${itemData.name}，恢复了技能 PP！`);
-                this.updateSkillPP();
-                this.playerElf._syncInstanceData();
-                PlayerData.saveToStorage();
-
-                this.closeItemPanel();
-                this.disableMenu();
-                this.battleManager.setPlayerAction(BattleManager.ACTION.ITEM, { itemId: item.itemId });
-                this.executeTurn();
-            } else {
-                this.addLog('所有技能 PP 已满！');
-            }
         }
     },
 
@@ -735,14 +749,21 @@ const BattlePanels = {
         this.itemPanelLayout = null;
         this.isItemPanelOpen = false;
         this.refreshActionButtons();
-        if (this.skillContainer) {
-            this.skillContainer.setVisible(true);
-        }
     },
 
     showElfSwitchPanel(forceSwitch = false) {
+        if (!forceSwitch && (!this.menuEnabled || this.battleEnded || this.forceSwitchMode)) {
+            return;
+        }
+
+        if (this.elfSwitchContainer) {
+            if (this.forceSwitchMode === forceSwitch) {
+                return;
+            }
+            this.closeElfSwitchPanel();
+        }
+
         this.closeItemPanel();
-        this.closeElfSwitchPanel();
         this.closeCapsulePanel();
 
         const panelY = 430;
@@ -1048,10 +1069,16 @@ const BattlePanels = {
             return;
         }
 
+        const wasForceSwitch = this.forceSwitchMode === true;
+        if (!wasForceSwitch && (!this.menuEnabled || this.battleEnded || this.actionIntentLocked)) {
+            return;
+        }
+
+        const previousPlayerElf = this.playerElf;
+        const previousManagerElf = this.battleManager ? this.battleManager.playerElf : null;
         const newElf = new Elf(baseData, elfData);
 
         this.closeElfSwitchPanel();
-        this.disableMenu();
 
         this.addLog(`${this.playerElf.getDisplayName()}，回来吧！`);
         this.addLog(`去吧，${newElf.getDisplayName()}！`);
@@ -1061,14 +1088,20 @@ const BattlePanels = {
 
         this.updatePlayerSpriteAndStatus();
 
-        if (this.forceSwitchMode) {
+        if (wasForceSwitch) {
             this.showLogs(() => {
                 this.enableMenu();
                 this.startTurnTimer();
             });
         } else {
-            this.battleManager.setPlayerAction(BattleManager.ACTION.SWITCH, { elfIndex });
-            this.executeTurn();
+            const submitted = this.submitPanelIntent(BattleManager.ACTION.SWITCH, { elfIndex });
+            if (!submitted) {
+                this.playerElf = previousPlayerElf;
+                if (this.battleManager) {
+                    this.battleManager.playerElf = previousManagerElf;
+                }
+                this.updatePlayerSpriteAndStatus();
+            }
         }
     },
 

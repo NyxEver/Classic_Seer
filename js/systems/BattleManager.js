@@ -28,10 +28,10 @@ class BattleManager {
     // 行动类型
     static ACTION = {
         SKILL: 'skill',
-        ITEM: 'item',
+        ITEM: 'item_use',
         SWITCH: 'switch',
         ESCAPE: 'escape',
-        CATCH: 'catch'
+        CATCH: 'catch_attempt'
     };
 
     /**
@@ -113,8 +113,28 @@ class BattleManager {
      * @param {Object} data - 行动数据
      */
     setPlayerAction(action, data = {}) {
-        this.playerAction = { type: action, ...data };
+        const normalizedType = this.normalizeActionType(action);
+        this.playerAction = { type: normalizedType, ...data };
         console.log('[BattleManager] 玩家行动:', this.playerAction);
+    }
+
+    normalizeActionType(action) {
+        switch (action) {
+            case 'skill':
+                return BattleManager.ACTION.SKILL;
+            case 'item':
+            case 'item_use':
+                return BattleManager.ACTION.ITEM;
+            case 'catch':
+            case 'catch_attempt':
+                return BattleManager.ACTION.CATCH;
+            case 'switch':
+                return BattleManager.ACTION.SWITCH;
+            case 'escape':
+                return BattleManager.ACTION.ESCAPE;
+            default:
+                return action;
+        }
     }
 
     /**
@@ -188,6 +208,112 @@ class BattleManager {
         return battleEffects.getActionPriority(action);
     }
 
+    getActionItemId(action) {
+        if (!action || typeof action !== 'object') {
+            return null;
+        }
+
+        if (typeof action.itemId === 'number') {
+            return action.itemId;
+        }
+
+        if (action.capsule && typeof action.capsule.id === 'number') {
+            return action.capsule.id;
+        }
+
+        return null;
+    }
+
+    applyPlayerItem(itemId, result) {
+        const itemBag = getBattleManagerDependency('ItemBag');
+        const dataLoader = getBattleManagerDependency('DataLoader');
+        const playerData = getBattleManagerDependency('PlayerData');
+
+        if (!itemBag || !dataLoader || !playerData) {
+            this.log('道具系统未就绪，无法使用道具。');
+            return { applied: false, consumesTurn: false };
+        }
+
+        const itemData = dataLoader.getItem(itemId);
+        if (!itemData) {
+            this.log('该道具不存在，无法使用。');
+            return { applied: false, consumesTurn: false };
+        }
+
+        if (!itemBag.has(itemId, 1)) {
+            this.log(`${itemData.name} 数量不足！`);
+            return { applied: false, consumesTurn: false };
+        }
+
+        if (itemData.type === 'capsule') {
+            this.log('捕捉胶囊请使用捕捉指令。');
+            return { applied: false, consumesTurn: false };
+        }
+
+        if (itemData.type === 'hpPotion') {
+            const healAmount = itemData.effect ? (itemData.effect.hpRestore || 20) : 20;
+            const maxHp = this.playerElf.getMaxHp();
+            const oldHp = this.playerElf.currentHp;
+            this.playerElf.currentHp = Math.min(maxHp, oldHp + healAmount);
+            const healed = this.playerElf.currentHp - oldHp;
+
+            if (healed <= 0) {
+                this.log(`${this.playerElf.getDisplayName()} 的 HP 已满！`);
+                return { applied: false, consumesTurn: false };
+            }
+
+            itemBag.remove(itemId, 1);
+            this.playerElf._syncInstanceData();
+            playerData.saveToStorage();
+
+            this.log(`使用了 ${itemData.name}，恢复了 ${healed} HP！`);
+            result.events.push({
+                type: 'item_used',
+                actor: 'player',
+                itemId,
+                itemType: itemData.type,
+                hpRecovered: healed
+            });
+            return { applied: true, consumesTurn: true };
+        }
+
+        if (itemData.type === 'ppPotion') {
+            const restoreAmount = itemData.effect ? (itemData.effect.ppRestore || 5) : 5;
+            const skills = this.playerElf.getSkillDetails();
+            let restored = false;
+
+            skills.forEach((skill) => {
+                const currentPp = this.playerElf.skillPP[skill.id] || 0;
+                if (currentPp < skill.pp) {
+                    this.playerElf.skillPP[skill.id] = Math.min(skill.pp, currentPp + restoreAmount);
+                    restored = true;
+                }
+            });
+
+            if (!restored) {
+                this.log('所有技能 PP 已满！');
+                return { applied: false, consumesTurn: false };
+            }
+
+            itemBag.remove(itemId, 1);
+            this.playerElf._syncInstanceData();
+            playerData.saveToStorage();
+
+            this.log(`使用了 ${itemData.name}，恢复了技能 PP！`);
+            result.events.push({
+                type: 'item_used',
+                actor: 'player',
+                itemId,
+                itemType: itemData.type,
+                ppRestored: restoreAmount
+            });
+            return { applied: true, consumesTurn: true };
+        }
+
+        this.log('该道具当前无法在战斗中使用。');
+        return { applied: false, consumesTurn: false };
+    }
+
     /**
      * 执行回合
      * @returns {Promise<Object>} - 回合结果
@@ -204,46 +330,66 @@ class BattleManager {
             winner: null
         };
 
+        if (!this.playerAction || !this.playerAction.type) {
+            this.log('本回合未提交有效行动。');
+            this.setPhase(BattleManager.PHASE.PLAYER_CHOOSE);
+            return result;
+        }
+
         // 处理捕捉
         if (this.playerAction.type === BattleManager.ACTION.CATCH) {
             if (!this.canCatch) {
                 this.log('无法在此战斗中捕捉！');
+                result.actionRejected = true;
             } else {
-                const capsule = this.playerAction.capsule;
                 const itemBag = getBattleManagerDependency('ItemBag');
                 const catchSystem = getBattleManagerDependency('CatchSystem');
                 const playerData = getBattleManagerDependency('PlayerData');
+                const dataLoader = getBattleManagerDependency('DataLoader');
+                const capsuleItemId = this.getActionItemId(this.playerAction);
 
-                if (!itemBag || !catchSystem || !playerData) {
+                if (!itemBag || !catchSystem || !playerData || !dataLoader) {
                     this.log('捕捉系统未就绪，无法使用胶囊。');
-                    return result;
-                }
-
-                // 消耗胶囊
-                itemBag.remove(capsule.id, 1);
-                this.log(`使用了 ${capsule.name}！`);
-
-                // 尝试捕捉
-                const catchResult = catchSystem.attemptCatch(this.enemyElf, capsule);
-                result.catchAttempt = true;
-                result.catchResult = catchResult;
-
-                if (catchResult.success) {
-                    // 捕捉成功
-                    catchSystem.addCapturedElf(this.enemyElf);
-                    this.log(`成功捕捉了 ${this.enemyElf.getDisplayName()}！`);
-                    result.battleEnded = true;
-                    result.captured = true;
-                    this.setPhase(BattleManager.PHASE.BATTLE_END);
-
-                    // 保存游戏
-                    playerData.saveToStorage();
-
-                    return result;
+                    result.actionRejected = true;
+                } else if (!capsuleItemId) {
+                    this.log('未选择有效的捕捉胶囊。');
+                    result.actionRejected = true;
                 } else {
-                    // 捕捉失败，敌方行动
-                    this.generateEnemyAction();
-                    await this.executeAction('enemy', result);
+                    const capsule = dataLoader.getItem(capsuleItemId);
+                    if (!capsule || capsule.type !== 'capsule') {
+                        this.log('该道具不是可用的捕捉胶囊。');
+                        result.actionRejected = true;
+                    } else if (!itemBag.has(capsuleItemId, 1)) {
+                        this.log(`${capsule.name} 数量不足！`);
+                        result.actionRejected = true;
+                    } else {
+                        // 消耗胶囊
+                        itemBag.remove(capsuleItemId, 1);
+                        this.log(`使用了 ${capsule.name}！`);
+
+                        // 尝试捕捉
+                        const catchResult = catchSystem.attemptCatch(this.enemyElf, capsule);
+                        result.catchAttempt = true;
+                        result.catchResult = catchResult;
+
+                        if (catchResult.success) {
+                            // 捕捉成功
+                            catchSystem.addCapturedElf(this.enemyElf);
+                            this.log(`成功捕捉了 ${this.enemyElf.getDisplayName()}！`);
+                            result.battleEnded = true;
+                            result.captured = true;
+                            this.setPhase(BattleManager.PHASE.BATTLE_END);
+
+                            // 保存游戏
+                            playerData.saveToStorage();
+
+                            return result;
+                        }
+
+                        // 捕捉失败，敌方行动
+                        this.generateEnemyAction();
+                        await this.executeAction('enemy', result);
+                    }
                 }
             }
         }
@@ -256,10 +402,16 @@ class BattleManager {
         }
         // 处理使用道具
         else if (this.playerAction.type === BattleManager.ACTION.ITEM) {
-            // 使用道具消耗回合，敌方可以攻击
-            result.events.push({ type: 'item', itemId: this.playerAction.data?.itemId });
-            this.generateEnemyAction();
-            await this.executeAction('enemy', result);
+            const itemId = this.getActionItemId(this.playerAction);
+            const itemOutcome = this.applyPlayerItem(itemId, result);
+
+            if (itemOutcome.applied && itemOutcome.consumesTurn) {
+                // 使用道具消耗回合，敌方可以攻击
+                this.generateEnemyAction();
+                await this.executeAction('enemy', result);
+            } else {
+                result.actionRejected = true;
+            }
         }
         // 处理逃跑
         else if (this.playerAction.type === BattleManager.ACTION.ESCAPE) {
@@ -296,6 +448,13 @@ class BattleManager {
                     break; // 一方倒下，停止后续行动
                 }
             }
+        }
+
+        if (result.actionRejected) {
+            this.setPhase(BattleManager.PHASE.PLAYER_CHOOSE);
+            this.playerAction = null;
+            this.enemyAction = null;
+            return result;
         }
 
         // 检查战斗结果

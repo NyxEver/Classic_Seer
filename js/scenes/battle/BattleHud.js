@@ -283,15 +283,31 @@ const BattleHud = {
 
     enableMenu() {
         this.menuEnabled = true;
-        this.skillContainer.setAlpha(1);
-        this.actionContainer.setAlpha(1);
+        if (typeof this.refreshActionButtons === 'function') {
+            this.refreshActionButtons();
+            return;
+        }
+        if (this.skillContainer) {
+            this.skillContainer.setAlpha(1);
+        }
+        if (this.actionContainer) {
+            this.actionContainer.setAlpha(1);
+        }
     },
 
     disableMenu() {
         this.menuEnabled = false;
         this.stopTurnTimer();
-        this.skillContainer.setAlpha(0.4);
-        this.actionContainer.setAlpha(0.4);
+        if (typeof this.refreshActionButtons === 'function') {
+            this.refreshActionButtons();
+            return;
+        }
+        if (this.skillContainer) {
+            this.skillContainer.setAlpha(0.4);
+        }
+        if (this.actionContainer) {
+            this.actionContainer.setAlpha(0.4);
+        }
     }
 };
 

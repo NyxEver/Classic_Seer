@@ -29,6 +29,7 @@ class BattleScene extends Phaser.Scene {
         this.turnTimer = null;
         this.turnTimeLeft = 10;
         this.deferredBattleEndResult = null;
+        this.actionIntentLocked = false;
         this.battleBgm = null;
         this.isBgmFadingOut = false;
 
@@ -73,30 +74,48 @@ class BattleScene extends Phaser.Scene {
     }
 
     doSkill(skillId) {
-        if (this.battleEnded || !this.battleManager) {
-            return;
-        }
-        this.disableMenu();
-        this.battleManager.setPlayerAction(BattleManager.ACTION.SKILL, { skillId });
-        this.executeTurn();
+        this.submitBattleIntent(BattleManager.ACTION.SKILL, { skillId });
     }
 
     doEscape() {
-        if (this.battleEnded || !this.battleManager) {
-            return;
+        this.submitBattleIntent(BattleManager.ACTION.ESCAPE);
+    }
+
+    submitBattleIntent(intent, payload = {}) {
+        if (!this.battleManager || this.battleEnded || !this.menuEnabled || this.actionIntentLocked) {
+            return false;
         }
+
+        if (this.forceSwitchMode && intent !== BattleManager.ACTION.SWITCH && intent !== 'switch') {
+            return false;
+        }
+
+        this.actionIntentLocked = true;
         this.disableMenu();
-        this.battleManager.setPlayerAction(BattleManager.ACTION.ESCAPE);
+        this.battleManager.setPlayerAction(intent, payload);
         this.executeTurn();
+        return true;
     }
 
     async executeTurn() {
         if (!this.battleManager) {
+            this.actionIntentLocked = false;
             return;
         }
 
         this.deferredBattleEndResult = null;
-        const result = await this.battleManager.executeTurn();
+        let result = null;
+        try {
+            result = await this.battleManager.executeTurn();
+        } catch (error) {
+            console.error('[BattleScene] executeTurn 失败:', error);
+            this.actionIntentLocked = false;
+            if (!this.battleEnded) {
+                this.enableMenu();
+                this.startTurnTimer();
+            }
+            return;
+        }
 
         if (result.catchAttempt) {
             await this.playCatchAnimation(result.catchResult);
@@ -145,11 +164,13 @@ class BattleScene extends Phaser.Scene {
 
             this.addLog(`${this.playerElf.getDisplayName()} 倒下了！`);
             await new Promise((resolve) => this.showLogs(resolve));
+            this.actionIntentLocked = false;
             this.showForceSwitchPanel();
             return;
         }
 
         if (!this.battleEnded) {
+            this.actionIntentLocked = false;
             this.enableMenu();
             this.startTurnTimer();
         }
@@ -180,6 +201,8 @@ const BATTLE_SCENE_FACADE_METHODS = {
         'updateSkillPP',
         'createRightActionButtons',
         'refreshActionButtons',
+        'refreshPanelVisibility',
+        'submitPanelIntent',
         'showSkillPanel',
         'createActionButton',
         'showCapsulePanel',
