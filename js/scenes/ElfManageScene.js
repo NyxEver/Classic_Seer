@@ -595,7 +595,7 @@ class ElfManageScene extends Phaser.Scene {
     closePanel() {
         const returnScene = this.scene.get(this.returnScene);
         if (returnScene) {
-            this.scene.resume(this.returnScene);
+            SceneRouter.resume(this, this.returnScene);
             this.scene.stop();
             return;
         }

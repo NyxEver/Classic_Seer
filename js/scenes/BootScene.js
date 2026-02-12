@@ -191,6 +191,11 @@ class BootScene extends Phaser.Scene {
             // 初始化数据加载器（同步）
             DataLoader.init();
 
+            // 初始化任务事件桥接（步骤9：任务进度事件总线）
+            if (typeof QuestManager !== 'undefined' && typeof QuestManager.initEventBridge === 'function') {
+                QuestManager.initEventBridge();
+            }
+
             this.statusText.setText('数据加载完成！');
 
             // 短暂延迟后进入主菜单

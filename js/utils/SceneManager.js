@@ -11,31 +11,11 @@ const SceneManager = {
      * @returns {boolean} - True if scene change was successful
      */
     changeScene: function (currentScene, targetSceneKey, data = {}) {
-        // Validate current scene
-        if (!currentScene || !currentScene.scene) {
-            console.error('[SceneManager] Invalid current scene provided');
+        if (typeof SceneRouter === 'undefined') {
+            console.error('[SceneManager] SceneRouter 未加载，无法切换场景');
             return false;
         }
-
-        // Check if target scene exists in the scene manager
-        const sceneManager = currentScene.scene;
-        const targetScene = sceneManager.get(targetSceneKey);
-
-        if (!targetScene) {
-            console.error(`[SceneManager] Target scene "${targetSceneKey}" does not exist`);
-            console.warn('[SceneManager] Available scenes:', this.getAvailableScenes(currentScene));
-            return false;
-        }
-
-        // Perform the scene transition
-        try {
-            sceneManager.start(targetSceneKey, data);
-            console.log(`[SceneManager] Successfully changed to scene: ${targetSceneKey}`);
-            return true;
-        } catch (error) {
-            console.error(`[SceneManager] Failed to change scene: ${error.message}`);
-            return false;
-        }
+        return SceneRouter.start(currentScene, targetSceneKey, data, { bgmStrategy: 'auto' });
     },
 
     /**
@@ -44,15 +24,13 @@ const SceneManager = {
      * @returns {string[]} - Array of scene keys
      */
     getAvailableScenes: function (scene) {
+        if (typeof SceneRouter === 'undefined') {
+            return [];
+        }
         if (!scene || !scene.scene || !scene.scene.manager) {
             return [];
         }
-
-        const scenes = [];
-        scene.scene.manager.scenes.forEach(s => {
-            scenes.push(s.sys.settings.key);
-        });
-        return scenes;
+        return SceneRouter.getAvailableScenes(scene);
     },
 
     /**
@@ -62,10 +40,13 @@ const SceneManager = {
      * @returns {boolean} - True if scene exists
      */
     sceneExists: function (scene, sceneKey) {
+        if (typeof SceneRouter === 'undefined') {
+            return false;
+        }
         if (!scene || !scene.scene) {
             return false;
         }
-        return scene.scene.get(sceneKey) !== null;
+        return SceneRouter.sceneExists(scene, sceneKey);
     },
 
     /**
@@ -74,12 +55,11 @@ const SceneManager = {
      * @param {string} sceneKey - Key of the scene to pause
      */
     pauseScene: function (currentScene, sceneKey) {
-        if (this.sceneExists(currentScene, sceneKey)) {
-            currentScene.scene.pause(sceneKey);
-            console.log(`[SceneManager] Paused scene: ${sceneKey}`);
-        } else {
-            console.warn(`[SceneManager] Cannot pause - scene "${sceneKey}" not found`);
+        if (typeof SceneRouter === 'undefined') {
+            console.warn('[SceneManager] SceneRouter 未加载，无法暂停场景');
+            return;
         }
+        SceneRouter.pause(currentScene, sceneKey);
     },
 
     /**
@@ -88,12 +68,11 @@ const SceneManager = {
      * @param {string} sceneKey - Key of the scene to resume
      */
     resumeScene: function (currentScene, sceneKey) {
-        if (this.sceneExists(currentScene, sceneKey)) {
-            currentScene.scene.resume(sceneKey);
-            console.log(`[SceneManager] Resumed scene: ${sceneKey}`);
-        } else {
-            console.warn(`[SceneManager] Cannot resume - scene "${sceneKey}" not found`);
+        if (typeof SceneRouter === 'undefined') {
+            console.warn('[SceneManager] SceneRouter 未加载，无法恢复场景');
+            return;
         }
+        SceneRouter.resume(currentScene, sceneKey);
     }
 };
 

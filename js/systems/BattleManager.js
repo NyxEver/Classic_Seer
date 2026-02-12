@@ -515,9 +515,16 @@ class BattleManager {
         // 获取努力值
         this.playerElf.gainEVFromDefeat(this.enemyElf);
 
-        // 通知任务系统击败精灵
-        if (typeof QuestManager !== 'undefined') {
-            QuestManager.updateProgress('defeat', this.enemyElf.id, 1);
+        // 通过事件总线通知任务系统
+        if (typeof GameEvents !== 'undefined') {
+            GameEvents.emit(GameEvents.EVENTS.QUEST_PROGRESS, {
+                type: 'defeat',
+                targetId: this.enemyElf.id,
+                value: 1,
+                source: 'BattleManager.handleVictory'
+            });
+        } else {
+            console.warn('[BattleManager] GameEvents 未加载，任务进度事件未发出');
         }
 
         // 保存游戏

@@ -208,7 +208,7 @@ const DevMode = {
             return;
         }
 
-        currentScene.scene.start('SkillLearnScene', {
+        SceneRouter.start(currentScene, 'SkillLearnScene', {
             elf: elf,
             newSkillId: pendingSkills[0],
             returnScene: returnSceneKey,
@@ -219,6 +219,8 @@ const DevMode = {
                 playerElf: elf,
                 returnScene: returnSceneKey
             }
+        }, {
+            bgmStrategy: 'inherit'
         });
     },
 
@@ -239,7 +241,7 @@ const DevMode = {
             return;
         }
 
-        currentScene.scene.start('EvolutionScene', {
+        SceneRouter.start(currentScene, 'EvolutionScene', {
             elf: elf,
             newElfId: elf.evolvesTo,
             returnScene: returnSceneKey,
@@ -249,6 +251,8 @@ const DevMode = {
                 PlayerData.saveToStorage();
                 console.log(`[DevMode] 进化完成: ${elf.name}`);
             }
+        }, {
+            bgmStrategy: 'inherit'
         });
     }
 };

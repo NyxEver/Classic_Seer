@@ -2203,7 +2203,7 @@ class BattleScene extends Phaser.Scene {
 
         // 使用 chainData 让 SkillLearnScene 自己处理后续流程
         // 注意：不再传递 pendingSkills 数组，SkillLearnScene 会使用 elf.getPendingSkills() 获取最新列表
-        this.scene.start('SkillLearnScene', {
+        SceneRouter.start(this, 'SkillLearnScene', {
             elf: result.playerElf,
             newSkillId: skillId,
             returnScene: this.returnScene,
@@ -2214,6 +2214,8 @@ class BattleScene extends Phaser.Scene {
                 playerElf: result.playerElf,
                 returnScene: this.returnScene
             }
+        }, {
+            bgmStrategy: 'inherit'
         });
     }
 
@@ -2227,7 +2229,7 @@ class BattleScene extends Phaser.Scene {
             const elfBeforeEvolution = result.playerElf;
             const newElfId = result.evolveTo;
 
-            this.scene.start('EvolutionScene', {
+            SceneRouter.start(this, 'EvolutionScene', {
                 elf: elfBeforeEvolution,
                 newElfId: newElfId,
                 returnScene: this.returnScene,
@@ -2238,6 +2240,8 @@ class BattleScene extends Phaser.Scene {
                     PlayerData.saveToStorage();
                     console.log(`[BattleScene] 进化完成: ${elfBeforeEvolution.name}`);
                 }
+            }, {
+                bgmStrategy: 'inherit'
             });
         } else {
             // 没有进化，直接返回地图
@@ -2258,7 +2262,9 @@ class BattleScene extends Phaser.Scene {
 
     returnToMap() {
         this.fadeOutBattleBgm(() => {
-            this.scene.start(this.returnScene);
+            SceneRouter.start(this, this.returnScene, {}, {
+                bgmStrategy: 'inherit'
+            });
         });
     }
 

@@ -182,8 +182,15 @@ const ElfProgression = {
             const result = this.levelUp(elf, maxLevel);
             if (result) {
                 levelUpResults.push(result);
-                if (typeof QuestManager !== 'undefined') {
-                    QuestManager.updateProgress('levelUp', elf.id, result.newLevel);
+                if (typeof GameEvents !== 'undefined') {
+                    GameEvents.emit(GameEvents.EVENTS.QUEST_PROGRESS, {
+                        type: 'levelUp',
+                        targetId: elf.id,
+                        value: result.newLevel,
+                        source: 'ElfProgression.addExp'
+                    });
+                } else {
+                    console.warn('[ElfProgression] GameEvents 未加载，任务进度事件未发出');
                 }
             }
 

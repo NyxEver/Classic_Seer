@@ -67,7 +67,7 @@ const BattlePostFlow = {
         const skillId = pendingSkills[index];
         const result = this.pendingResult;
 
-        this.scene.start('SkillLearnScene', {
+        SceneRouter.start(this, 'SkillLearnScene', {
             elf: result.playerElf,
             newSkillId: skillId,
             returnScene: this.returnScene,
@@ -78,6 +78,8 @@ const BattlePostFlow = {
                 playerElf: result.playerElf,
                 returnScene: this.returnScene
             }
+        }, {
+            bgmStrategy: 'inherit'
         });
     },
 
@@ -88,7 +90,7 @@ const BattlePostFlow = {
             const elfBeforeEvolution = result.playerElf;
             const newElfId = result.evolveTo;
 
-            this.scene.start('EvolutionScene', {
+            SceneRouter.start(this, 'EvolutionScene', {
                 elf: elfBeforeEvolution,
                 newElfId,
                 returnScene: this.returnScene,
@@ -98,6 +100,8 @@ const BattlePostFlow = {
                     PlayerData.saveToStorage();
                     console.log(`[BattleScene] 进化完成: ${elfBeforeEvolution.name}`);
                 }
+            }, {
+                bgmStrategy: 'inherit'
             });
         } else {
             this.returnToMap();
@@ -106,7 +110,9 @@ const BattlePostFlow = {
 
     returnToMap() {
         this.fadeOutBattleBgm(() => {
-            this.scene.start(this.returnScene);
+            SceneRouter.start(this, this.returnScene, {}, {
+                bgmStrategy: 'inherit'
+            });
         });
     },
 

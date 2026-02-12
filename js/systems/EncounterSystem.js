@@ -94,7 +94,7 @@ const EncounterSystem = {
         }
 
         // 切换到战斗场景，传递数据
-        scene.scene.start('BattleScene', {
+        SceneRouter.start(scene, 'BattleScene', {
             playerElf: playerElf,
             enemyElf: wildElf,
             battleType: 'wild',
@@ -102,6 +102,8 @@ const EncounterSystem = {
             canCatch: true,
             returnScene: scene.scene.key, // 战斗结束后返回的场景
             battleBackgroundKey: sourceBackgroundKey
+        }, {
+            bgmStrategy: 'inherit'
         });
     }
 };

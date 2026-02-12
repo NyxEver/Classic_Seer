@@ -4,6 +4,44 @@
  */
 
 const QuestManager = {
+    // 事件总线监听状态（防重复注册）
+    _eventsBound: false,
+    _questProgressHandler: null,
+
+    /**
+     * 初始化任务事件桥接
+     * 统一从事件总线消费任务推进事件
+     */
+    initEventBridge() {
+        if (typeof GameEvents === 'undefined') {
+            console.warn('[QuestManager] GameEvents 未加载，跳过事件桥接初始化');
+            return false;
+        }
+
+        if (!this._questProgressHandler) {
+            this._questProgressHandler = (payload = {}) => {
+                const eventType = payload.type;
+                const targetId = payload.targetId ?? null;
+                const value = Number(payload.value) || 0;
+
+                if (!eventType || value <= 0) {
+                    return;
+                }
+
+                this.updateProgress(eventType, targetId, value);
+            };
+        }
+
+        if (this._eventsBound) {
+            return true;
+        }
+
+        GameEvents.on(GameEvents.EVENTS.QUEST_PROGRESS, this._questProgressHandler);
+        this._eventsBound = true;
+        console.log(`[QuestManager] 任务事件桥接已启用，listeners=${GameEvents.listenerCount(GameEvents.EVENTS.QUEST_PROGRESS)}`);
+        return true;
+    },
+
     /**
      * 初始化任务进度结构（如果不存在）
      */

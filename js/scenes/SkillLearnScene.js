@@ -336,7 +336,7 @@ class SkillLearnScene extends Phaser.Scene {
             if (remainingSkills && remainingSkills.length > 0) {
                 // 继续下一个技能学习 - 添加延迟避免场景切换问题
                 this.time.delayedCall(100, () => {
-                    this.scene.start('SkillLearnScene', {
+                    SceneRouter.start(this, 'SkillLearnScene', {
                         elf: this.elf,
                         newSkillId: remainingSkills[0],  // 取第一个待学习技能
                         returnScene: returnScene,
@@ -347,6 +347,8 @@ class SkillLearnScene extends Phaser.Scene {
                             playerElf: playerElf,
                             returnScene: returnScene
                         }
+                    }, {
+                        bgmStrategy: 'inherit'
                     });
                 });
                 return;
@@ -355,7 +357,7 @@ class SkillLearnScene extends Phaser.Scene {
             // 所有技能处理完成，检查进化
             if (canEvolve && evolveTo && playerElf) {
                 this.time.delayedCall(100, () => {
-                    this.scene.start('EvolutionScene', {
+                    SceneRouter.start(this, 'EvolutionScene', {
                         elf: playerElf,
                         newElfId: evolveTo,
                         returnScene: returnScene,
@@ -365,6 +367,8 @@ class SkillLearnScene extends Phaser.Scene {
                             PlayerData.saveToStorage();
                             console.log(`[SkillLearnScene] 进化完成: ${playerElf.name}`);
                         }
+                    }, {
+                        bgmStrategy: 'inherit'
                     });
                 });
                 return;

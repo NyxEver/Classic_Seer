@@ -308,8 +308,10 @@ class SpaceshipScene extends Phaser.Scene {
                 if (this.scene.isActive('ElfManageScene')) {
                     return;
                 }
-                this.scene.launch('ElfManageScene', { returnScene: 'SpaceshipScene' });
-                this.scene.pause('SpaceshipScene');
+                SceneRouter.launch(this, 'ElfManageScene', { returnScene: 'SpaceshipScene' }, {
+                    bgmStrategy: 'inherit'
+                });
+                SceneRouter.pause(this, 'SpaceshipScene');
                 this.scene.bringToTop('ElfManageScene');
                 return;
             }
