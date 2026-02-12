@@ -3,6 +3,19 @@
  * 管理任务接取、进度追踪和奖励发放
  */
 
+function getQuestManagerDependency(name) {
+    if (typeof AppContext !== 'undefined' && typeof AppContext.get === 'function') {
+        const dep = AppContext.get(name, null);
+        if (dep) {
+            return dep;
+        }
+    }
+    if (typeof window !== 'undefined') {
+        return window[name] || null;
+    }
+    return null;
+}
+
 const QuestManager = {
     // 事件总线监听状态（防重复注册）
     _eventsBound: false,
@@ -13,7 +26,8 @@ const QuestManager = {
      * 统一从事件总线消费任务推进事件
      */
     initEventBridge() {
-        if (typeof GameEvents === 'undefined') {
+        const gameEvents = getQuestManagerDependency('GameEvents');
+        if (!gameEvents) {
             console.warn('[QuestManager] GameEvents 未加载，跳过事件桥接初始化');
             return false;
         }
@@ -36,9 +50,9 @@ const QuestManager = {
             return true;
         }
 
-        GameEvents.on(GameEvents.EVENTS.QUEST_PROGRESS, this._questProgressHandler);
+        gameEvents.on(gameEvents.EVENTS.QUEST_PROGRESS, this._questProgressHandler);
         this._eventsBound = true;
-        console.log(`[QuestManager] 任务事件桥接已启用，listeners=${GameEvents.listenerCount(GameEvents.EVENTS.QUEST_PROGRESS)}`);
+        console.log(`[QuestManager] 任务事件桥接已启用，listeners=${gameEvents.listenerCount(gameEvents.EVENTS.QUEST_PROGRESS)}`);
         return true;
     },
 
@@ -369,6 +383,10 @@ const QuestManager = {
         return desc;
     }
 };
+
+if (typeof AppContext !== 'undefined' && typeof AppContext.register === 'function') {
+    AppContext.register('QuestManager', QuestManager);
+}
 
 // 导出为全局对象
 window.QuestManager = QuestManager;

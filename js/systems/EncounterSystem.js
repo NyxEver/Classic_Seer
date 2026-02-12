@@ -3,6 +3,19 @@
  * 管理野生精灵的生成和战斗触发
  */
 
+function getEncounterSystemDependency(name) {
+    if (typeof AppContext !== 'undefined' && typeof AppContext.get === 'function') {
+        const dep = AppContext.get(name, null);
+        if (dep) {
+            return dep;
+        }
+    }
+    if (typeof window !== 'undefined') {
+        return window[name] || null;
+    }
+    return null;
+}
+
 const EncounterSystem = {
     // 地图配置：每个地图的遭遇信息
     mapConfig: {
@@ -56,9 +69,15 @@ const EncounterSystem = {
      * @returns {Elf} 野生精灵实例
      */
     createWildElf(elfId, minLevel, maxLevel) {
+        const elfClass = getEncounterSystemDependency('Elf');
+        if (!elfClass || typeof elfClass.createWild !== 'function') {
+            console.error('EncounterSystem: Elf 系统未就绪，无法创建野生精灵');
+            return null;
+        }
+
         const level = Phaser.Math.Between(minLevel, maxLevel);
         // 直接使用 Elf 类的静态工厂方法
-        return Elf.createWild(elfId, level);
+        return elfClass.createWild(elfId, level);
     },
 
     /**
@@ -72,8 +91,16 @@ const EncounterSystem = {
             return;
         }
 
+        const elfBag = getEncounterSystemDependency('ElfBag');
+        const playerData = getEncounterSystemDependency('PlayerData');
+        const sceneRouter = getEncounterSystemDependency('SceneRouter');
+        if (!elfBag || !playerData || !sceneRouter) {
+            console.error('EncounterSystem: ElfBag/PlayerData/SceneRouter 未就绪，无法开始战斗');
+            return;
+        }
+
         // 获取玩家当前出战精灵
-        const playerElf = ElfBag.getFirstAvailable();
+        const playerElf = elfBag.getFirstAvailable();
 
         if (!playerElf) {
             console.error('EncounterSystem: 玩家没有可战斗的精灵');
@@ -83,7 +110,7 @@ const EncounterSystem = {
         console.log(`野生战斗开始：${playerElf.name} Lv.${playerElf.level} VS 野生 ${wildElf.name} Lv.${wildElf.level}`);
 
         // 标记精灵为已见过（图鉴系统）
-        PlayerData.markSeen(wildElf.id);
+        playerData.markSeen(wildElf.id);
 
         // 来源场景背景（用于战斗背景滤镜化）
         let sourceBackgroundKey = null;
@@ -93,20 +120,38 @@ const EncounterSystem = {
             sourceBackgroundKey = scene.sceneConfig.background;
         }
 
+        const returnData = {};
+        if (scene && scene.scene && scene.scene.key === 'KloseScene') {
+            if (Number.isFinite(scene.currentSubScene)) {
+                returnData.subScene = scene.currentSubScene;
+            }
+            if (Number.isFinite(scene.playerX) && Number.isFinite(scene.playerY)) {
+                returnData.customEntry = {
+                    x: scene.playerX,
+                    y: scene.playerY
+                };
+            }
+        }
+
         // 切换到战斗场景，传递数据
-        SceneRouter.start(scene, 'BattleScene', {
+        sceneRouter.start(scene, 'BattleScene', {
             playerElf: playerElf,
             enemyElf: wildElf,
             battleType: 'wild',
             canEscape: true,
             canCatch: true,
             returnScene: scene.scene.key, // 战斗结束后返回的场景
+            returnData,
             battleBackgroundKey: sourceBackgroundKey
         }, {
             bgmStrategy: 'inherit'
         });
     }
 };
+
+if (typeof AppContext !== 'undefined' && typeof AppContext.register === 'function') {
+    AppContext.register('EncounterSystem', EncounterSystem);
+}
 
 // 挂载到全局
 window.EncounterSystem = EncounterSystem;

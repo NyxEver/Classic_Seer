@@ -88,6 +88,12 @@ const gameConfig = {
 
 // Create and start the game
 const game = new Phaser.Game(gameConfig);
+
+if (typeof AppContext !== 'undefined' && typeof AppContext.register === 'function') {
+    AppContext.register('game', game);
+    AppContext.register('__seerGame', game);
+}
+
 window.__seerGame = game;
 
 console.log('Project Seer initialized with Phaser', Phaser.VERSION);

@@ -101,5 +101,9 @@ const ItemBag = {
     }
 };
 
+if (typeof AppContext !== 'undefined' && typeof AppContext.register === 'function') {
+    AppContext.register('ItemBag', ItemBag);
+}
+
 // 导出为全局对象
 window.ItemBag = ItemBag;

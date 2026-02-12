@@ -132,4 +132,8 @@ const DataIntegrityChecker = {
     }
 };
 
+if (typeof AppContext !== 'undefined' && typeof AppContext.register === 'function') {
+    AppContext.register('DataIntegrityChecker', DataIntegrityChecker);
+}
+
 window.DataIntegrityChecker = DataIntegrityChecker;

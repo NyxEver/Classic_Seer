@@ -3,6 +3,19 @@
  * 提供调试功能：经验增加、100%捕捉、图鉴解锁
  */
 
+function getDevModeDependency(name) {
+    if (typeof AppContext !== 'undefined' && typeof AppContext.get === 'function') {
+        const dep = AppContext.get(name, null);
+        if (dep) {
+            return dep;
+        }
+    }
+    if (typeof window !== 'undefined') {
+        return window[name] || null;
+    }
+    return null;
+}
+
 const DevMode = {
     // 开发者模式奖励精灵（谱尼）
     DEV_REWARD_ELF_ID: 300,
@@ -49,14 +62,21 @@ const DevMode = {
      * 挂载 window.dev 工具对象
      */
     _mountDevTools() {
-        window.dev = {
+        const devTools = {
             /**
              * 给指定精灵增加经验
              * @param {number} elfIndex - 精灵在背包中的索引 (0-5)
              * @param {number} amount - 经验数量
              */
             giveExp: (elfIndex, amount = 5000) => {
-                const elf = ElfBag.getByIndex(elfIndex);
+                const elfBag = getDevModeDependency('ElfBag');
+                const playerData = getDevModeDependency('PlayerData');
+                if (!elfBag || !playerData) {
+                    console.error('[DevMode] ElfBag/PlayerData 未就绪，无法加经验');
+                    return false;
+                }
+
+                const elf = elfBag.getByIndex(elfIndex);
                 if (!elf) {
                     console.error(`[DevMode] 无法找到索引为 ${elfIndex} 的精灵`);
                     return false;
@@ -67,7 +87,7 @@ const DevMode = {
                 const newLevel = elf.level;
 
                 // 保存存档
-                PlayerData.saveToStorage();
+                playerData.saveToStorage();
 
                 console.log(`[DevMode] ${elf.name} 获得 ${amount} 经验`);
                 if (newLevel > oldLevel) {
@@ -108,21 +128,28 @@ const DevMode = {
              * 将所有精灵标记为已见/已捕捉
              */
             unlockAllPokedex: () => {
-                const allElves = DataLoader.getAllElves();
+                const dataLoader = getDevModeDependency('DataLoader');
+                const playerData = getDevModeDependency('PlayerData');
+                if (!dataLoader || !playerData) {
+                    console.error('[DevMode] DataLoader/PlayerData 未就绪，无法解锁图鉴');
+                    return 0;
+                }
+
+                const allElves = dataLoader.getAllElves();
                 let count = 0;
 
                 allElves.forEach(elfData => {
-                    if (!PlayerData.hasCaught(elfData.id)) {
-                        PlayerData.markCaught(elfData.id);
+                    if (!playerData.hasCaught(elfData.id)) {
+                        playerData.markCaught(elfData.id);
                         count++;
                     }
                 });
 
                 // 保存存档
-                PlayerData.saveToStorage();
+                playerData.saveToStorage();
 
                 console.log(`[DevMode] 图鉴解锁完成，新增 ${count} 只精灵`);
-                console.log(`[DevMode] 当前已捕捉: ${PlayerData.caughtElves.length} 只`);
+                console.log(`[DevMode] 当前已捕捉: ${playerData.caughtElves.length} 只`);
 
                 return count;
             },
@@ -131,14 +158,27 @@ const DevMode = {
              * 显示当前开发者模式状态
              */
             status: () => {
+                const playerData = getDevModeDependency('PlayerData');
+                const elfBag = getDevModeDependency('ElfBag');
+                if (!playerData || !elfBag) {
+                    console.warn('[DevMode] PlayerData/ElfBag 未就绪');
+                    return;
+                }
+
                 console.log('=== 开发者模式状态 ===');
                 console.log(`开发者模式: ${DevMode.enabled ? '开启' : '关闭'}`);
                 console.log(`100% 捕捉: ${DevMode.alwaysCatch ? '开启' : '关闭'}`);
-                console.log(`图鉴已见: ${PlayerData.seenElves.length} 只`);
-                console.log(`图鉴已捕: ${PlayerData.caughtElves.length} 只`);
-                console.log(`背包精灵: ${ElfBag.getCount()} 只`);
+                console.log(`图鉴已见: ${playerData.seenElves.length} 只`);
+                console.log(`图鉴已捕: ${playerData.caughtElves.length} 只`);
+                console.log(`背包精灵: ${elfBag.getCount()} 只`);
             }
         };
+
+        window.dev = devTools;
+        const appContext = getDevModeDependency('AppContext');
+        if (appContext && typeof appContext.register === 'function') {
+            appContext.register('dev', devTools);
+        }
 
         console.log('[DevMode] window.dev 工具已挂载');
         console.log('[DevMode] 可用命令: dev.giveExp(index, amount), dev.setAlwaysCatch(bool), dev.unlockAllPokedex(), dev.status()');
@@ -152,25 +192,36 @@ const DevMode = {
             delete window.dev;
             console.log('[DevMode] window.dev 工具已卸载');
         }
+
+        const appContext = getDevModeDependency('AppContext');
+        if (appContext && typeof appContext.unregister === 'function') {
+            appContext.unregister('dev');
+        }
     },
 
     /**
      * 开启开发者模式时自动发放谱尼（仅发放一次）
      */
     _ensureDevRewardElf() {
-        const hasPuni = (PlayerData.elves || []).some((elf) => elf.elfId === this.DEV_REWARD_ELF_ID);
+        const playerData = getDevModeDependency('PlayerData');
+        if (!playerData) {
+            console.warn('[DevMode] PlayerData 未就绪，跳过开发者奖励精灵发放');
+            return;
+        }
+
+        const hasPuni = (playerData.elves || []).some((elf) => elf.elfId === this.DEV_REWARD_ELF_ID);
         if (hasPuni) {
             return;
         }
 
-        const added = PlayerData.addElf(this.DEV_REWARD_ELF_ID, 1, '谱尼');
+        const added = playerData.addElf(this.DEV_REWARD_ELF_ID, 1, '谱尼');
         if (!added) {
             console.warn('[DevMode] 自动发放谱尼失败，可能是数据未加载');
             return;
         }
 
-        PlayerData.markCaught(this.DEV_REWARD_ELF_ID);
-        PlayerData.saveToStorage();
+        playerData.markCaught(this.DEV_REWARD_ELF_ID);
+        playerData.saveToStorage();
         console.log('[DevMode] 已自动发放开发者奖励精灵：谱尼');
     },
 
@@ -179,8 +230,10 @@ const DevMode = {
      * @returns {string|null}
      */
     _getCurrentSceneKey() {
-        if (typeof game === 'undefined') return null;
-        const scenes = game.scene.getScenes(true);
+        const gameInstance = getDevModeDependency('game') || getDevModeDependency('__seerGame');
+        if (!gameInstance) return null;
+
+        const scenes = gameInstance.scene.getScenes(true);
         if (scenes.length > 0) {
             return scenes[0].scene.key;
         }
@@ -194,21 +247,28 @@ const DevMode = {
      * @param {boolean} canEvolve - 是否可以进化
      */
     _triggerSkillLearnScene(elf, returnSceneKey, canEvolve) {
-        if (typeof game === 'undefined') {
+        const gameInstance = getDevModeDependency('game') || getDevModeDependency('__seerGame');
+        const sceneRouter = getDevModeDependency('SceneRouter');
+
+        if (!gameInstance) {
             console.error('[DevMode] 无法访问 game 对象');
+            return;
+        }
+        if (!sceneRouter) {
+            console.error('[DevMode] SceneRouter 未就绪，无法触发技能学习场景');
             return;
         }
 
         const pendingSkills = elf.getPendingSkills();
         if (pendingSkills.length === 0) return;
 
-        const currentScene = game.scene.getScenes(true)[0];
+        const currentScene = gameInstance.scene.getScenes(true)[0];
         if (!currentScene) {
             console.error('[DevMode] 无法获取当前场景');
             return;
         }
 
-        SceneRouter.start(currentScene, 'SkillLearnScene', {
+        sceneRouter.start(currentScene, 'SkillLearnScene', {
             elf: elf,
             newSkillId: pendingSkills[0],
             returnScene: returnSceneKey,
@@ -230,25 +290,33 @@ const DevMode = {
      * @param {string} returnSceneKey - 返回的场景 key
      */
     _triggerEvolutionScene(elf, returnSceneKey) {
-        if (typeof game === 'undefined') {
+        const gameInstance = getDevModeDependency('game') || getDevModeDependency('__seerGame');
+        const sceneRouter = getDevModeDependency('SceneRouter');
+        const playerData = getDevModeDependency('PlayerData');
+
+        if (!gameInstance) {
             console.error('[DevMode] 无法访问 game 对象');
             return;
         }
+        if (!sceneRouter || !playerData) {
+            console.error('[DevMode] SceneRouter/PlayerData 未就绪，无法触发进化场景');
+            return;
+        }
 
-        const currentScene = game.scene.getScenes(true)[0];
+        const currentScene = gameInstance.scene.getScenes(true)[0];
         if (!currentScene) {
             console.error('[DevMode] 无法获取当前场景');
             return;
         }
 
-        SceneRouter.start(currentScene, 'EvolutionScene', {
+        sceneRouter.start(currentScene, 'EvolutionScene', {
             elf: elf,
             newElfId: elf.evolvesTo,
             returnScene: returnSceneKey,
             returnData: {},
             callback: (evolvedElfId) => {
                 elf.evolve();
-                PlayerData.saveToStorage();
+                playerData.saveToStorage();
                 console.log(`[DevMode] 进化完成: ${elf.name}`);
             }
         }, {
@@ -256,6 +324,10 @@ const DevMode = {
         });
     }
 };
+
+if (typeof AppContext !== 'undefined' && typeof AppContext.register === 'function') {
+    AppContext.register('DevMode', DevMode);
+}
 
 // 导出为全局对象
 window.DevMode = DevMode;

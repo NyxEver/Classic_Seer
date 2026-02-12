@@ -4,6 +4,19 @@
  * These methods run with BattleScene as `this`.
  */
 
+function getBattlePostFlowDependency(name) {
+    if (typeof AppContext !== 'undefined' && typeof AppContext.get === 'function') {
+        const dep = AppContext.get(name, null);
+        if (dep) {
+            return dep;
+        }
+    }
+    if (typeof window !== 'undefined') {
+        return window[name] || null;
+    }
+    return null;
+}
+
 const BattlePostFlow = {
     handleBattleEnd(result) {
         this.battleEnded = true;
@@ -16,7 +29,8 @@ const BattlePostFlow = {
                 for (const lu of result.levelUps) {
                     msg += `\n升到 ${lu.newLevel} 级！`;
                     for (const sid of lu.newSkills) {
-                        const sk = DataLoader.getSkill(sid);
+                        const dataLoader = getBattlePostFlowDependency('DataLoader');
+                        const sk = dataLoader ? dataLoader.getSkill(sid) : null;
                         if (sk) {
                             msg += `\n学会 ${sk.name}！`;
                         }
@@ -67,16 +81,23 @@ const BattlePostFlow = {
         const skillId = pendingSkills[index];
         const result = this.pendingResult;
 
-        SceneRouter.start(this, 'SkillLearnScene', {
+        const sceneRouter = getBattlePostFlowDependency('SceneRouter');
+        if (!sceneRouter) {
+            this.returnToMap();
+            return;
+        }
+
+        sceneRouter.start(this, 'SkillLearnScene', {
             elf: result.playerElf,
             newSkillId: skillId,
             returnScene: this.returnScene,
-            returnData: {},
+            returnData: this.returnData || {},
             chainData: {
                 canEvolve: result.canEvolve,
                 evolveTo: result.evolveTo,
                 playerElf: result.playerElf,
-                returnScene: this.returnScene
+                returnScene: this.returnScene,
+                returnData: this.returnData || {}
             }
         }, {
             bgmStrategy: 'inherit'
@@ -90,14 +111,21 @@ const BattlePostFlow = {
             const elfBeforeEvolution = result.playerElf;
             const newElfId = result.evolveTo;
 
-            SceneRouter.start(this, 'EvolutionScene', {
+            const sceneRouter = getBattlePostFlowDependency('SceneRouter');
+            const playerData = getBattlePostFlowDependency('PlayerData');
+            if (!sceneRouter || !playerData) {
+                this.returnToMap();
+                return;
+            }
+
+            sceneRouter.start(this, 'EvolutionScene', {
                 elf: elfBeforeEvolution,
                 newElfId,
                 returnScene: this.returnScene,
-                returnData: {},
+                returnData: this.returnData || {},
                 callback: () => {
                     elfBeforeEvolution.evolve();
-                    PlayerData.saveToStorage();
+                    playerData.saveToStorage();
                     console.log(`[BattleScene] 进化完成: ${elfBeforeEvolution.name}`);
                 }
             }, {
@@ -109,32 +137,38 @@ const BattlePostFlow = {
     },
 
     returnToMap() {
+        const sceneRouter = getBattlePostFlowDependency('SceneRouter');
         this.fadeOutBattleBgm(() => {
-            SceneRouter.start(this, this.returnScene, {}, {
+            if (!sceneRouter) {
+                return;
+            }
+            sceneRouter.start(this, this.returnScene, this.returnData || {}, {
                 bgmStrategy: 'inherit'
             });
         });
     },
 
     playBattleBgm() {
-        if (typeof BgmManager === 'undefined') {
+        const bgmManager = getBattlePostFlowDependency('BgmManager');
+        if (!bgmManager) {
             console.warn('[BattleScene] BgmManager 未加载，跳过战斗 BGM');
             return;
         }
 
-        BgmManager.transitionTo('BattleScene', this);
-        this.battleBgm = BgmManager.currentSound;
+        bgmManager.transitionTo('BattleScene', this);
+        this.battleBgm = bgmManager.currentSound;
     },
 
     fadeOutBattleBgm(onComplete = null) {
-        if (typeof BgmManager === 'undefined') {
+        const bgmManager = getBattlePostFlowDependency('BgmManager');
+        if (!bgmManager) {
             if (onComplete) {
                 onComplete();
             }
             return;
         }
 
-        BgmManager.stopCurrent(450, () => {
+        bgmManager.stopCurrent(450, () => {
             this.battleBgm = null;
             if (onComplete) {
                 onComplete();
@@ -143,12 +177,17 @@ const BattlePostFlow = {
     },
 
     cleanupBattleBgm() {
-        if (typeof BgmManager !== 'undefined') {
-            BgmManager.stopCurrent(0, null, this);
+        const bgmManager = getBattlePostFlowDependency('BgmManager');
+        if (bgmManager) {
+            bgmManager.stopCurrent(0, null, this);
         }
         this.battleBgm = null;
         this.isBgmFadingOut = false;
     }
 };
+
+if (typeof AppContext !== 'undefined' && typeof AppContext.register === 'function') {
+    AppContext.register('BattlePostFlow', BattlePostFlow);
+}
 
 window.BattlePostFlow = BattlePostFlow;

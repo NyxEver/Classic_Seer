@@ -3,6 +3,19 @@
  * 处理精灵捕捉的概率计算和结果判定
  */
 
+function getCatchSystemDependency(name) {
+    if (typeof AppContext !== 'undefined' && typeof AppContext.get === 'function') {
+        const dep = AppContext.get(name, null);
+        if (dep) {
+            return dep;
+        }
+    }
+    if (typeof window !== 'undefined') {
+        return window[name] || null;
+    }
+    return null;
+}
+
 const CatchSystem = {
     /**
      * 计算捕捉成功率
@@ -11,9 +24,14 @@ const CatchSystem = {
      * @returns {number} - 捕捉成功率 (0-100)
      */
     calculateCatchRate(elf, capsule) {
+        const dataLoader = getCatchSystemDependency('DataLoader');
+        if (!dataLoader) {
+            console.warn('[CatchSystem] DataLoader 未加载，使用默认捕捉率 50');
+        }
+
         // 获取精灵基础捕捉率
         const targetElfId = elf && typeof elf.id === 'number' ? elf.id : elf.elfId;
-        const elfData = DataLoader.getElf(targetElfId);
+        const elfData = dataLoader ? dataLoader.getElf(targetElfId) : null;
         const baseCatchRate = elfData ? elfData.catchRate : 50;
 
         // HP 加成：HP 越低越容易抓
@@ -44,8 +62,10 @@ const CatchSystem = {
      * @returns {Object} - 捕捉结果 {success, rate, shakes}
      */
     attemptCatch(elf, capsule) {
+        const devMode = getCatchSystemDependency('DevMode');
+
         // 开发者模式：100% 捕捉
-        if (typeof DevMode !== 'undefined' && DevMode.alwaysCatch) {
+        if (devMode && devMode.alwaysCatch) {
             console.log('[CatchSystem] 开发者模式：100% 捕捉成功');
             return {
                 success: true,
@@ -79,6 +99,12 @@ const CatchSystem = {
      * @returns {boolean} - 是否成功添加
      */
     addCapturedElf(elf) {
+        const playerData = getCatchSystemDependency('PlayerData');
+        if (!playerData) {
+            console.error('[CatchSystem] PlayerData 未加载，无法写入捕捉结果');
+            return false;
+        }
+
         // 创建精灵实例数据
         // 注意：Elf 类使用 elf.id (来自 elfData) 而不是 elf.elfId
         const elfInstanceData = {
@@ -90,18 +116,19 @@ const CatchSystem = {
             currentHp: elf.currentHp,
             skills: elf.skills ? [...elf.skills] : [],
             skillPP: elf.skillPP ? { ...elf.skillPP } : {},
-            iv: elf.iv ? { ...elf.iv } : PlayerData.generateRandomIV(),
-            ev: elf.ev ? { ...elf.ev } : PlayerData.createInitialEV()
+            iv: elf.iv ? { ...elf.iv } : playerData.generateRandomIV(),
+            ev: elf.ev ? { ...elf.ev } : playerData.createInitialEV()
         };
 
         // 添加到玩家精灵列表
-        PlayerData.elves.push(elfInstanceData);
+        playerData.elves.push(elfInstanceData);
         console.log(`[CatchSystem] 成功捕捉 ${elf.name}，已加入背包`);
         console.log(`[CatchSystem] 精灵数据:`, elfInstanceData);
 
         // 通过事件总线通知任务系统
-        if (typeof GameEvents !== 'undefined') {
-            GameEvents.emit(GameEvents.EVENTS.QUEST_PROGRESS, {
+        const gameEvents = getCatchSystemDependency('GameEvents');
+        if (gameEvents) {
+            gameEvents.emit(gameEvents.EVENTS.QUEST_PROGRESS, {
                 type: 'catch',
                 targetId: elf.id,
                 value: 1,
@@ -112,14 +139,18 @@ const CatchSystem = {
         }
 
         // 标记精灵为已捕捉（图鉴系统）
-        PlayerData.markCaught(elf.id);
+        playerData.markCaught(elf.id);
 
         // 保存存档
-        PlayerData.saveToStorage();
+        playerData.saveToStorage();
 
         return true;
     }
 };
+
+if (typeof AppContext !== 'undefined' && typeof AppContext.register === 'function') {
+    AppContext.register('CatchSystem', CatchSystem);
+}
 
 // 导出为全局对象
 window.CatchSystem = CatchSystem;

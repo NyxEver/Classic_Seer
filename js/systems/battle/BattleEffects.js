@@ -149,4 +149,8 @@ const BattleEffects = {
     }
 };
 
+if (typeof AppContext !== 'undefined' && typeof AppContext.register === 'function') {
+    AppContext.register('BattleEffects', BattleEffects);
+}
+
 window.BattleEffects = BattleEffects;

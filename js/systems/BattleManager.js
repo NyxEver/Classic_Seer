@@ -3,6 +3,19 @@
  * 管理战斗流程、回合执行和结果处理
  */
 
+function getBattleManagerDependency(name) {
+    if (typeof AppContext !== 'undefined' && typeof AppContext.get === 'function') {
+        const dep = AppContext.get(name, null);
+        if (dep) {
+            return dep;
+        }
+    }
+    if (typeof window !== 'undefined') {
+        return window[name] || null;
+    }
+    return null;
+}
+
 class BattleManager {
     // 回合阶段常量
     static PHASE = {
@@ -130,7 +143,11 @@ class BattleManager {
      * @returns {number}
      */
     getEffectiveSpeed(elf, statStages) {
-        return BattleEffects.getEffectiveSpeed(elf, statStages);
+        const battleEffects = getBattleManagerDependency('BattleEffects');
+        if (!battleEffects) {
+            return elf.getSpd();
+        }
+        return battleEffects.getEffectiveSpeed(elf, statStages);
     }
 
     /**
@@ -139,7 +156,11 @@ class BattleManager {
      * @returns {number}
      */
     getStatMultiplier(stage) {
-        return BattleEffects.getStatMultiplier(stage);
+        const battleEffects = getBattleManagerDependency('BattleEffects');
+        if (!battleEffects) {
+            return 1;
+        }
+        return battleEffects.getStatMultiplier(stage);
     }
 
     /**
@@ -147,7 +168,11 @@ class BattleManager {
      * @returns {Array} - ['player', 'enemy'] 或 ['enemy', 'player']
      */
     determineOrder() {
-        return BattleEffects.determineOrder(this);
+        const battleEffects = getBattleManagerDependency('BattleEffects');
+        if (!battleEffects) {
+            return ['player', 'enemy'];
+        }
+        return battleEffects.determineOrder(this);
     }
 
     /**
@@ -156,7 +181,11 @@ class BattleManager {
      * @returns {number}
      */
     getActionPriority(action) {
-        return BattleEffects.getActionPriority(action);
+        const battleEffects = getBattleManagerDependency('BattleEffects');
+        if (!battleEffects) {
+            return 0;
+        }
+        return battleEffects.getActionPriority(action);
     }
 
     /**
@@ -181,26 +210,34 @@ class BattleManager {
                 this.log('无法在此战斗中捕捉！');
             } else {
                 const capsule = this.playerAction.capsule;
+                const itemBag = getBattleManagerDependency('ItemBag');
+                const catchSystem = getBattleManagerDependency('CatchSystem');
+                const playerData = getBattleManagerDependency('PlayerData');
+
+                if (!itemBag || !catchSystem || !playerData) {
+                    this.log('捕捉系统未就绪，无法使用胶囊。');
+                    return result;
+                }
 
                 // 消耗胶囊
-                ItemBag.remove(capsule.id, 1);
+                itemBag.remove(capsule.id, 1);
                 this.log(`使用了 ${capsule.name}！`);
 
                 // 尝试捕捉
-                const catchResult = CatchSystem.attemptCatch(this.enemyElf, capsule);
+                const catchResult = catchSystem.attemptCatch(this.enemyElf, capsule);
                 result.catchAttempt = true;
                 result.catchResult = catchResult;
 
                 if (catchResult.success) {
                     // 捕捉成功
-                    CatchSystem.addCapturedElf(this.enemyElf);
+                    catchSystem.addCapturedElf(this.enemyElf);
                     this.log(`成功捕捉了 ${this.enemyElf.getDisplayName()}！`);
                     result.battleEnded = true;
                     result.captured = true;
                     this.setPhase(BattleManager.PHASE.BATTLE_END);
 
                     // 保存游戏
-                    PlayerData.saveToStorage();
+                    playerData.saveToStorage();
 
                     return result;
                 } else {
@@ -306,7 +343,14 @@ class BattleManager {
         const defenderStages = isPlayer ? this.enemyStatStages : this.playerStatStages;
 
         if (action.type === BattleManager.ACTION.SKILL) {
-            const skill = DataLoader.getSkill(action.skillId);
+            const dataLoader = getBattleManagerDependency('DataLoader');
+            const damageCalculator = getBattleManagerDependency('DamageCalculator');
+            if (!dataLoader || !damageCalculator) {
+                console.error('[BattleManager] DataLoader/DamageCalculator 未加载，无法执行技能');
+                return false;
+            }
+
+            const skill = dataLoader.getSkill(action.skillId);
             if (!skill) {
                 console.error('[BattleManager] 技能不存在:', action.skillId);
                 return false;
@@ -328,7 +372,7 @@ class BattleManager {
             });
 
             // 命中检定
-            const hit = DamageCalculator.checkHit(skill, -defenderStages.accuracy);
+            const hit = damageCalculator.checkHit(skill, -defenderStages.accuracy);
             if (!hit) {
                 this.log('但是没有命中...');
                 result.events.push({
@@ -342,10 +386,10 @@ class BattleManager {
 
             // 伤害计算（如果是攻击技能）
             if (skill.power > 0) {
-                const damageResult = DamageCalculator.calculate(attacker, defender, skill);
+                const damageResult = damageCalculator.calculate(attacker, defender, skill);
 
                 // 属性克制提示
-                const effectText = DamageCalculator.getEffectivenessText(damageResult.effectiveness);
+                const effectText = damageCalculator.getEffectivenessText(damageResult.effectiveness);
                 if (effectText) {
                     this.log(effectText);
                 }
@@ -389,7 +433,12 @@ class BattleManager {
      * 应用技能效果
      */
     applySkillEffect(effect, attacker, defender, attackerStages, defenderStages, result) {
-        BattleEffects.applySkillEffect(effect, {
+        const battleEffects = getBattleManagerDependency('BattleEffects');
+        if (!battleEffects) {
+            return;
+        }
+
+        battleEffects.applySkillEffect(effect, {
             attacker,
             defender,
             attackerStages,
@@ -443,7 +492,11 @@ class BattleManager {
      * @returns {Object} - { ended, winner, needSwitch }
      */
     checkBattleEnd() {
-        return BattleEffects.checkBattleEnd(this);
+        const battleEffects = getBattleManagerDependency('BattleEffects');
+        if (!battleEffects) {
+            return { ended: false, winner: null, needSwitch: false };
+        }
+        return battleEffects.checkBattleEnd(this);
     }
 
     /**
@@ -451,7 +504,11 @@ class BattleManager {
      * @returns {number}
      */
     calculateExpReward() {
-        return BattleEffects.calculateExpReward(this);
+        const battleEffects = getBattleManagerDependency('BattleEffects');
+        if (!battleEffects) {
+            return 0;
+        }
+        return battleEffects.calculateExpReward(this);
     }
 
     /**
@@ -479,7 +536,8 @@ class BattleManager {
         for (const levelUp of levelUpResults) {
             this.log(`${this.playerElf.getDisplayName()} 升级到 ${levelUp.newLevel} 级！`);
             for (const skillId of levelUp.newSkills) {
-                const skill = DataLoader.getSkill(skillId);
+                const dataLoader = getBattleManagerDependency('DataLoader');
+                const skill = dataLoader ? dataLoader.getSkill(skillId) : null;
                 if (skill) {
                     this.log(`${this.playerElf.getDisplayName()} 学会了 ${skill.name}！`);
                 }
@@ -516,8 +574,9 @@ class BattleManager {
         this.playerElf.gainEVFromDefeat(this.enemyElf);
 
         // 通过事件总线通知任务系统
-        if (typeof GameEvents !== 'undefined') {
-            GameEvents.emit(GameEvents.EVENTS.QUEST_PROGRESS, {
+        const gameEvents = getBattleManagerDependency('GameEvents');
+        if (gameEvents) {
+            gameEvents.emit(gameEvents.EVENTS.QUEST_PROGRESS, {
                 type: 'defeat',
                 targetId: this.enemyElf.id,
                 value: 1,
@@ -528,7 +587,10 @@ class BattleManager {
         }
 
         // 保存游戏
-        PlayerData.saveToStorage();
+        const playerData = getBattleManagerDependency('PlayerData');
+        if (playerData) {
+            playerData.saveToStorage();
+        }
 
         // 调用结束回调（包含进化信息和待学习技能）
         this.onBattleEnd({
@@ -555,6 +617,10 @@ class BattleManager {
             victory: false
         });
     }
+}
+
+if (typeof AppContext !== 'undefined' && typeof AppContext.register === 'function') {
+    AppContext.register('BattleManager', BattleManager);
 }
 
 // 导出为全局对象

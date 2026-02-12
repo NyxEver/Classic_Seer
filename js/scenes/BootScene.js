@@ -2,6 +2,19 @@
  * BootScene - 启动场景
  * 负责加载核心资源和数据文件
  */
+function getBootDependency(name) {
+    if (typeof AppContext !== 'undefined' && typeof AppContext.get === 'function') {
+        const dep = AppContext.get(name, null);
+        if (dep) {
+            return dep;
+        }
+    }
+    if (typeof window !== 'undefined') {
+        return window[name] || null;
+    }
+    return null;
+}
+
 class BootScene extends Phaser.Scene {
     constructor() {
         super({ key: 'BootScene' });
@@ -189,11 +202,16 @@ class BootScene extends Phaser.Scene {
             this.statusText.setText('加载游戏数据...');
 
             // 初始化数据加载器（同步）
-            DataLoader.init();
+            const dataLoader = getBootDependency('DataLoader');
+            if (!dataLoader || typeof dataLoader.init !== 'function') {
+                throw new Error('DataLoader 未加载，无法初始化游戏数据');
+            }
+            dataLoader.init();
 
             // 初始化任务事件桥接（步骤9：任务进度事件总线）
-            if (typeof QuestManager !== 'undefined' && typeof QuestManager.initEventBridge === 'function') {
-                QuestManager.initEventBridge();
+            const questManager = getBootDependency('QuestManager');
+            if (questManager && typeof questManager.initEventBridge === 'function') {
+                questManager.initEventBridge();
             }
 
             this.statusText.setText('数据加载完成！');
@@ -201,7 +219,12 @@ class BootScene extends Phaser.Scene {
             // 短暂延迟后进入主菜单
             this.time.delayedCall(500, () => {
                 console.log('BootScene: 数据加载完成，进入主菜单');
-                SceneManager.changeScene(this, 'MainMenuScene');
+                const sceneManager = getBootDependency('SceneManager');
+                if (!sceneManager || typeof sceneManager.changeScene !== 'function') {
+                    console.error('SceneManager 未加载，无法跳转主菜单');
+                    return;
+                }
+                sceneManager.changeScene(this, 'MainMenuScene');
             });
 
         } catch (error) {
@@ -216,13 +239,14 @@ class BootScene extends Phaser.Scene {
      * 执行数据完整性校验
      */
     runDataIntegrityCheck() {
-        if (typeof DataIntegrityChecker === 'undefined' || typeof DataIntegrityChecker.run !== 'function') {
+        const dataIntegrityChecker = getBootDependency('DataIntegrityChecker');
+        if (!dataIntegrityChecker || typeof dataIntegrityChecker.run !== 'function') {
             console.warn('[BootScene] DataIntegrityChecker 未加载，跳过校验');
             return;
         }
 
         try {
-            DataIntegrityChecker.run();
+            dataIntegrityChecker.run();
         } catch (error) {
             console.warn('[BootScene] 数据完整性校验异常（已忽略）:', error);
         }

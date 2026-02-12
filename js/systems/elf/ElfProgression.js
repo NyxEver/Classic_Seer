@@ -2,6 +2,19 @@
  * ElfProgression - 精灵成长职责（经验、升级、进化、学技）
  */
 
+function getElfProgressionDependency(name) {
+    if (typeof AppContext !== 'undefined' && typeof AppContext.get === 'function') {
+        const dep = AppContext.get(name, null);
+        if (dep) {
+            return dep;
+        }
+    }
+    if (typeof window !== 'undefined') {
+        return window[name] || null;
+    }
+    return null;
+}
+
 const ElfProgression = {
     /**
      * 获取升到下一级所需经验值
@@ -83,7 +96,8 @@ const ElfProgression = {
             if (skillInfo.learnLevel === elf.level) {
                 if (elf.skills.length < 4) {
                     elf.skills.push(skillInfo.skillId);
-                    const skillData = DataLoader.getSkill(skillInfo.skillId);
+                    const dataLoader = getElfProgressionDependency('DataLoader');
+                    const skillData = dataLoader ? dataLoader.getSkill(skillInfo.skillId) : null;
                     if (skillData) {
                         elf.skillPP[skillInfo.skillId] = skillData.pp;
                     }
@@ -113,7 +127,8 @@ const ElfProgression = {
             return null;
         }
 
-        const newElfData = DataLoader.getElf(elf.evolvesTo);
+        const dataLoader = getElfProgressionDependency('DataLoader');
+        const newElfData = dataLoader ? dataLoader.getElf(elf.evolvesTo) : null;
         if (!newElfData) {
             console.error(`[Elf] 进化失败：找不到目标精灵 ID=${elf.evolvesTo}`);
             return null;
@@ -147,8 +162,9 @@ const ElfProgression = {
 
         console.log(`[Elf] 进化完成：${oldName} → ${elf.name}`);
 
-        if (typeof PlayerData !== 'undefined') {
-            PlayerData.markCaught(elf.id);
+        const playerData = getElfProgressionDependency('PlayerData');
+        if (playerData) {
+            playerData.markCaught(elf.id);
         }
 
         return {
@@ -182,8 +198,9 @@ const ElfProgression = {
             const result = this.levelUp(elf, maxLevel);
             if (result) {
                 levelUpResults.push(result);
-                if (typeof GameEvents !== 'undefined') {
-                    GameEvents.emit(GameEvents.EVENTS.QUEST_PROGRESS, {
+                const gameEvents = getElfProgressionDependency('GameEvents');
+                if (gameEvents) {
+                    gameEvents.emit(gameEvents.EVENTS.QUEST_PROGRESS, {
                         type: 'levelUp',
                         targetId: elf.id,
                         value: result.newLevel,
@@ -204,5 +221,9 @@ const ElfProgression = {
         return levelUpResults;
     }
 };
+
+if (typeof AppContext !== 'undefined' && typeof AppContext.register === 'function') {
+    AppContext.register('ElfProgression', ElfProgression);
+}
 
 window.ElfProgression = ElfProgression;

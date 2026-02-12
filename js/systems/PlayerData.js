@@ -350,5 +350,9 @@ const PlayerData = {
     }
 };
 
+if (typeof AppContext !== 'undefined' && typeof AppContext.register === 'function') {
+    AppContext.register('PlayerData', PlayerData);
+}
+
 // 导出为全局对象
 window.PlayerData = PlayerData;

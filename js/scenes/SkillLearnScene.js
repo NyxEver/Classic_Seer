@@ -327,7 +327,8 @@ class SkillLearnScene extends Phaser.Scene {
 
         // 检查是否有链式处理数据
         if (this.chainData) {
-            const { canEvolve, evolveTo, playerElf, returnScene } = this.chainData;
+            const { canEvolve, evolveTo, playerElf, returnScene, returnData } = this.chainData;
+            const chainedReturnData = this.returnData || returnData || {};
 
             // 【重要】使用精灵当前的待学习列表，而不是chainData中的旧列表
             const remainingSkills = this.elf.getPendingSkills();
@@ -340,12 +341,13 @@ class SkillLearnScene extends Phaser.Scene {
                         elf: this.elf,
                         newSkillId: remainingSkills[0],  // 取第一个待学习技能
                         returnScene: returnScene,
-                        returnData: {},
+                        returnData: chainedReturnData,
                         chainData: {
                             canEvolve: canEvolve,
                             evolveTo: evolveTo,
                             playerElf: playerElf,
-                            returnScene: returnScene
+                            returnScene: returnScene,
+                            returnData: chainedReturnData
                         }
                     }, {
                         bgmStrategy: 'inherit'
@@ -361,7 +363,7 @@ class SkillLearnScene extends Phaser.Scene {
                         elf: playerElf,
                         newElfId: evolveTo,
                         returnScene: returnScene,
-                        returnData: {},
+                        returnData: chainedReturnData,
                         callback: (evolvedElfId) => {
                             playerElf.evolve();
                             PlayerData.saveToStorage();

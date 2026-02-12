@@ -214,4 +214,8 @@ const BgmManager = {
     }
 };
 
+if (typeof AppContext !== 'undefined' && typeof AppContext.register === 'function') {
+    AppContext.register('BgmManager', BgmManager);
+}
+
 window.BgmManager = BgmManager;

@@ -417,5 +417,9 @@ class Elf {
     }
 }
 
+if (typeof AppContext !== 'undefined' && typeof AppContext.register === 'function') {
+    AppContext.register('Elf', Elf);
+}
+
 // 导出为全局对象
 window.Elf = Elf;

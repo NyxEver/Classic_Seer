@@ -195,5 +195,9 @@ const DataLoader = {
     }
 };
 
+if (typeof AppContext !== 'undefined' && typeof AppContext.register === 'function') {
+    AppContext.register('DataLoader', DataLoader);
+}
+
 // 导出为全局对象
 window.DataLoader = DataLoader;

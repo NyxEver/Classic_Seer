@@ -100,5 +100,9 @@ const SaveSystem = {
     }
 };
 
+if (typeof AppContext !== 'undefined' && typeof AppContext.register === 'function') {
+    AppContext.register('SaveSystem', SaveSystem);
+}
+
 // 导出为全局对象
 window.SaveSystem = SaveSystem;

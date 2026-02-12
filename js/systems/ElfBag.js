@@ -208,5 +208,9 @@ const ElfBag = {
     }
 };
 
+if (typeof AppContext !== 'undefined' && typeof AppContext.register === 'function') {
+    AppContext.register('ElfBag', ElfBag);
+}
+
 // 导出为全局对象
 window.ElfBag = ElfBag;

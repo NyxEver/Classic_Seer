@@ -2,6 +2,19 @@
  * SceneManager - Utility for safe scene transitions
  * Provides centralized scene management with validation
  */
+function getSceneManagerDependency(name) {
+    if (typeof AppContext !== 'undefined' && typeof AppContext.get === 'function') {
+        const dep = AppContext.get(name, null);
+        if (dep) {
+            return dep;
+        }
+    }
+    if (typeof window !== 'undefined') {
+        return window[name] || null;
+    }
+    return null;
+}
+
 const SceneManager = {
     /**
      * Safely change from one scene to another
@@ -11,11 +24,12 @@ const SceneManager = {
      * @returns {boolean} - True if scene change was successful
      */
     changeScene: function (currentScene, targetSceneKey, data = {}) {
-        if (typeof SceneRouter === 'undefined') {
+        const sceneRouter = getSceneManagerDependency('SceneRouter');
+        if (!sceneRouter) {
             console.error('[SceneManager] SceneRouter 未加载，无法切换场景');
             return false;
         }
-        return SceneRouter.start(currentScene, targetSceneKey, data, { bgmStrategy: 'auto' });
+        return sceneRouter.start(currentScene, targetSceneKey, data, { bgmStrategy: 'auto' });
     },
 
     /**
@@ -24,13 +38,14 @@ const SceneManager = {
      * @returns {string[]} - Array of scene keys
      */
     getAvailableScenes: function (scene) {
-        if (typeof SceneRouter === 'undefined') {
+        const sceneRouter = getSceneManagerDependency('SceneRouter');
+        if (!sceneRouter) {
             return [];
         }
         if (!scene || !scene.scene || !scene.scene.manager) {
             return [];
         }
-        return SceneRouter.getAvailableScenes(scene);
+        return sceneRouter.getAvailableScenes(scene);
     },
 
     /**
@@ -40,13 +55,14 @@ const SceneManager = {
      * @returns {boolean} - True if scene exists
      */
     sceneExists: function (scene, sceneKey) {
-        if (typeof SceneRouter === 'undefined') {
+        const sceneRouter = getSceneManagerDependency('SceneRouter');
+        if (!sceneRouter) {
             return false;
         }
         if (!scene || !scene.scene) {
             return false;
         }
-        return SceneRouter.sceneExists(scene, sceneKey);
+        return sceneRouter.sceneExists(scene, sceneKey);
     },
 
     /**
@@ -55,11 +71,12 @@ const SceneManager = {
      * @param {string} sceneKey - Key of the scene to pause
      */
     pauseScene: function (currentScene, sceneKey) {
-        if (typeof SceneRouter === 'undefined') {
+        const sceneRouter = getSceneManagerDependency('SceneRouter');
+        if (!sceneRouter) {
             console.warn('[SceneManager] SceneRouter 未加载，无法暂停场景');
             return;
         }
-        SceneRouter.pause(currentScene, sceneKey);
+        sceneRouter.pause(currentScene, sceneKey);
     },
 
     /**
@@ -68,13 +85,18 @@ const SceneManager = {
      * @param {string} sceneKey - Key of the scene to resume
      */
     resumeScene: function (currentScene, sceneKey) {
-        if (typeof SceneRouter === 'undefined') {
+        const sceneRouter = getSceneManagerDependency('SceneRouter');
+        if (!sceneRouter) {
             console.warn('[SceneManager] SceneRouter 未加载，无法恢复场景');
             return;
         }
-        SceneRouter.resume(currentScene, sceneKey);
+        sceneRouter.resume(currentScene, sceneKey);
     }
 };
+
+if (typeof AppContext !== 'undefined' && typeof AppContext.register === 'function') {
+    AppContext.register('SceneManager', SceneManager);
+}
 
 // Make SceneManager globally available
 window.SceneManager = SceneManager;

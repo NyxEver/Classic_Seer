@@ -279,4 +279,8 @@ const AssetMappings = {
     }
 };
 
+if (typeof AppContext !== 'undefined' && typeof AppContext.register === 'function') {
+    AppContext.register('AssetMappings', AssetMappings);
+}
+
 window.AssetMappings = AssetMappings;

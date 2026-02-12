@@ -15,6 +15,7 @@ class BattleScene extends Phaser.Scene {
         this.canEscape = data.canEscape !== false;
         this.canCatch = data.canCatch !== false && this.battleType === 'wild';
         this.returnScene = data.returnScene || 'BootScene';
+        this.returnData = data.returnData || {};
         this.battleBackgroundKey = data.battleBackgroundKey || null;
     }
 
@@ -2207,12 +2208,13 @@ class BattleScene extends Phaser.Scene {
             elf: result.playerElf,
             newSkillId: skillId,
             returnScene: this.returnScene,
-            returnData: {},
+            returnData: this.returnData,
             chainData: {
                 canEvolve: result.canEvolve,
                 evolveTo: result.evolveTo,
                 playerElf: result.playerElf,
-                returnScene: this.returnScene
+                returnScene: this.returnScene,
+                returnData: this.returnData
             }
         }, {
             bgmStrategy: 'inherit'
@@ -2233,7 +2235,7 @@ class BattleScene extends Phaser.Scene {
                 elf: elfBeforeEvolution,
                 newElfId: newElfId,
                 returnScene: this.returnScene,
-                returnData: {},
+                returnData: this.returnData,
                 callback: (evolvedElfId) => {
                     // 进化完成后的回调：执行evolve()更新数据
                     elfBeforeEvolution.evolve();
@@ -2262,7 +2264,7 @@ class BattleScene extends Phaser.Scene {
 
     returnToMap() {
         this.fadeOutBattleBgm(() => {
-            SceneRouter.start(this, this.returnScene, {}, {
+            SceneRouter.start(this, this.returnScene, this.returnData, {
                 bgmStrategy: 'inherit'
             });
         });

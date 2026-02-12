@@ -2,6 +2,19 @@
  * SceneRouter - 统一场景跳转入口
  * 封装 start/launch/pause/resume，并提供 BGM 过渡策略
  */
+function getSceneRouterDependency(name) {
+    if (typeof AppContext !== 'undefined' && typeof AppContext.get === 'function') {
+        const dep = AppContext.get(name, null);
+        if (dep) {
+            return dep;
+        }
+    }
+    if (typeof window !== 'undefined') {
+        return window[name] || null;
+    }
+    return null;
+}
+
 const SceneRouter = {
     /**
      * 切换场景（start）
@@ -150,12 +163,13 @@ const SceneRouter = {
             return;
         }
 
-        if (typeof BgmManager === 'undefined') {
+        const bgmManager = getSceneRouterDependency('BgmManager');
+        if (!bgmManager) {
             return;
         }
 
         if (strategy === 'stop') {
-            BgmManager.stopCurrent(300, null, currentScene);
+            bgmManager.stopCurrent(300, null, currentScene);
             return;
         }
 
@@ -163,22 +177,22 @@ const SceneRouter = {
             return;
         }
 
-        const hasMappingApi = typeof AssetMappings !== 'undefined' && typeof AssetMappings.getBgmKey === 'function';
-        if (!hasMappingApi) {
+        const assetMappings = getSceneRouterDependency('AssetMappings');
+        if (!assetMappings || typeof assetMappings.getBgmKey !== 'function') {
             return;
         }
 
         const currentSceneKey = currentScene.scene.key;
-        const currentBgmKey = AssetMappings.getBgmKey(currentSceneKey);
-        const targetBgmKey = AssetMappings.getBgmKey(targetSceneKey);
+        const currentBgmKey = assetMappings.getBgmKey(currentSceneKey);
+        const targetBgmKey = assetMappings.getBgmKey(targetSceneKey);
 
         if (targetBgmKey) {
-            BgmManager.transitionTo(targetSceneKey, currentScene);
+            bgmManager.transitionTo(targetSceneKey, currentScene);
             return;
         }
 
         if (currentBgmKey && !targetBgmKey) {
-            BgmManager.stopCurrent(300, null, currentScene);
+            bgmManager.stopCurrent(300, null, currentScene);
         }
     },
 
@@ -195,5 +209,9 @@ const SceneRouter = {
         return true;
     }
 };
+
+if (typeof AppContext !== 'undefined' && typeof AppContext.register === 'function') {
+    AppContext.register('SceneRouter', SceneRouter);
+}
 
 window.SceneRouter = SceneRouter;

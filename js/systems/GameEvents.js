@@ -83,4 +83,8 @@ const GameEvents = {
     }
 };
 
+if (typeof AppContext !== 'undefined' && typeof AppContext.register === 'function') {
+    AppContext.register('GameEvents', GameEvents);
+}
+
 window.GameEvents = GameEvents;

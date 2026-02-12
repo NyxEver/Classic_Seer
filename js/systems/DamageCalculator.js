@@ -160,5 +160,9 @@ const DamageCalculator = {
     }
 };
 
+if (typeof AppContext !== 'undefined' && typeof AppContext.register === 'function') {
+    AppContext.register('DamageCalculator', DamageCalculator);
+}
+
 // 导出为全局对象
 window.DamageCalculator = DamageCalculator;
