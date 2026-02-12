@@ -2276,66 +2276,32 @@ class BattleScene extends Phaser.Scene {
     }
 
     playBattleBgm() {
-        const bgmKey = AssetMappings.getBgmKey('BattleScene');
-        if (!bgmKey || !this.cache.audio.exists(bgmKey)) {
+        if (typeof BgmManager === 'undefined') {
+            console.warn('[BattleScene] BgmManager 未加载，跳过战斗 BGM');
             return;
         }
 
-        // 停止同 key 的遗留实例，防止意外叠音
-        this.sound.getAll(bgmKey).forEach((sound) => {
-            sound.stop();
-            sound.destroy();
-        });
-
-        this.battleBgm = this.sound.add(bgmKey, {
-            loop: true,
-            volume: 0
-        });
-        this.battleBgm.play();
-
-        this.tweens.add({
-            targets: this.battleBgm,
-            volume: 1,
-            duration: 600,
-            ease: 'Sine.easeInOut'
-        });
+        BgmManager.transitionTo('BattleScene', this);
+        this.battleBgm = BgmManager.currentSound;
     }
 
     fadeOutBattleBgm(onComplete = null) {
-        if (!this.battleBgm || !this.battleBgm.isPlaying) {
+        if (typeof BgmManager === 'undefined') {
             if (onComplete) onComplete();
             return;
         }
 
-        if (this.isBgmFadingOut) {
-            if (onComplete) this.time.delayedCall(220, onComplete);
-            return;
-        }
-
-        this.isBgmFadingOut = true;
-        this.tweens.add({
-            targets: this.battleBgm,
-            volume: 0,
-            duration: 450,
-            ease: 'Sine.easeInOut',
-            onComplete: () => {
-                if (this.battleBgm) {
-                    this.battleBgm.stop();
-                    this.battleBgm.destroy();
-                    this.battleBgm = null;
-                }
-                this.isBgmFadingOut = false;
-                if (onComplete) onComplete();
-            }
-        });
+        BgmManager.stopCurrent(450, () => {
+            this.battleBgm = null;
+            if (onComplete) onComplete();
+        }, this);
     }
 
     cleanupBattleBgm() {
-        if (this.battleBgm) {
-            this.battleBgm.stop();
-            this.battleBgm.destroy();
-            this.battleBgm = null;
+        if (typeof BgmManager !== 'undefined') {
+            BgmManager.stopCurrent(0, null, this);
         }
+        this.battleBgm = null;
         this.isBgmFadingOut = false;
     }
 }

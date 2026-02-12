@@ -14,7 +14,7 @@ const QuestsData = {
             objectives: [
                 {
                     type: "catch",      // 捕捉类型
-                    targetId: 2,        // 皮皮的精灵 ID
+                    targetId: 10,       // 皮皮的精灵 ID
                     count: 1            // 需要捕捉数量
                 }
             ],

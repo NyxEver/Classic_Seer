@@ -176,6 +176,9 @@ class BootScene extends Phaser.Scene {
 
         // 开始异步加载数据
         this.loadGameData();
+
+        // 在 create 阶段触发数据完整性校验（仅警告，不阻断）
+        this.runDataIntegrityCheck();
     }
 
     /**
@@ -201,6 +204,22 @@ class BootScene extends Phaser.Scene {
             this.loadingText.setText('加载失败');
             this.statusText.setText('请检查控制台错误信息');
             this.loadingText.setColor('#ff0000');
+        }
+    }
+
+    /**
+     * 执行数据完整性校验
+     */
+    runDataIntegrityCheck() {
+        if (typeof DataIntegrityChecker === 'undefined' || typeof DataIntegrityChecker.run !== 'function') {
+            console.warn('[BootScene] DataIntegrityChecker 未加载，跳过校验');
+            return;
+        }
+
+        try {
+            DataIntegrityChecker.run();
+        } catch (error) {
+            console.warn('[BootScene] 数据完整性校验异常（已忽略）:', error);
         }
     }
 
