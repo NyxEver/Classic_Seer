@@ -2293,4 +2293,115 @@ class BattleScene extends Phaser.Scene {
     }
 }
 
+const BATTLE_SCENE_FACADE_METHODS = {
+    BattleHud: [
+        'createTopBar',
+        'createStatusBar',
+        'updateStatusHp',
+        'createLeftInfoPanel',
+        'createCenterPopupDialog',
+        'showPopup',
+        'addLog',
+        'showLogs',
+        'startTurnTimer',
+        'stopTurnTimer',
+        'updateTimerDisplay',
+        'enableMenu',
+        'disableMenu'
+    ],
+    BattlePanels: [
+        'createBottomControlPanel',
+        'createMiddleSkillPanel',
+        'createSkillButton',
+        'createEmptySkillSlot',
+        'updateSkillPP',
+        'createRightActionButtons',
+        'refreshActionButtons',
+        'showSkillPanel',
+        'createActionButton',
+        'showCapsulePanel',
+        'closeCapsulePanel',
+        'doCatch',
+        'showItemPanel',
+        'createCategoryButton',
+        'updateCategoryHighlight',
+        'updateItemGrid',
+        'createItemSlot',
+        'useItem',
+        'closeItemPanel',
+        'showElfSwitchPanel',
+        'createElfSlot',
+        'selectSwitchElf',
+        'updateElfSwitchInfo',
+        'createSwitchSkillCard',
+        'closeElfSwitchPanel',
+        'doSwitch',
+        'updatePlayerSpriteAndStatus',
+        'rebuildSkillPanel',
+        'showForceSwitchPanel'
+    ],
+    BattleAnimator: [
+        'createBackground',
+        'createFilteredSceneBackground',
+        'createMainBattleArea',
+        'createCharacterSprite',
+        'applyBattleSideFlip',
+        'getAvailableBattleAtlases',
+        'pickBattleAtlas',
+        'getFrameOrderValue',
+        'getAtlasFrameNames',
+        'getFirstAtlasFrameName',
+        'getBattleFrameRate',
+        'getClipDurationMs',
+        'ensureBattleAnimation',
+        'playAtlasClip',
+        'playElfClip',
+        'waitMs',
+        'moveBattleSprite',
+        'playStrikeMotionWithStill',
+        'getPhysicalStrikeX',
+        'playSkillCastAnimation',
+        'playCatchAnimation',
+        'playCapsuleShake',
+        'playSuccessEffect',
+        'playFailEffect'
+    ],
+    BattlePostFlow: [
+        'handleBattleEnd',
+        'processPostBattle',
+        'processNextPendingSkill',
+        'processEvolution',
+        'returnToMap',
+        'playBattleBgm',
+        'fadeOutBattleBgm',
+        'cleanupBattleBgm'
+    ]
+};
+
+function applyBattleSceneFacadeDelegates() {
+    const proto = BattleScene.prototype;
+
+    Object.entries(BATTLE_SCENE_FACADE_METHODS).forEach(([facadeName, methodNames]) => {
+        methodNames.forEach((methodName) => {
+            const legacyName = `__legacy_${methodName}`;
+            if (typeof proto[legacyName] !== 'function' && typeof proto[methodName] === 'function') {
+                proto[legacyName] = proto[methodName];
+            }
+
+            proto[methodName] = function (...args) {
+                const facade = window[facadeName];
+                if (facade && typeof facade[methodName] === 'function') {
+                    return facade[methodName].apply(this, args);
+                }
+                if (typeof this[legacyName] === 'function') {
+                    return this[legacyName](...args);
+                }
+                return undefined;
+            };
+        });
+    });
+}
+
+applyBattleSceneFacadeDelegates();
+
 window.BattleScene = BattleScene;

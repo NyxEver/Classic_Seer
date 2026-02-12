@@ -1,0 +1,148 @@
+/**
+ * BattlePostFlow - BattleScene post-turn and lifecycle facade methods.
+ *
+ * These methods run with BattleScene as `this`.
+ */
+
+const BattlePostFlow = {
+    handleBattleEnd(result) {
+        this.battleEnded = true;
+        this.disableMenu();
+        this.fadeOutBattleBgm();
+
+        if (result.victory) {
+            let msg = `获得 ${result.expGained} 经验值！`;
+            if (result.levelUps && result.levelUps.length > 0) {
+                for (const lu of result.levelUps) {
+                    msg += `\n升到 ${lu.newLevel} 级！`;
+                    for (const sid of lu.newSkills) {
+                        const sk = DataLoader.getSkill(sid);
+                        if (sk) {
+                            msg += `\n学会 ${sk.name}！`;
+                        }
+                    }
+                }
+            }
+
+            if (result.pendingSkills && result.pendingSkills.length > 0) {
+                msg += `\n\n有 ${result.pendingSkills.length} 个新技能待学习...`;
+            }
+
+            if (result.canEvolve && result.evolveTo && result.playerElf) {
+                msg += `\n\n咦？${result.playerElf.getDisplayName()} 好像要进化了！`;
+            }
+
+            this.pendingResult = result;
+
+            this.time.delayedCall(500, () => {
+                this.showPopup('🎉 战斗胜利！', msg, () => {
+                    this.processPostBattle();
+                });
+            });
+        } else {
+            this.time.delayedCall(500, () => {
+                this.showPopup('战斗失败', `${this.playerElf.getDisplayName()} 倒下了...`);
+            });
+        }
+    },
+
+    processPostBattle() {
+        const result = this.pendingResult;
+
+        if (result.pendingSkills && result.pendingSkills.length > 0) {
+            this.processNextPendingSkill(result.pendingSkills, 0, () => {
+                this.processEvolution();
+            });
+        } else {
+            this.processEvolution();
+        }
+    },
+
+    processNextPendingSkill(pendingSkills, index, onComplete) {
+        if (index >= pendingSkills.length) {
+            onComplete();
+            return;
+        }
+
+        const skillId = pendingSkills[index];
+        const result = this.pendingResult;
+
+        this.scene.start('SkillLearnScene', {
+            elf: result.playerElf,
+            newSkillId: skillId,
+            returnScene: this.returnScene,
+            returnData: {},
+            chainData: {
+                canEvolve: result.canEvolve,
+                evolveTo: result.evolveTo,
+                playerElf: result.playerElf,
+                returnScene: this.returnScene
+            }
+        });
+    },
+
+    processEvolution() {
+        const result = this.pendingResult;
+
+        if (result.canEvolve && result.evolveTo && result.playerElf) {
+            const elfBeforeEvolution = result.playerElf;
+            const newElfId = result.evolveTo;
+
+            this.scene.start('EvolutionScene', {
+                elf: elfBeforeEvolution,
+                newElfId,
+                returnScene: this.returnScene,
+                returnData: {},
+                callback: () => {
+                    elfBeforeEvolution.evolve();
+                    PlayerData.saveToStorage();
+                    console.log(`[BattleScene] 进化完成: ${elfBeforeEvolution.name}`);
+                }
+            });
+        } else {
+            this.returnToMap();
+        }
+    },
+
+    returnToMap() {
+        this.fadeOutBattleBgm(() => {
+            this.scene.start(this.returnScene);
+        });
+    },
+
+    playBattleBgm() {
+        if (typeof BgmManager === 'undefined') {
+            console.warn('[BattleScene] BgmManager 未加载，跳过战斗 BGM');
+            return;
+        }
+
+        BgmManager.transitionTo('BattleScene', this);
+        this.battleBgm = BgmManager.currentSound;
+    },
+
+    fadeOutBattleBgm(onComplete = null) {
+        if (typeof BgmManager === 'undefined') {
+            if (onComplete) {
+                onComplete();
+            }
+            return;
+        }
+
+        BgmManager.stopCurrent(450, () => {
+            this.battleBgm = null;
+            if (onComplete) {
+                onComplete();
+            }
+        }, this);
+    },
+
+    cleanupBattleBgm() {
+        if (typeof BgmManager !== 'undefined') {
+            BgmManager.stopCurrent(0, null, this);
+        }
+        this.battleBgm = null;
+        this.isBgmFadingOut = false;
+    }
+};
+
+window.BattlePostFlow = BattlePostFlow;
