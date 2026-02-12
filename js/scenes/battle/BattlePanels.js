@@ -1124,4 +1124,8 @@ const BattlePanels = {
     }
 };
 
+if (typeof AppContext !== 'undefined' && typeof AppContext.register === 'function') {
+    AppContext.register('BattlePanels', BattlePanels);
+}
+
 window.BattlePanels = BattlePanels;

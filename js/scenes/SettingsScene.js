@@ -69,7 +69,7 @@ class SettingsScene extends Phaser.Scene {
 
         // 返回按钮
         const backBtn = this.createButton(0, panelH / 2 - 50, '返回游戏', () => {
-            SceneManager.changeScene(this, this.returnScene);
+            SceneRouter.start(this, this.returnScene);
         });
         container.add(backBtn);
     }
@@ -169,7 +169,7 @@ class SettingsScene extends Phaser.Scene {
                 '确定返回主菜单吗？',
                 '未保存的进度将会丢失',
                 () => {
-                    SceneManager.changeScene(this, 'MainMenuScene');
+                    SceneRouter.start(this, 'MainMenuScene');
                 }
             );
         });
@@ -182,7 +182,7 @@ class SettingsScene extends Phaser.Scene {
                 '此操作不可恢复！',
                 () => {
                     SaveSystem.deleteSave();
-                    SceneManager.changeScene(this, 'MainMenuScene');
+                    SceneRouter.start(this, 'MainMenuScene');
                 },
                 true // 危险操作
             );

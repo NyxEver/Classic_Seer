@@ -2128,129 +2128,6 @@ class BattleScene extends Phaser.Scene {
         });
     }
 
-    handleBattleEnd(result) {
-        this.battleEnded = true;
-        this.disableMenu();
-        this.fadeOutBattleBgm();
-
-        if (result.victory) {
-            let msg = `获得 ${result.expGained} 经验值！`;
-            if (result.levelUps && result.levelUps.length > 0) {
-                for (const lu of result.levelUps) {
-                    msg += `\n升到 ${lu.newLevel} 级！`;
-                    for (const sid of lu.newSkills) {
-                        const sk = DataLoader.getSkill(sid);
-                        if (sk) msg += `\n学会 ${sk.name}！`;
-                    }
-                }
-            }
-
-            // 提示待学习技能（技能槽已满）
-            if (result.pendingSkills && result.pendingSkills.length > 0) {
-                msg += `\n\n有 ${result.pendingSkills.length} 个新技能待学习...`;
-            }
-
-            // 检查是否可以进化
-            if (result.canEvolve && result.evolveTo && result.playerElf) {
-                msg += `\n\n咦？${result.playerElf.getDisplayName()} 好像要进化了！`;
-            }
-
-            // 存储结果用于后续处理
-            this.pendingResult = result;
-
-            this.time.delayedCall(500, () => {
-                this.showPopup('🎉 战斗胜利！', msg, () => {
-                    // 开始后续处理流程：技能学习 → 进化 → 返回
-                    this.processPostBattle();
-                });
-            });
-        } else {
-            this.time.delayedCall(500, () => {
-                this.showPopup('战斗失败', `${this.playerElf.getDisplayName()} 倒下了...`);
-            });
-        }
-    }
-
-    /**
-     * 处理战斗后续流程：技能学习 → 进化 → 返回地图
-     */
-    processPostBattle() {
-        const result = this.pendingResult;
-
-        // 第一步：处理待学习技能（逐个处理）
-        if (result.pendingSkills && result.pendingSkills.length > 0) {
-            this.processNextPendingSkill(result.pendingSkills, 0, () => {
-                // 所有技能处理完成，检查进化
-                this.processEvolution();
-            });
-        } else {
-            // 没有待学习技能，直接检查进化
-            this.processEvolution();
-        }
-    }
-
-    /**
-     * 处理下一个待学习技能
-     */
-    processNextPendingSkill(pendingSkills, index, onComplete) {
-        if (index >= pendingSkills.length) {
-            // 所有技能处理完成
-            onComplete();
-            return;
-        }
-
-        const skillId = pendingSkills[index];
-        const result = this.pendingResult;
-
-        // 使用 chainData 让 SkillLearnScene 自己处理后续流程
-        // 注意：不再传递 pendingSkills 数组，SkillLearnScene 会使用 elf.getPendingSkills() 获取最新列表
-        SceneRouter.start(this, 'SkillLearnScene', {
-            elf: result.playerElf,
-            newSkillId: skillId,
-            returnScene: this.returnScene,
-            returnData: this.returnData,
-            chainData: {
-                canEvolve: result.canEvolve,
-                evolveTo: result.evolveTo,
-                playerElf: result.playerElf,
-                returnScene: this.returnScene,
-                returnData: this.returnData
-            }
-        }, {
-            bgmStrategy: 'inherit'
-        });
-    }
-
-    /**
-     * 处理进化
-     */
-    processEvolution() {
-        const result = this.pendingResult;
-
-        if (result.canEvolve && result.evolveTo && result.playerElf) {
-            const elfBeforeEvolution = result.playerElf;
-            const newElfId = result.evolveTo;
-
-            SceneRouter.start(this, 'EvolutionScene', {
-                elf: elfBeforeEvolution,
-                newElfId: newElfId,
-                returnScene: this.returnScene,
-                returnData: this.returnData,
-                callback: (evolvedElfId) => {
-                    // 进化完成后的回调：执行evolve()更新数据
-                    elfBeforeEvolution.evolve();
-                    PlayerData.saveToStorage();
-                    console.log(`[BattleScene] 进化完成: ${elfBeforeEvolution.name}`);
-                }
-            }, {
-                bgmStrategy: 'inherit'
-            });
-        } else {
-            // 没有进化，直接返回地图
-            this.returnToMap();
-        }
-    }
-
     /**
      * 属性显示：优先图标，缺失时回退为无文字色块图标
      */
@@ -2262,43 +2139,6 @@ class BattleScene extends Phaser.Scene {
         });
     }
 
-    returnToMap() {
-        this.fadeOutBattleBgm(() => {
-            SceneRouter.start(this, this.returnScene, this.returnData, {
-                bgmStrategy: 'inherit'
-            });
-        });
-    }
-
-    playBattleBgm() {
-        if (typeof BgmManager === 'undefined') {
-            console.warn('[BattleScene] BgmManager 未加载，跳过战斗 BGM');
-            return;
-        }
-
-        BgmManager.transitionTo('BattleScene', this);
-        this.battleBgm = BgmManager.currentSound;
-    }
-
-    fadeOutBattleBgm(onComplete = null) {
-        if (typeof BgmManager === 'undefined') {
-            if (onComplete) onComplete();
-            return;
-        }
-
-        BgmManager.stopCurrent(450, () => {
-            this.battleBgm = null;
-            if (onComplete) onComplete();
-        }, this);
-    }
-
-    cleanupBattleBgm() {
-        if (typeof BgmManager !== 'undefined') {
-            BgmManager.stopCurrent(0, null, this);
-        }
-        this.battleBgm = null;
-        this.isBgmFadingOut = false;
-    }
 }
 
 const BATTLE_SCENE_FACADE_METHODS = {
@@ -2391,20 +2231,14 @@ function applyBattleSceneFacadeDelegates() {
 
     Object.entries(BATTLE_SCENE_FACADE_METHODS).forEach(([facadeName, methodNames]) => {
         methodNames.forEach((methodName) => {
-            const legacyName = `__legacy_${methodName}`;
-            if (typeof proto[legacyName] !== 'function' && typeof proto[methodName] === 'function') {
-                proto[legacyName] = proto[methodName];
-            }
-
             proto[methodName] = function (...args) {
-                const facade = window[facadeName];
-                if (facade && typeof facade[methodName] === 'function') {
-                    return facade[methodName].apply(this, args);
+                const facade = (typeof AppContext !== 'undefined' && typeof AppContext.get === 'function')
+                    ? AppContext.get(facadeName, null)
+                    : null;
+                if (!facade || typeof facade[methodName] !== 'function') {
+                    throw new Error(`[BattleScene] Facade method missing: ${facadeName}.${methodName}`);
                 }
-                if (typeof this[legacyName] === 'function') {
-                    return this[legacyName](...args);
-                }
-                return undefined;
+                return facade[methodName].apply(this, args);
             };
         });
     });

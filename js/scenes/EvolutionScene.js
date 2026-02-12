@@ -247,10 +247,10 @@ class EvolutionScene extends Phaser.Scene {
      */
     returnToPrevious() {
         if (this.returnScene) {
-            SceneManager.changeScene(this, this.returnScene, this.returnData);
+            SceneRouter.start(this, this.returnScene, this.returnData);
         } else {
             // 默认返回飞船场景
-            SceneManager.changeScene(this, 'SpaceshipScene');
+            SceneRouter.start(this, 'SpaceshipScene');
         }
     }
 }

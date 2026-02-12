@@ -552,7 +552,7 @@ class ElfBagScene extends Phaser.Scene {
      */
     returnToPrevious() {
         console.log(`[ElfBagScene] 返回场景: ${this.returnScene}`);
-        SceneManager.changeScene(this, this.returnScene);
+        SceneRouter.start(this, this.returnScene);
     }
 
     /**

@@ -78,13 +78,13 @@ class KloseHotspotService {
 
         if (this.scene.currentSubScene === 1) {
             buttonLabel = '← 返回传送舱';
-            buttonAction = () => SceneManager.changeScene(this.scene, 'TeleportScene');
+            buttonAction = () => SceneRouter.start(this.scene, 'TeleportScene');
         } else if (backHotspot) {
             buttonLabel = '← 返回上一区域';
             buttonAction = () => this.goToSubScene(backHotspot.targetScene);
         } else {
             buttonLabel = '← 返回传送舱';
-            buttonAction = () => SceneManager.changeScene(this.scene, 'TeleportScene');
+            buttonAction = () => SceneRouter.start(this.scene, 'TeleportScene');
         }
 
         const bg = this.scene.add.graphics();

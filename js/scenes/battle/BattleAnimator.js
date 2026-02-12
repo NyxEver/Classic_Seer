@@ -586,4 +586,8 @@ const BattleAnimator = {
     }
 };
 
+if (typeof AppContext !== 'undefined' && typeof AppContext.register === 'function') {
+    AppContext.register('BattleAnimator', BattleAnimator);
+}
+
 window.BattleAnimator = BattleAnimator;

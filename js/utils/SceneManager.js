@@ -1,96 +1,58 @@
 /**
- * SceneManager - Utility for safe scene transitions
- * Provides centralized scene management with validation
+ * SceneManager - Legacy compatibility shim.
+ *
+ * 内部调用已迁移到 SceneRouter；该对象仅为兼容历史调用保留。
  */
-function getSceneManagerDependency(name) {
-    if (typeof AppContext !== 'undefined' && typeof AppContext.get === 'function') {
-        const dep = AppContext.get(name, null);
-        if (dep) {
-            return dep;
-        }
-    }
-    if (typeof window !== 'undefined') {
-        return window[name] || null;
-    }
-    return null;
-}
-
 const SceneManager = {
-    /**
-     * Safely change from one scene to another
-     * @param {Phaser.Scene} currentScene - The currently active scene
-     * @param {string} targetSceneKey - Key of the target scene to switch to
-     * @param {object} data - Optional data to pass to the new scene
-     * @returns {boolean} - True if scene change was successful
-     */
-    changeScene: function (currentScene, targetSceneKey, data = {}) {
-        const sceneRouter = getSceneManagerDependency('SceneRouter');
-        if (!sceneRouter) {
+    get _sceneRouter() {
+        if (typeof AppContext !== 'undefined' && typeof AppContext.get === 'function') {
+            return AppContext.get('SceneRouter', null);
+        }
+        return typeof window !== 'undefined' ? (window.SceneRouter || null) : null;
+    },
+
+    changeScene(currentScene, targetSceneKey, data = {}) {
+        if (!this._sceneRouter) {
             console.error('[SceneManager] SceneRouter 未加载，无法切换场景');
             return false;
         }
-        return sceneRouter.start(currentScene, targetSceneKey, data, { bgmStrategy: 'auto' });
+        return this._sceneRouter.start(currentScene, targetSceneKey, data, { bgmStrategy: 'auto' });
     },
 
-    /**
-     * Get a list of all available scene keys
-     * @param {Phaser.Scene} scene - Any active scene
-     * @returns {string[]} - Array of scene keys
-     */
-    getAvailableScenes: function (scene) {
-        const sceneRouter = getSceneManagerDependency('SceneRouter');
-        if (!sceneRouter) {
+    getAvailableScenes(scene) {
+        if (!this._sceneRouter) {
             return [];
         }
         if (!scene || !scene.scene || !scene.scene.manager) {
             return [];
         }
-        return sceneRouter.getAvailableScenes(scene);
+        return this._sceneRouter.getAvailableScenes(scene);
     },
 
-    /**
-     * Check if a scene exists
-     * @param {Phaser.Scene} scene - Any active scene
-     * @param {string} sceneKey - Key of the scene to check
-     * @returns {boolean} - True if scene exists
-     */
-    sceneExists: function (scene, sceneKey) {
-        const sceneRouter = getSceneManagerDependency('SceneRouter');
-        if (!sceneRouter) {
+    sceneExists(scene, sceneKey) {
+        if (!this._sceneRouter) {
             return false;
         }
         if (!scene || !scene.scene) {
             return false;
         }
-        return sceneRouter.sceneExists(scene, sceneKey);
+        return this._sceneRouter.sceneExists(scene, sceneKey);
     },
 
-    /**
-     * Pause a scene
-     * @param {Phaser.Scene} currentScene - The currently active scene
-     * @param {string} sceneKey - Key of the scene to pause
-     */
-    pauseScene: function (currentScene, sceneKey) {
-        const sceneRouter = getSceneManagerDependency('SceneRouter');
-        if (!sceneRouter) {
+    pauseScene(currentScene, sceneKey) {
+        if (!this._sceneRouter) {
             console.warn('[SceneManager] SceneRouter 未加载，无法暂停场景');
             return;
         }
-        sceneRouter.pause(currentScene, sceneKey);
+        this._sceneRouter.pause(currentScene, sceneKey);
     },
 
-    /**
-     * Resume a paused scene
-     * @param {Phaser.Scene} currentScene - The currently active scene
-     * @param {string} sceneKey - Key of the scene to resume
-     */
-    resumeScene: function (currentScene, sceneKey) {
-        const sceneRouter = getSceneManagerDependency('SceneRouter');
-        if (!sceneRouter) {
+    resumeScene(currentScene, sceneKey) {
+        if (!this._sceneRouter) {
             console.warn('[SceneManager] SceneRouter 未加载，无法恢复场景');
             return;
         }
-        sceneRouter.resume(currentScene, sceneKey);
+        this._sceneRouter.resume(currentScene, sceneKey);
     }
 };
 

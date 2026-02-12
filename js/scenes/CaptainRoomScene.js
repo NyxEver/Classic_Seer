@@ -652,7 +652,7 @@ class CaptainRoomScene extends Phaser.Scene {
         });
 
         btn.on('pointerup', () => {
-            SceneManager.changeScene(this, 'SpaceshipScene');
+            SceneRouter.start(this, 'SpaceshipScene');
         });
     }
 }

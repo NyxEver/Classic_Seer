@@ -181,7 +181,7 @@ class TeleportScene extends Phaser.Scene {
 
             container.on('pointerup', () => {
                 console.log(`前往 ${planet.name}`);
-                SceneManager.changeScene(this, planet.scene);
+                SceneRouter.start(this, planet.scene);
             });
         } else {
             // 锁定星球
@@ -249,7 +249,7 @@ class TeleportScene extends Phaser.Scene {
         });
 
         btn.on('pointerup', () => {
-            SceneManager.changeScene(this, 'SpaceshipScene');
+            SceneRouter.start(this, 'SpaceshipScene');
         });
     }
 }

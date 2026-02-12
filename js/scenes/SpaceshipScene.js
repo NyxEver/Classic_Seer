@@ -198,7 +198,7 @@ class SpaceshipScene extends Phaser.Scene {
 
             container.on('pointerup', () => {
                 container.setScale(1.05);
-                SceneManager.changeScene(this, room.scene);
+                SceneRouter.start(this, room.scene);
             });
         } else {
             container.on('pointerup', () => {
@@ -315,7 +315,7 @@ class SpaceshipScene extends Phaser.Scene {
                 this.scene.bringToTop('ElfManageScene');
                 return;
             }
-            SceneManager.changeScene(this, btn.scene, { returnScene: 'SpaceshipScene' });
+            SceneRouter.start(this, btn.scene, { returnScene: 'SpaceshipScene' });
         });
 
         return container;

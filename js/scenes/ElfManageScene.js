@@ -599,7 +599,7 @@ class ElfManageScene extends Phaser.Scene {
             this.scene.stop();
             return;
         }
-        SceneManager.changeScene(this, this.returnScene);
+        SceneRouter.start(this, this.returnScene);
     }
 }
 

@@ -219,12 +219,12 @@ class BootScene extends Phaser.Scene {
             // 短暂延迟后进入主菜单
             this.time.delayedCall(500, () => {
                 console.log('BootScene: 数据加载完成，进入主菜单');
-                const sceneManager = getBootDependency('SceneManager');
-                if (!sceneManager || typeof sceneManager.changeScene !== 'function') {
-                    console.error('SceneManager 未加载，无法跳转主菜单');
+                const sceneRouter = getBootDependency('SceneRouter');
+                if (!sceneRouter || typeof sceneRouter.start !== 'function') {
+                    console.error('SceneRouter 未加载，无法跳转主菜单');
                     return;
                 }
-                sceneManager.changeScene(this, 'MainMenuScene');
+                sceneRouter.start(this, 'MainMenuScene');
             });
 
         } catch (error) {

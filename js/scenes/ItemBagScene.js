@@ -202,7 +202,7 @@ class ItemBagScene extends Phaser.Scene {
         });
 
         hit.on('pointerdown', () => {
-            SceneManager.changeScene(this, this.returnScene);
+            SceneRouter.start(this, this.returnScene);
         });
     }
 }

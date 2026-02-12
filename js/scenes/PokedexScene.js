@@ -56,7 +56,7 @@ class PokedexScene extends Phaser.Scene {
 
         // 返回按钮
         const backBtn = this.createButton(80, 30, '← 返回', () => {
-            SceneManager.changeScene(this, 'SpaceshipScene');
+            SceneRouter.start(this, 'SpaceshipScene');
         });
     }
 

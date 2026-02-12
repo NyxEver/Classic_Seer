@@ -295,4 +295,8 @@ const BattleHud = {
     }
 };
 
+if (typeof AppContext !== 'undefined' && typeof AppContext.register === 'function') {
+    AppContext.register('BattleHud', BattleHud);
+}
+
 window.BattleHud = BattleHud;

@@ -377,10 +377,10 @@ class SkillLearnScene extends Phaser.Scene {
             }
 
             // 没有更多任务，返回地图
-            SceneManager.changeScene(this, returnScene || this.returnScene, this.returnData);
+            SceneRouter.start(this, returnScene || this.returnScene, this.returnData);
         } else {
             // 没有链式数据，直接返回
-            SceneManager.changeScene(this, this.returnScene, this.returnData);
+            SceneRouter.start(this, this.returnScene, this.returnData);
         }
     }
 

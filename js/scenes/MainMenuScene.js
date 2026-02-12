@@ -473,7 +473,7 @@ class MainMenuScene extends Phaser.Scene {
         if (this.dialogContainer) this.dialogContainer.destroy();
 
         // 切换到飞船场景
-        SceneManager.changeScene(this, 'SpaceshipScene');
+        SceneRouter.start(this, 'SpaceshipScene');
     }
 
     getTypeDisplayName(type) {
@@ -580,7 +580,7 @@ class MainMenuScene extends Phaser.Scene {
             };
 
             const sceneKey = sceneMap[targetScene] || 'SpaceshipScene';
-            SceneManager.changeScene(this, sceneKey);
+            SceneRouter.start(this, sceneKey);
         } else {
             console.error('Failed to load save data');
         }
