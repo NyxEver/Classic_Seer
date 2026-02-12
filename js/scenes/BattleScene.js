@@ -117,10 +117,14 @@ class BattleScene extends Phaser.Scene {
             return;
         }
 
-        if (result.catchAttempt) {
-            await this.playCatchAnimation(result.catchResult);
+        const events = Array.isArray(result.events) ? result.events : [];
+        const catchEvent = events.find((event) => event.type === 'catch_result');
+        const catchResult = catchEvent ? (catchEvent.result || null) : (result.catchResult || null);
 
-            if (result.catchResult.success) {
+        if (catchResult) {
+            await this.playCatchAnimation(catchResult);
+
+            if (catchResult.success) {
                 this.showPopup('🎉 捕捉成功！', `成功捕捉了 ${this.enemyElf.getDisplayName()}！`);
                 return;
             }
@@ -128,9 +132,8 @@ class BattleScene extends Phaser.Scene {
             this.addLog(`${this.enemyElf.getDisplayName()} 挣脱了胶囊！`);
         }
 
-        const events = Array.isArray(result.events) ? result.events : [];
         for (const event of events) {
-            if (event.type === 'skillCast') {
+            if (event.type === 'skill_cast' || event.type === 'skillCast') {
                 await this.playSkillCastAnimation(event);
                 this.updateStatusHp('player');
                 this.updateStatusHp('enemy');
@@ -144,21 +147,23 @@ class BattleScene extends Phaser.Scene {
 
         await new Promise((resolve) => this.showLogs(resolve));
 
-        if (result.escaped) {
+        const outcome = result.outcome || {};
+
+        if (outcome.escaped || result.escaped) {
             this.showPopup('逃跑成功！', '成功逃离了战斗！');
             return;
         }
 
-        if (result.battleEnded) {
+        if (outcome.battleEnded || result.battleEnded) {
             const battleEndResult = this.deferredBattleEndResult || {
-                victory: result.winner === 'player'
+                victory: (outcome.winner || result.winner) === 'player'
             };
             this.deferredBattleEndResult = null;
             this.handleBattleEnd(battleEndResult);
             return;
         }
 
-        if (result.needSwitch) {
+        if (outcome.needSwitch || result.needSwitch) {
             this.playerElf._instanceData.currentHp = 0;
             PlayerData.saveToStorage();
 

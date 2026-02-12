@@ -105,12 +105,19 @@ const BattleEffects = {
 
                 context.log(`${targetElf.getDisplayName()} 的${statName}${changeText}${amount}！`);
 
-                context.result.events.push({
-                    type: 'statChange',
+                const statEvent = {
                     target: effect.target,
                     stat: stat,
                     stages: stages
-                });
+                };
+                if (typeof context.appendEvent === 'function') {
+                    context.appendEvent('stat_change', statEvent);
+                } else {
+                    context.result.events.push({
+                        type: 'stat_change',
+                        ...statEvent
+                    });
+                }
             } else {
                 const text = stages > 0 ? '已经不能再提高了' : '已经不能再降低了';
                 context.log(`${targetElf.getDisplayName()} 的${stat}${text}！`);

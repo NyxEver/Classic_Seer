@@ -34,6 +34,22 @@ class BattleManager {
         CATCH: 'catch_attempt'
     };
 
+    static EVENT = {
+        TURN_START: 'turn_start',
+        ACTION_SUBMITTED: 'action_submitted',
+        SKILL_CAST: 'skill_cast',
+        HIT: 'hit',
+        MISS: 'miss',
+        HP_CHANGE: 'hp_change',
+        PP_CHANGE: 'pp_change',
+        ITEM_USED: 'item_used',
+        CATCH_RESULT: 'catch_result',
+        ESCAPE_RESULT: 'escape_result',
+        SWITCH_DONE: 'switch_done',
+        BATTLE_END: 'battle_end',
+        STAT_CHANGE: 'stat_change'
+    };
+
     /**
      * 构造函数
      * @param {Object} config - 战斗配置
@@ -135,6 +151,128 @@ class BattleManager {
             default:
                 return action;
         }
+    }
+
+    cloneAction(action) {
+        if (!action || typeof action !== 'object') {
+            return null;
+        }
+        return { ...action };
+    }
+
+    createTurnResult() {
+        return {
+            protocolVersion: 2,
+            turn: this.turnCount,
+            playerAction: this.cloneAction(this.playerAction),
+            enemyAction: null,
+            events: [],
+            outcome: {
+                status: 'continue',
+                battleEnded: false,
+                winner: null,
+                needSwitch: false,
+                escaped: false,
+                captured: false,
+                actionRejected: false,
+                reason: null
+            }
+        };
+    }
+
+    appendTurnEvent(result, type, payload = {}) {
+        const event = {
+            type,
+            turn: this.turnCount,
+            index: result.events.length,
+            ...payload
+        };
+        result.events.push(event);
+        return event;
+    }
+
+    getLastEvent(result, type) {
+        if (!result || !Array.isArray(result.events)) {
+            return null;
+        }
+        for (let i = result.events.length - 1; i >= 0; i--) {
+            if (result.events[i].type === type) {
+                return result.events[i];
+            }
+        }
+        return null;
+    }
+
+    finalizeTurnResult(result) {
+        const outcome = result.outcome || {};
+
+        result.battleEnded = outcome.battleEnded === true;
+        result.winner = outcome.winner || null;
+        result.needSwitch = outcome.needSwitch === true;
+        result.escaped = outcome.escaped === true;
+        result.captured = outcome.captured === true;
+        result.actionRejected = outcome.actionRejected === true;
+
+        const catchEvent = this.getLastEvent(result, BattleManager.EVENT.CATCH_RESULT);
+        result.catchAttempt = !!catchEvent;
+        result.catchResult = catchEvent ? (catchEvent.result || null) : null;
+
+        const switchEvent = this.getLastEvent(result, BattleManager.EVENT.SWITCH_DONE);
+        result.switched = !!switchEvent;
+
+        return result;
+    }
+
+    markActionRejected(result, reason) {
+        result.outcome.status = 'rejected';
+        result.outcome.actionRejected = true;
+        result.outcome.reason = reason || 'action_rejected';
+    }
+
+    markNeedSwitch(result, reason = 'need_switch') {
+        result.outcome.status = 'need_switch';
+        result.outcome.needSwitch = true;
+        result.outcome.reason = reason;
+    }
+
+    markBattleEnd(result, payload = {}) {
+        result.outcome.status = 'battle_end';
+        result.outcome.battleEnded = true;
+        if (payload.winner) {
+            result.outcome.winner = payload.winner;
+        }
+        if (payload.reason) {
+            result.outcome.reason = payload.reason;
+        }
+        if (payload.escaped) {
+            result.outcome.escaped = true;
+        }
+        if (payload.captured) {
+            result.outcome.captured = true;
+        }
+    }
+
+    appendActionSubmittedEvent(result, actor, action) {
+        this.appendTurnEvent(result, BattleManager.EVENT.ACTION_SUBMITTED, {
+            actor,
+            actionType: action ? action.type : null,
+            action: this.cloneAction(action)
+        });
+    }
+
+    prepareEnemyAction(result) {
+        this.generateEnemyAction();
+        result.enemyAction = this.cloneAction(this.enemyAction);
+        this.appendActionSubmittedEvent(result, 'enemy', this.enemyAction);
+    }
+
+    appendBattleEndEvent(result, reason) {
+        this.appendTurnEvent(result, BattleManager.EVENT.BATTLE_END, {
+            winner: result.outcome.winner,
+            escaped: result.outcome.escaped,
+            captured: result.outcome.captured,
+            reason: reason || result.outcome.reason || null
+        });
     }
 
     /**
@@ -267,12 +405,19 @@ class BattleManager {
             playerData.saveToStorage();
 
             this.log(`使用了 ${itemData.name}，恢复了 ${healed} HP！`);
-            result.events.push({
-                type: 'item_used',
+            this.appendTurnEvent(result, BattleManager.EVENT.ITEM_USED, {
                 actor: 'player',
                 itemId,
                 itemType: itemData.type,
                 hpRecovered: healed
+            });
+            this.appendTurnEvent(result, BattleManager.EVENT.HP_CHANGE, {
+                target: 'player',
+                oldHp,
+                newHp: this.playerElf.currentHp,
+                delta: this.playerElf.currentHp - oldHp,
+                reason: 'item_use',
+                itemId
             });
             return { applied: true, consumesTurn: true };
         }
@@ -281,11 +426,19 @@ class BattleManager {
             const restoreAmount = itemData.effect ? (itemData.effect.ppRestore || 5) : 5;
             const skills = this.playerElf.getSkillDetails();
             let restored = false;
+            const restoredSkills = [];
 
             skills.forEach((skill) => {
                 const currentPp = this.playerElf.skillPP[skill.id] || 0;
                 if (currentPp < skill.pp) {
-                    this.playerElf.skillPP[skill.id] = Math.min(skill.pp, currentPp + restoreAmount);
+                    const nextPp = Math.min(skill.pp, currentPp + restoreAmount);
+                    this.playerElf.skillPP[skill.id] = nextPp;
+                    restoredSkills.push({
+                        skillId: skill.id,
+                        oldPP: currentPp,
+                        newPP: nextPp,
+                        delta: nextPp - currentPp
+                    });
                     restored = true;
                 }
             });
@@ -300,12 +453,23 @@ class BattleManager {
             playerData.saveToStorage();
 
             this.log(`使用了 ${itemData.name}，恢复了技能 PP！`);
-            result.events.push({
-                type: 'item_used',
+            this.appendTurnEvent(result, BattleManager.EVENT.ITEM_USED, {
                 actor: 'player',
                 itemId,
                 itemType: itemData.type,
-                ppRestored: restoreAmount
+                ppRestored: restoreAmount,
+                restoredSkills
+            });
+            restoredSkills.forEach((entry) => {
+                this.appendTurnEvent(result, BattleManager.EVENT.PP_CHANGE, {
+                    target: 'player',
+                    skillId: entry.skillId,
+                    oldPP: entry.oldPP,
+                    newPP: entry.newPP,
+                    delta: entry.delta,
+                    reason: 'item_use',
+                    itemId
+                });
             });
             return { applied: true, consumesTurn: true };
         }
@@ -322,169 +486,172 @@ class BattleManager {
         this.turnCount++;
         this.setPhase(BattleManager.PHASE.EXECUTE_TURN);
 
-        const result = {
-            playerAction: this.playerAction,
-            enemyAction: this.enemyAction,
-            events: [],
-            battleEnded: false,
-            winner: null
-        };
+        const result = this.createTurnResult();
+        this.appendTurnEvent(result, BattleManager.EVENT.TURN_START, {
+            phase: this.turnPhase,
+            playerHp: this.playerElf.currentHp,
+            enemyHp: this.enemyElf.currentHp
+        });
 
-        if (!this.playerAction || !this.playerAction.type) {
-            this.log('本回合未提交有效行动。');
-            this.setPhase(BattleManager.PHASE.PLAYER_CHOOSE);
-            return result;
-        }
+        try {
+            if (!this.playerAction || !this.playerAction.type) {
+                this.log('本回合未提交有效行动。');
+                this.markActionRejected(result, 'invalid_player_action');
+                this.setPhase(BattleManager.PHASE.PLAYER_CHOOSE);
+                return this.finalizeTurnResult(result);
+            }
 
-        // 处理捕捉
-        if (this.playerAction.type === BattleManager.ACTION.CATCH) {
-            if (!this.canCatch) {
-                this.log('无法在此战斗中捕捉！');
-                result.actionRejected = true;
-            } else {
-                const itemBag = getBattleManagerDependency('ItemBag');
-                const catchSystem = getBattleManagerDependency('CatchSystem');
-                const playerData = getBattleManagerDependency('PlayerData');
-                const dataLoader = getBattleManagerDependency('DataLoader');
-                const capsuleItemId = this.getActionItemId(this.playerAction);
+            this.appendActionSubmittedEvent(result, 'player', this.playerAction);
 
-                if (!itemBag || !catchSystem || !playerData || !dataLoader) {
-                    this.log('捕捉系统未就绪，无法使用胶囊。');
-                    result.actionRejected = true;
-                } else if (!capsuleItemId) {
-                    this.log('未选择有效的捕捉胶囊。');
-                    result.actionRejected = true;
+            if (this.playerAction.type === BattleManager.ACTION.CATCH) {
+                if (!this.canCatch) {
+                    this.log('无法在此战斗中捕捉！');
+                    this.markActionRejected(result, 'catch_not_allowed');
                 } else {
-                    const capsule = dataLoader.getItem(capsuleItemId);
-                    if (!capsule || capsule.type !== 'capsule') {
-                        this.log('该道具不是可用的捕捉胶囊。');
-                        result.actionRejected = true;
-                    } else if (!itemBag.has(capsuleItemId, 1)) {
-                        this.log(`${capsule.name} 数量不足！`);
-                        result.actionRejected = true;
+                    const itemBag = getBattleManagerDependency('ItemBag');
+                    const catchSystem = getBattleManagerDependency('CatchSystem');
+                    const playerData = getBattleManagerDependency('PlayerData');
+                    const dataLoader = getBattleManagerDependency('DataLoader');
+                    const capsuleItemId = this.getActionItemId(this.playerAction);
+
+                    if (!itemBag || !catchSystem || !playerData || !dataLoader) {
+                        this.log('捕捉系统未就绪，无法使用胶囊。');
+                        this.markActionRejected(result, 'catch_system_unavailable');
+                    } else if (!capsuleItemId) {
+                        this.log('未选择有效的捕捉胶囊。');
+                        this.markActionRejected(result, 'invalid_capsule');
                     } else {
-                        // 消耗胶囊
-                        itemBag.remove(capsuleItemId, 1);
-                        this.log(`使用了 ${capsule.name}！`);
+                        const capsule = dataLoader.getItem(capsuleItemId);
+                        if (!capsule || capsule.type !== 'capsule') {
+                            this.log('该道具不是可用的捕捉胶囊。');
+                            this.markActionRejected(result, 'invalid_capsule_type');
+                        } else if (!itemBag.has(capsuleItemId, 1)) {
+                            this.log(`${capsule.name} 数量不足！`);
+                            this.markActionRejected(result, 'capsule_insufficient');
+                        } else {
+                            itemBag.remove(capsuleItemId, 1);
+                            this.log(`使用了 ${capsule.name}！`);
+                            this.appendTurnEvent(result, BattleManager.EVENT.ITEM_USED, {
+                                actor: 'player',
+                                itemId: capsuleItemId,
+                                itemType: 'capsule'
+                            });
 
-                        // 尝试捕捉
-                        const catchResult = catchSystem.attemptCatch(this.enemyElf, capsule);
-                        result.catchAttempt = true;
-                        result.catchResult = catchResult;
+                            const catchResult = catchSystem.attemptCatch(this.enemyElf, capsule);
+                            this.appendTurnEvent(result, BattleManager.EVENT.CATCH_RESULT, {
+                                actor: 'player',
+                                itemId: capsuleItemId,
+                                success: !!catchResult.success,
+                                result: catchResult
+                            });
 
-                        if (catchResult.success) {
-                            // 捕捉成功
-                            catchSystem.addCapturedElf(this.enemyElf);
-                            this.log(`成功捕捉了 ${this.enemyElf.getDisplayName()}！`);
-                            result.battleEnded = true;
-                            result.captured = true;
-                            this.setPhase(BattleManager.PHASE.BATTLE_END);
-
-                            // 保存游戏
-                            playerData.saveToStorage();
-
-                            return result;
+                            if (catchResult.success) {
+                                catchSystem.addCapturedElf(this.enemyElf);
+                                this.log(`成功捕捉了 ${this.enemyElf.getDisplayName()}！`);
+                                this.markBattleEnd(result, {
+                                    winner: 'player',
+                                    reason: 'catch_success',
+                                    captured: true
+                                });
+                                this.appendBattleEndEvent(result, 'catch_success');
+                                this.setPhase(BattleManager.PHASE.BATTLE_END);
+                                playerData.saveToStorage();
+                            } else {
+                                this.prepareEnemyAction(result);
+                                await this.executeAction('enemy', result);
+                            }
                         }
-
-                        // 捕捉失败，敌方行动
-                        this.generateEnemyAction();
-                        await this.executeAction('enemy', result);
                     }
                 }
-            }
-        }
-        // 处理精灵切换
-        else if (this.playerAction.type === BattleManager.ACTION.SWITCH) {
-            // 切换精灵时，敌方可以攻击
-            this.generateEnemyAction();
-            await this.executeAction('enemy', result);
-            result.switched = true;
-        }
-        // 处理使用道具
-        else if (this.playerAction.type === BattleManager.ACTION.ITEM) {
-            const itemId = this.getActionItemId(this.playerAction);
-            const itemOutcome = this.applyPlayerItem(itemId, result);
-
-            if (itemOutcome.applied && itemOutcome.consumesTurn) {
-                // 使用道具消耗回合，敌方可以攻击
-                this.generateEnemyAction();
+            } else if (this.playerAction.type === BattleManager.ACTION.SWITCH) {
+                this.appendTurnEvent(result, BattleManager.EVENT.SWITCH_DONE, {
+                    actor: 'player',
+                    elfIndex: this.playerAction.elfIndex
+                });
+                this.prepareEnemyAction(result);
                 await this.executeAction('enemy', result);
+            } else if (this.playerAction.type === BattleManager.ACTION.ITEM) {
+                const itemId = this.getActionItemId(this.playerAction);
+                const itemOutcome = this.applyPlayerItem(itemId, result);
+
+                if (itemOutcome.applied && itemOutcome.consumesTurn) {
+                    this.prepareEnemyAction(result);
+                    await this.executeAction('enemy', result);
+                } else {
+                    this.markActionRejected(result, 'item_use_rejected');
+                }
+            } else if (this.playerAction.type === BattleManager.ACTION.ESCAPE) {
+                const escaped = this.attemptEscape();
+                this.appendTurnEvent(result, BattleManager.EVENT.ESCAPE_RESULT, {
+                    actor: 'player',
+                    success: escaped
+                });
+
+                if (escaped) {
+                    this.log('成功逃跑了！');
+                    this.markBattleEnd(result, {
+                        reason: 'escape_success',
+                        escaped: true
+                    });
+                    this.appendBattleEndEvent(result, 'escape_success');
+                    this.setPhase(BattleManager.PHASE.BATTLE_END);
+                } else {
+                    this.log('逃跑失败！');
+                    this.prepareEnemyAction(result);
+                    await this.executeAction('enemy', result);
+                }
+            } else if (this.playerAction.type === BattleManager.ACTION.SKILL) {
+                this.prepareEnemyAction(result);
+
+                const order = this.determineOrder();
+                console.log('[BattleManager] 行动顺序:', order);
+
+                for (const actor of order) {
+                    const targetFainted = await this.executeAction(actor, result);
+                    if (targetFainted) {
+                        break;
+                    }
+                }
             } else {
-                result.actionRejected = true;
+                this.log('未知行动类型，回合取消。');
+                this.markActionRejected(result, 'unknown_action_type');
             }
-        }
-        // 处理逃跑
-        else if (this.playerAction.type === BattleManager.ACTION.ESCAPE) {
-            const escaped = this.attemptEscape();
-            result.events.push({
-                type: 'escape',
-                success: escaped
-            });
 
-            if (escaped) {
-                this.log('成功逃跑了！');
-                result.battleEnded = true;
-                result.escaped = true;
-                this.setPhase(BattleManager.PHASE.BATTLE_END);
-                return result;
-            } else {
-                this.log('逃跑失败！');
-                // 逃跑失败，敌方行动
-                this.generateEnemyAction();
-                await this.executeAction('enemy', result);
+            if (result.outcome.actionRejected) {
+                this.setPhase(BattleManager.PHASE.PLAYER_CHOOSE);
+                return this.finalizeTurnResult(result);
             }
-        } else {
-            // 生成敌方行动
-            this.generateEnemyAction();
 
-            // 确定行动顺序
-            const order = this.determineOrder();
-            console.log('[BattleManager] 行动顺序:', order);
+            if (!result.outcome.battleEnded) {
+                this.setPhase(BattleManager.PHASE.CHECK_RESULT);
+                const checkResult = this.checkBattleEnd();
 
-            // 执行双方行动
-            for (const actor of order) {
-                const targetFainted = await this.executeAction(actor, result);
-                if (targetFainted) {
-                    break; // 一方倒下，停止后续行动
+                if (checkResult.ended) {
+                    this.markBattleEnd(result, {
+                        winner: checkResult.winner,
+                        reason: 'faint'
+                    });
+                    this.appendBattleEndEvent(result, 'faint');
+                    this.setPhase(BattleManager.PHASE.BATTLE_END);
+
+                    if (checkResult.winner === 'player') {
+                        await this.handleVictory(result);
+                    } else {
+                        await this.handleDefeat(result);
+                    }
+                } else if (checkResult.needSwitch) {
+                    this.markNeedSwitch(result, 'player_fainted_need_switch');
+                    this.setPhase(BattleManager.PHASE.PLAYER_CHOOSE);
+                } else {
+                    this.setPhase(BattleManager.PHASE.PLAYER_CHOOSE);
                 }
             }
-        }
 
-        if (result.actionRejected) {
-            this.setPhase(BattleManager.PHASE.PLAYER_CHOOSE);
+            return this.finalizeTurnResult(result);
+        } finally {
             this.playerAction = null;
             this.enemyAction = null;
-            return result;
         }
-
-        // 检查战斗结果
-        this.setPhase(BattleManager.PHASE.CHECK_RESULT);
-        const checkResult = this.checkBattleEnd();
-
-        if (checkResult.ended) {
-            result.battleEnded = true;
-            result.winner = checkResult.winner;
-            this.setPhase(BattleManager.PHASE.BATTLE_END);
-
-            if (checkResult.winner === 'player') {
-                await this.handleVictory(result);
-            } else {
-                await this.handleDefeat(result);
-            }
-        } else if (checkResult.needSwitch) {
-            // 玩家精灵倒下但还有其他精灵可切换
-            result.needSwitch = true;
-            this.setPhase(BattleManager.PHASE.PLAYER_CHOOSE);
-        } else {
-            // 回合结束，返回玩家选择阶段
-            this.setPhase(BattleManager.PHASE.PLAYER_CHOOSE);
-        }
-
-        // 清除本回合行动
-        this.playerAction = null;
-        this.enemyAction = null;
-
-        return result;
     }
 
     /**
@@ -516,17 +683,28 @@ class BattleManager {
             }
 
             // 消耗 PP
+            const oldPP = attacker.skillPP[action.skillId] || 0;
             attacker.useSkill(action.skillId);
+            const newPP = attacker.skillPP[action.skillId] || 0;
+            this.appendTurnEvent(result, BattleManager.EVENT.PP_CHANGE, {
+                target: actor,
+                skillId: action.skillId,
+                oldPP,
+                newPP,
+                delta: newPP - oldPP,
+                reason: 'skill_cast'
+            });
 
             // 显示使用技能消息
             this.log(`${attacker.getDisplayName()} 使用了 ${skill.name}！`);
 
             // 记录技能施放事件（场景层据此播放分类动画）
-            result.events.push({
-                type: 'skillCast',
+            this.appendTurnEvent(result, BattleManager.EVENT.SKILL_CAST, {
                 actor: actor,
                 target: isPlayer ? 'enemy' : 'player',
                 skillId: skill.id,
+                skillName: skill.name,
+                skillType: skill.type,
                 skillCategory: skill.category || 'status'
             });
 
@@ -534,11 +712,11 @@ class BattleManager {
             const hit = damageCalculator.checkHit(skill, -defenderStages.accuracy);
             if (!hit) {
                 this.log('但是没有命中...');
-                result.events.push({
-                    type: 'attack',
+                this.appendTurnEvent(result, BattleManager.EVENT.MISS, {
                     actor: actor,
-                    skill: skill,
-                    hit: false
+                    target: isPlayer ? 'enemy' : 'player',
+                    skillId: skill.id,
+                    skillName: skill.name
                 });
                 return false;
             }
@@ -559,18 +737,28 @@ class BattleManager {
                 }
 
                 // 造成伤害
+                const oldHp = defender.currentHp;
                 const fainted = defender.takeDamage(damageResult.damage);
                 this.log(`${defender.getDisplayName()} 受到了 ${damageResult.damage} 点伤害！`);
 
-                result.events.push({
-                    type: 'attack',
+                this.appendTurnEvent(result, BattleManager.EVENT.HIT, {
                     actor: actor,
-                    skill: skill,
-                    hit: true,
+                    target: isPlayer ? 'enemy' : 'player',
+                    skillId: skill.id,
+                    skillName: skill.name,
                     damage: damageResult.damage,
                     critical: damageResult.isCritical,
                     effectiveness: damageResult.effectiveness,
                     targetFainted: fainted
+                });
+                this.appendTurnEvent(result, BattleManager.EVENT.HP_CHANGE, {
+                    target: isPlayer ? 'enemy' : 'player',
+                    oldHp,
+                    newHp: defender.currentHp,
+                    delta: defender.currentHp - oldHp,
+                    reason: 'damage',
+                    by: actor,
+                    skillId: skill.id
                 });
 
                 if (fainted) {
@@ -603,6 +791,7 @@ class BattleManager {
             attackerStages,
             defenderStages,
             result,
+            appendEvent: (type, payload) => this.appendTurnEvent(result, type, payload),
             log: (message) => this.log(message)
         });
     }
