@@ -4,6 +4,21 @@
  * These methods run with BattleScene as `this`.
  */
 
+function renderBattleTypeIcon(scene, container, x, y, type, options = {}) {
+    if (typeof TypeIconView !== 'undefined' && TypeIconView && typeof TypeIconView.render === 'function') {
+        TypeIconView.render(scene, container, x, y, type, {
+            iconSize: options.iconSize || 16,
+            originX: options.fallbackOriginX ?? 0.5,
+            originY: 0.5
+        });
+        return;
+    }
+
+    const radius = Math.max(4, Math.floor((options.iconSize || 16) / 2));
+    const fallbackDot = scene.add.circle(x, y, radius, 0x8899aa, 1);
+    container.add(fallbackDot);
+}
+
 const BattleAnimator = {
     createBackground() {
         if (this.battleBackgroundKey && this.textures.exists(this.battleBackgroundKey)) {
@@ -86,7 +101,7 @@ const BattleAnimator = {
             }).setOrigin(0.5);
             container.add(nameText);
 
-            this.addTypeVisual(container, 0, 20, elf.type, {
+            renderBattleTypeIcon(this, container, 0, 20, elf.type, {
                 iconSize: 18,
                 fallbackFontSize: '14px',
                 fallbackColor: '#dddddd',

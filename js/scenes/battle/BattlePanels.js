@@ -4,6 +4,21 @@
  * These methods run with BattleScene as `this`.
  */
 
+function renderBattleTypeIcon(scene, container, x, y, type, options = {}) {
+    if (typeof TypeIconView !== 'undefined' && TypeIconView && typeof TypeIconView.render === 'function') {
+        TypeIconView.render(scene, container, x, y, type, {
+            iconSize: options.iconSize || 16,
+            originX: options.fallbackOriginX ?? 0.5,
+            originY: 0.5
+        });
+        return;
+    }
+
+    const radius = Math.max(4, Math.floor((options.iconSize || 16) / 2));
+    const fallbackDot = scene.add.circle(x, y, radius, 0x8899aa, 1);
+    container.add(fallbackDot);
+}
+
 const BattlePanels = {
     createBottomControlPanel() {
         const panelY = 430;
@@ -85,7 +100,7 @@ const BattlePanels = {
         });
         container.add(nameText);
 
-        this.addTypeVisual(container, 10, 38, skill.type, {
+        renderBattleTypeIcon(this, container, 10, 38, skill.type, {
             iconSize: 14,
             fallbackFontSize: '12px',
             fallbackColor: '#88aacc',
@@ -1008,7 +1023,7 @@ const BattlePanels = {
         });
         container.add(metaText);
 
-        this.addTypeVisual(container, w - 12, h / 2, skill.type, {
+        renderBattleTypeIcon(this, container, w - 12, h / 2, skill.type, {
             iconSize: 16,
             fallbackFontSize: '10px',
             fallbackColor: '#aaddaa',
