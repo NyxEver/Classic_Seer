@@ -30,6 +30,8 @@ class BattleScene extends Phaser.Scene {
         this.turnTimeLeft = 10;
         this.deferredBattleEndResult = null;
         this.actionIntentLocked = false;
+        this.isAnimationPlaying = false;
+        this._animationLockCount = 0;
         this.postFlowLocked = false;
         this.returnTriggered = false;
         this.bgmStopTriggered = false;
@@ -85,7 +87,7 @@ class BattleScene extends Phaser.Scene {
     }
 
     submitBattleIntent(intent, payload = {}) {
-        if (!this.battleManager || this.battleEnded || !this.menuEnabled || this.actionIntentLocked) {
+        if (!this.battleManager || this.battleEnded || !this.menuEnabled || this.actionIntentLocked || this.isAnimationPlaying) {
             return false;
         }
 
@@ -120,13 +122,18 @@ class BattleScene extends Phaser.Scene {
             return;
         }
 
-        const events = Array.isArray(result.events) ? result.events : [];
-        const catchEvent = events.find((event) => event.type === 'catch_result');
-        const catchResult = catchEvent ? (catchEvent.result || null) : (result.catchResult || null);
+        let animationResult = null;
+        try {
+            animationResult = await this.playTurnAnimations(result);
+        } catch (error) {
+            console.error('[BattleScene] playTurnAnimations 失败:', error);
+        }
+
+        const catchResult = animationResult && animationResult.catchResult
+            ? animationResult.catchResult
+            : (result.catchResult || null);
 
         if (catchResult) {
-            await this.playCatchAnimation(catchResult);
-
             if (catchResult.success) {
                 this.finalizeBattleOnce('capture_success', {
                     title: '🎉 捕捉成功！',
@@ -137,19 +144,6 @@ class BattleScene extends Phaser.Scene {
 
             this.addLog(`${this.enemyElf.getDisplayName()} 挣脱了胶囊！`);
         }
-
-        for (const event of events) {
-            if (event.type === 'skill_cast' || event.type === 'skillCast') {
-                await this.playSkillCastAnimation(event);
-                this.updateStatusHp('player');
-                this.updateStatusHp('enemy');
-                this.updateSkillPP();
-            }
-        }
-
-        this.updateStatusHp('player');
-        this.updateStatusHp('enemy');
-        this.updateSkillPP();
 
         await new Promise((resolve) => this.showLogs(resolve));
 
@@ -244,29 +238,10 @@ const BATTLE_SCENE_FACADE_METHODS = {
     ],
     BattleAnimator: [
         'createBackground',
-        'createFilteredSceneBackground',
         'createMainBattleArea',
         'createCharacterSprite',
-        'applyBattleSideFlip',
-        'getAvailableBattleAtlases',
-        'pickBattleAtlas',
-        'getFrameOrderValue',
-        'getAtlasFrameNames',
-        'getFirstAtlasFrameName',
-        'getBattleFrameRate',
-        'getClipDurationMs',
-        'ensureBattleAnimation',
-        'playAtlasClip',
-        'playElfClip',
-        'waitMs',
-        'moveBattleSprite',
-        'playStrikeMotionWithStill',
-        'getPhysicalStrikeX',
-        'playSkillCastAnimation',
-        'playCatchAnimation',
-        'playCapsuleShake',
-        'playSuccessEffect',
-        'playFailEffect'
+        'playTurnAnimations',
+        'playCatchAnimation'
     ],
     BattlePostFlow: [
         'finalizeBattleOnce',
