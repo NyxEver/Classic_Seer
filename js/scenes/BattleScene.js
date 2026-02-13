@@ -30,6 +30,9 @@ class BattleScene extends Phaser.Scene {
         this.turnTimeLeft = 10;
         this.deferredBattleEndResult = null;
         this.actionIntentLocked = false;
+        this.postFlowLocked = false;
+        this.returnTriggered = false;
+        this.bgmStopTriggered = false;
         this.battleBgm = null;
         this.isBgmFadingOut = false;
 
@@ -125,7 +128,10 @@ class BattleScene extends Phaser.Scene {
             await this.playCatchAnimation(catchResult);
 
             if (catchResult.success) {
-                this.showPopup('🎉 捕捉成功！', `成功捕捉了 ${this.enemyElf.getDisplayName()}！`);
+                this.finalizeBattleOnce('capture_success', {
+                    title: '🎉 捕捉成功！',
+                    message: `成功捕捉了 ${this.enemyElf.getDisplayName()}！`
+                });
                 return;
             }
 
@@ -150,7 +156,10 @@ class BattleScene extends Phaser.Scene {
         const outcome = result.outcome || {};
 
         if (outcome.escaped || result.escaped) {
-            this.showPopup('逃跑成功！', '成功逃离了战斗！');
+            this.finalizeBattleOnce('escape_success', {
+                title: '逃跑成功！',
+                message: '成功逃离了战斗！'
+            });
             return;
         }
 
@@ -159,7 +168,9 @@ class BattleScene extends Phaser.Scene {
                 victory: (outcome.winner || result.winner) === 'player'
             };
             this.deferredBattleEndResult = null;
-            this.handleBattleEnd(battleEndResult);
+            this.finalizeBattleOnce('battle_end', {
+                result: battleEndResult
+            });
             return;
         }
 
@@ -258,6 +269,7 @@ const BATTLE_SCENE_FACADE_METHODS = {
         'playFailEffect'
     ],
     BattlePostFlow: [
+        'finalizeBattleOnce',
         'handleBattleEnd',
         'processPostBattle',
         'processNextPendingSkill',

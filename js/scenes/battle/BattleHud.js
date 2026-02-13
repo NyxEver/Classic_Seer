@@ -184,14 +184,38 @@ const BattleHud = {
         const btnHit = this.add.rectangle(0, 60, btnW, btnH).setInteractive({ useHandCursor: true });
         this.popupContainer.add(btnHit);
 
+        this.popupConfirmBg = btnBg;
+        this.popupConfirmText = btnText;
+        this.popupConfirmHit = btnHit;
+        this.popupConsumed = false;
+
         btnHit.on('pointerdown', () => {
+            if (this.popupConsumed) {
+                return;
+            }
+
+            this.popupConsumed = true;
+            if (this.popupConfirmHit) {
+                this.popupConfirmHit.disableInteractive();
+            }
+            if (this.popupConfirmBg) {
+                this.popupConfirmBg.setAlpha(0.65);
+            }
+            if (this.popupConfirmText) {
+                this.popupConfirmText.setAlpha(0.65);
+            }
+
             this.popupContainer.setVisible(false);
             if (this.popupCallback) {
                 const callback = this.popupCallback;
                 this.popupCallback = null;
                 callback();
             } else {
-                this.returnToMap();
+                if (typeof this.finalizeBattleOnce === 'function') {
+                    this.finalizeBattleOnce('return_to_map', { reason: 'popup_default_confirm' });
+                } else if (typeof this.returnToMap === 'function') {
+                    this.returnToMap();
+                }
             }
         });
     },
@@ -199,6 +223,16 @@ const BattleHud = {
     showPopup(title, message, callback = null) {
         this.popupText.setText(`${title}\n\n${message}`);
         this.popupCallback = callback;
+        this.popupConsumed = false;
+        if (this.popupConfirmHit) {
+            this.popupConfirmHit.setInteractive({ useHandCursor: true });
+        }
+        if (this.popupConfirmBg) {
+            this.popupConfirmBg.setAlpha(1);
+        }
+        if (this.popupConfirmText) {
+            this.popupConfirmText.setAlpha(1);
+        }
         this.popupContainer.setVisible(true);
     },
 

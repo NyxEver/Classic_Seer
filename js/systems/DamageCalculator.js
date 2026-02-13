@@ -33,6 +33,13 @@ const DamageCalculator = {
      * @returns {Object} - { damage, isCritical, effectiveness, stab }
      */
     calculate(attacker, defender, skill) {
+        const randomInt = (typeof this === 'object' && this && typeof this.randomInt === 'function')
+            ? this.randomInt.bind(this)
+            : DamageCalculator.randomInt.bind(DamageCalculator);
+        const truncate4 = (typeof this === 'object' && this && typeof this.truncate4 === 'function')
+            ? this.truncate4.bind(this)
+            : DamageCalculator.truncate4.bind(DamageCalculator);
+
         // 非伤害技能返回 0
         if (skill.power === 0) {
             return {
@@ -65,7 +72,7 @@ const DamageCalculator = {
         let isCritical = false;
         let critMultiplier = 1;
         if (skill.critRate && skill.critRate > 0) {
-            const critRoll = this.randomInt(1, skill.critRate);
+            const critRoll = randomInt(1, skill.critRate);
             if (critRoll === 1) {
                 isCritical = true;
                 critMultiplier = 1.5;
@@ -73,9 +80,9 @@ const DamageCalculator = {
         }
 
         // 1. 计算基础值
-        const levelFactor = this.truncate4(attacker.level * 0.4 + 2);
-        const atkDefRatio = this.truncate4(attackStat / defenseStat);
-        const baseDamage = this.truncate4((levelFactor * skill.power * atkDefRatio) / 50 + 2);
+        const levelFactor = truncate4(attacker.level * 0.4 + 2);
+        const atkDefRatio = truncate4(attackStat / defenseStat);
+        const baseDamage = truncate4((levelFactor * skill.power * atkDefRatio) / 50 + 2);
 
         // 2. 应用加成
         // 本系加成（STAB）
@@ -86,7 +93,7 @@ const DamageCalculator = {
         const typeEffect = DataLoader.getTypeEffectiveness(skill.type, defender.type);
 
         // 随机系数 R (217-255)
-        const R = this.randomInt(217, 255);
+        const R = randomInt(217, 255);
         const randomFactor = R / 255; // 此处不截断
 
         // 3. 最终伤害
@@ -119,6 +126,10 @@ const DamageCalculator = {
      * @returns {boolean}
      */
     checkHit(skill, accuracyMod = 0) {
+        const randomInt = (typeof this === 'object' && this && typeof this.randomInt === 'function')
+            ? this.randomInt.bind(this)
+            : DamageCalculator.randomInt.bind(DamageCalculator);
+
         // 必中技能
         if (skill.accuracy === 0 || skill.accuracy >= 100) {
             return true;
@@ -135,7 +146,7 @@ const DamageCalculator = {
         // 限制在 0-100 范围
         hitChance = Math.max(0, Math.min(100, hitChance));
 
-        const roll = this.randomInt(1, 100);
+        const roll = randomInt(1, 100);
         const hit = roll <= hitChance;
 
         console.log(`[DamageCalculator] 命中检定: ${roll} <= ${hitChance}? ${hit}`);

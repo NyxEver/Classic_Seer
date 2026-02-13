@@ -17,58 +17,141 @@ function getBattlePostFlowDependency(name) {
     return null;
 }
 
-const BattlePostFlow = {
-    handleBattleEnd(result) {
-        this.battleEnded = true;
-        this.disableMenu();
-        this.fadeOutBattleBgm();
+function getSafeReturnData(scene) {
+    if (!scene || !scene.returnData || typeof scene.returnData !== 'object') {
+        return {};
+    }
+    return { ...scene.returnData };
+}
 
-        if (result.victory) {
-            let msg = `获得 ${result.expGained} 经验值！`;
-            if (result.levelUps && result.levelUps.length > 0) {
-                for (const lu of result.levelUps) {
-                    msg += `\n升到 ${lu.newLevel} 级！`;
-                    for (const sid of lu.newSkills) {
-                        const dataLoader = getBattlePostFlowDependency('DataLoader');
-                        const sk = dataLoader ? dataLoader.getSkill(sid) : null;
-                        if (sk) {
-                            msg += `\n学会 ${sk.name}！`;
+function startBattleFollowupScene(scene, targetScene, data) {
+    const sceneRouter = getBattlePostFlowDependency('SceneRouter');
+    if (!sceneRouter) {
+        return false;
+    }
+
+    scene.fadeOutBattleBgm(() => {
+        sceneRouter.start(scene, targetScene, data, {
+            bgmStrategy: 'inherit'
+        });
+    });
+    return true;
+}
+
+const BattlePostFlow = {
+    finalizeBattleOnce(flow, payload = {}) {
+        switch (flow) {
+            case 'capture_success': {
+                if (this.postFlowLocked) {
+                    return false;
+                }
+
+                this.postFlowLocked = true;
+                this.battleEnded = true;
+                this.disableMenu();
+                this.showPopup(
+                    payload.title || '🎉 捕捉成功！',
+                    payload.message || `成功捕捉了 ${this.enemyElf.getDisplayName()}！`,
+                    () => this.finalizeBattleOnce('return_to_map', { reason: 'capture_success' })
+                );
+                return true;
+            }
+            case 'escape_success': {
+                if (this.postFlowLocked) {
+                    return false;
+                }
+
+                this.postFlowLocked = true;
+                this.battleEnded = true;
+                this.disableMenu();
+                this.showPopup(
+                    payload.title || '逃跑成功！',
+                    payload.message || '成功逃离了战斗！',
+                    () => this.finalizeBattleOnce('return_to_map', { reason: 'escape_success' })
+                );
+                return true;
+            }
+            case 'battle_end': {
+                if (this.postFlowLocked) {
+                    return false;
+                }
+
+                const result = payload.result || {};
+                this.postFlowLocked = true;
+                this.battleEnded = true;
+                this.disableMenu();
+
+                if (result.victory) {
+                    let msg = `获得 ${result.expGained} 经验值！`;
+                    if (result.levelUps && result.levelUps.length > 0) {
+                        for (const lu of result.levelUps) {
+                            msg += `\n升到 ${lu.newLevel} 级！`;
+                            for (const sid of lu.newSkills) {
+                                const dataLoader = getBattlePostFlowDependency('DataLoader');
+                                const sk = dataLoader ? dataLoader.getSkill(sid) : null;
+                                if (sk) {
+                                    msg += `\n学会 ${sk.name}！`;
+                                }
+                            }
                         }
                     }
+
+                    if (result.pendingSkills && result.pendingSkills.length > 0) {
+                        msg += `\n\n有 ${result.pendingSkills.length} 个新技能待学习...`;
+                    }
+
+                    if (result.canEvolve && result.evolveTo && result.playerElf) {
+                        msg += `\n\n咦？${result.playerElf.getDisplayName()} 好像要进化了！`;
+                    }
+
+                    this.pendingResult = result;
+
+                    this.time.delayedCall(500, () => {
+                        this.showPopup('🎉 战斗胜利！', msg, () => {
+                            this.finalizeBattleOnce('post_battle');
+                        });
+                    });
+                } else {
+                    this.time.delayedCall(500, () => {
+                        this.showPopup('战斗失败', `${this.playerElf.getDisplayName()} 倒下了...`, () => {
+                            this.finalizeBattleOnce('return_to_map', { reason: 'battle_defeat' });
+                        });
+                    });
                 }
+
+                return true;
             }
-
-            if (result.pendingSkills && result.pendingSkills.length > 0) {
-                msg += `\n\n有 ${result.pendingSkills.length} 个新技能待学习...`;
-            }
-
-            if (result.canEvolve && result.evolveTo && result.playerElf) {
-                msg += `\n\n咦？${result.playerElf.getDisplayName()} 好像要进化了！`;
-            }
-
-            this.pendingResult = result;
-
-            this.time.delayedCall(500, () => {
-                this.showPopup('🎉 战斗胜利！', msg, () => {
-                    this.processPostBattle();
-                });
-            });
-        } else {
-            this.time.delayedCall(500, () => {
-                this.showPopup('战斗失败', `${this.playerElf.getDisplayName()} 倒下了...`);
-            });
+            case 'post_battle':
+                this.processPostBattle();
+                return true;
+            case 'evolution_check':
+                this.processEvolution();
+                return true;
+            case 'return_to_map':
+                this.returnToMap();
+                return true;
+            default:
+                return false;
         }
+    },
+
+    handleBattleEnd(result) {
+        return this.finalizeBattleOnce('battle_end', { result });
     },
 
     processPostBattle() {
         const result = this.pendingResult;
+        if (!result) {
+            this.finalizeBattleOnce('return_to_map', { reason: 'missing_pending_result' });
+            return;
+        }
 
         if (result.pendingSkills && result.pendingSkills.length > 0) {
             this.processNextPendingSkill(result.pendingSkills, 0, () => {
-                this.processEvolution();
+                this.finalizeBattleOnce('evolution_check');
             });
         } else {
-            this.processEvolution();
+            this.finalizeBattleOnce('evolution_check');
         }
     },
 
@@ -81,68 +164,84 @@ const BattlePostFlow = {
         const skillId = pendingSkills[index];
         const result = this.pendingResult;
 
-        const sceneRouter = getBattlePostFlowDependency('SceneRouter');
-        if (!sceneRouter) {
-            this.returnToMap();
+        if (!result) {
+            this.finalizeBattleOnce('return_to_map', { reason: 'missing_pending_result' });
             return;
         }
 
-        sceneRouter.start(this, 'SkillLearnScene', {
+        const returnData = getSafeReturnData(this);
+
+        const started = startBattleFollowupScene(this, 'SkillLearnScene', {
             elf: result.playerElf,
             newSkillId: skillId,
             returnScene: this.returnScene,
-            returnData: this.returnData || {},
+            returnData,
             chainData: {
                 canEvolve: result.canEvolve,
                 evolveTo: result.evolveTo,
                 playerElf: result.playerElf,
                 returnScene: this.returnScene,
-                returnData: this.returnData || {}
+                returnData
             }
-        }, {
-            bgmStrategy: 'inherit'
         });
+
+        if (!started) {
+            this.finalizeBattleOnce('return_to_map', { reason: 'missing_scene_router_for_skill' });
+        }
     },
 
     processEvolution() {
         const result = this.pendingResult;
+        if (!result) {
+            this.finalizeBattleOnce('return_to_map', { reason: 'missing_pending_result' });
+            return;
+        }
 
         if (result.canEvolve && result.evolveTo && result.playerElf) {
             const elfBeforeEvolution = result.playerElf;
             const newElfId = result.evolveTo;
 
-            const sceneRouter = getBattlePostFlowDependency('SceneRouter');
             const playerData = getBattlePostFlowDependency('PlayerData');
-            if (!sceneRouter || !playerData) {
-                this.returnToMap();
+            if (!playerData) {
+                this.finalizeBattleOnce('return_to_map', { reason: 'missing_player_data_for_evolution' });
                 return;
             }
 
-            sceneRouter.start(this, 'EvolutionScene', {
+            const returnData = getSafeReturnData(this);
+            const started = startBattleFollowupScene(this, 'EvolutionScene', {
                 elf: elfBeforeEvolution,
                 newElfId,
                 returnScene: this.returnScene,
-                returnData: this.returnData || {},
+                returnData,
                 callback: () => {
                     elfBeforeEvolution.evolve();
                     playerData.saveToStorage();
                     console.log(`[BattleScene] 进化完成: ${elfBeforeEvolution.name}`);
                 }
-            }, {
-                bgmStrategy: 'inherit'
             });
+
+            if (!started) {
+                this.finalizeBattleOnce('return_to_map', { reason: 'missing_scene_router_for_evolution' });
+            }
         } else {
-            this.returnToMap();
+            this.finalizeBattleOnce('return_to_map', { reason: 'evolution_not_required' });
         }
     },
 
     returnToMap() {
+        if (this.returnTriggered) {
+            return;
+        }
+        this.returnTriggered = true;
+
         const sceneRouter = getBattlePostFlowDependency('SceneRouter');
+        if (!sceneRouter) {
+            return;
+        }
+
+        const returnData = getSafeReturnData(this);
         this.fadeOutBattleBgm(() => {
-            if (!sceneRouter) {
-                return;
-            }
-            sceneRouter.start(this, this.returnScene, this.returnData || {}, {
+            sceneRouter.start(this, this.returnScene, returnData, {
                 bgmStrategy: 'inherit'
             });
         });
@@ -155,11 +254,12 @@ const BattlePostFlow = {
             return;
         }
 
+        this.bgmStopTriggered = false;
         bgmManager.transitionTo('BattleScene', this);
         this.battleBgm = bgmManager.currentSound;
     },
 
-    fadeOutBattleBgm(onComplete = null) {
+    fadeOutBattleBgm(onComplete = null, fadeMs = 450, force = false) {
         const bgmManager = getBattlePostFlowDependency('BgmManager');
         if (!bgmManager) {
             if (onComplete) {
@@ -168,7 +268,16 @@ const BattlePostFlow = {
             return;
         }
 
-        bgmManager.stopCurrent(450, () => {
+        if (this.bgmStopTriggered && !force) {
+            if (onComplete) {
+                onComplete();
+            }
+            return;
+        }
+
+        this.bgmStopTriggered = true;
+
+        bgmManager.stopCurrent(Math.max(0, fadeMs), () => {
             this.battleBgm = null;
             if (onComplete) {
                 onComplete();
@@ -178,8 +287,8 @@ const BattlePostFlow = {
 
     cleanupBattleBgm() {
         const bgmManager = getBattlePostFlowDependency('BgmManager');
-        if (bgmManager) {
-            bgmManager.stopCurrent(0, null, this);
+        if (bgmManager && bgmManager.currentSound) {
+            this.fadeOutBattleBgm(null, 0, true);
         }
         this.battleBgm = null;
         this.isBgmFadingOut = false;
