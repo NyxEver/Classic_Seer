@@ -1,0 +1,323 @@
+const BattleItemPanelView = {
+    mount() {},
+
+    update() {
+        if (this.itemPanelContainer && this.isItemPanelOpen === true) {
+            BattleItemPanelView.updateItemGrid.call(this);
+        }
+    },
+
+    unmount() {
+        BattleItemPanelView.closeItemPanel.call(this, true);
+    },
+
+    showItemPanel() {
+        if (!this.menuEnabled || this.battleEnded || this.forceSwitchMode) {
+            return;
+        }
+        if (this.itemPanelContainer) {
+            return;
+        }
+        this.closeElfSwitchPanel();
+        this.closeCapsulePanel();
+
+        const panelY = 430;
+        this.itemPanelContainer = this.add.container(310, panelY + 10);
+        this.itemPanelContainer.setDepth(50);
+
+        const panelW = 380;
+        const panelH = 150;
+        const panelPadding = 10;
+        const catBtnW = 56;
+        const catGap = 5;
+        const gridW = panelW - panelPadding * 3 - catBtnW;
+        const gridH = panelH - panelPadding * 2;
+
+        this.itemPanelLayout = {
+            panelW,
+            panelH,
+            panelPadding,
+            gridX: panelPadding,
+            gridY: panelPadding,
+            gridW,
+            gridH,
+            cols: 4,
+            rows: 2,
+            slotGapX: 8,
+            slotGapY: 8
+        };
+
+        this.isItemPanelOpen = true;
+        this.refreshActionButtons();
+
+        const bg = this.add.graphics();
+        bg.fillStyle(0x0a1a2a, 0.95);
+        bg.fillRoundedRect(0, 0, panelW, panelH, 8);
+        bg.lineStyle(2, 0x3a5a7a);
+        bg.strokeRoundedRect(0, 0, panelW, panelH, 8);
+        this.itemPanelContainer.add(bg);
+
+        this.itemCategory = 'all';
+        this.itemScrollOffset = 0;
+
+        const categories = [
+            { key: 'hp', label: '血药', icon: '❤️' },
+            { key: 'pp', label: 'PP药', icon: '💧' },
+            { key: 'capsule', label: '胶囊', icon: '🔴' }
+        ];
+
+        const catX = panelW - panelPadding - catBtnW;
+        const catY = panelPadding;
+        const catBtnH = Math.floor((gridH - catGap * 2) / 3);
+
+        this.categoryButtons = [];
+        categories.forEach((cat, i) => {
+            const btn = BattleItemPanelView.createCategoryButton.call(this, catX, catY + i * (catBtnH + catGap), catBtnW, catBtnH, cat);
+            this.itemPanelContainer.add(btn);
+            this.categoryButtons.push(btn);
+        });
+
+        this.itemGridContainer = this.add.container(this.itemPanelLayout.gridX, this.itemPanelLayout.gridY);
+        this.itemPanelContainer.add(this.itemGridContainer);
+
+        this.updateItemGrid();
+    },
+
+    createCategoryButton(x, y, w, h, cat) {
+        const container = this.add.container(x, y);
+
+        const bg = this.add.graphics();
+        bg.fillStyle(this.itemCategory === cat.key ? 0x3a6a9a : 0x2a4a6a, 1);
+        bg.fillRoundedRect(0, 0, w, h, 5);
+        bg.lineStyle(1, 0x4a7aaa);
+        bg.strokeRoundedRect(0, 0, w, h, 5);
+        container.add(bg);
+
+        const icon = this.add.text(w / 2, h / 2 - 6, cat.icon, {
+            fontSize: '16px'
+        }).setOrigin(0.5);
+        container.add(icon);
+
+        const label = this.add.text(w / 2, h / 2 + 10, cat.label, {
+            fontSize: '10px',
+            fontFamily: 'Arial',
+            color: '#aaddcc'
+        }).setOrigin(0.5);
+        container.add(label);
+
+        const hit = this.add.rectangle(w / 2, h / 2, w, h).setInteractive({ useHandCursor: true });
+        container.add(hit);
+
+        hit.on('pointerdown', () => {
+            this.itemCategory = cat.key;
+            this.itemScrollOffset = 0;
+            this.updateCategoryHighlight();
+            this.updateItemGrid();
+        });
+
+        container._bg = bg;
+        container._cat = cat;
+        container._w = w;
+        container._h = h;
+
+        return container;
+    },
+
+    updateCategoryHighlight() {
+        this.categoryButtons.forEach((btn) => {
+            const bg = btn._bg;
+            const cat = btn._cat;
+            const w = btn._w;
+            const h = btn._h;
+            bg.clear();
+            bg.fillStyle(this.itemCategory === cat.key ? 0x3a6a9a : 0x2a4a6a, 1);
+            bg.fillRoundedRect(0, 0, w, h, 5);
+            bg.lineStyle(1, this.itemCategory === cat.key ? 0x6a9aca : 0x4a7aaa);
+            bg.strokeRoundedRect(0, 0, w, h, 5);
+        });
+    },
+
+    updateItemGrid() {
+        this.itemGridContainer.removeAll(true);
+        const layout = this.itemPanelLayout || {
+            gridW: 264,
+            gridH: 120,
+            cols: 4,
+            rows: 2,
+            slotGapX: 6,
+            slotGapY: 6
+        };
+
+        const allItems = ItemBag.getAll();
+        const items = [];
+
+        Object.entries(allItems).forEach(([itemId, count]) => {
+            if (count <= 0) {
+                return;
+            }
+            const itemData = DataLoader.getItem(parseInt(itemId, 10));
+            if (!itemData) {
+                return;
+            }
+
+            let category = 'other';
+            if (itemData.type === 'capsule') {
+                category = 'capsule';
+            } else if (itemData.type === 'hpPotion') {
+                category = 'hp';
+            } else if (itemData.type === 'ppPotion') {
+                category = 'pp';
+            }
+
+            if (this.itemCategory === 'all' || this.itemCategory === category) {
+                items.push({ itemId: parseInt(itemId, 10), itemData, count, category });
+            }
+        });
+
+        const cols = layout.cols;
+        const rows = layout.rows;
+        const gapX = layout.slotGapX;
+        const gapY = layout.slotGapY;
+        const slotW = Math.floor((layout.gridW - gapX * (cols - 1)) / cols);
+        const slotH = Math.floor((layout.gridH - gapY * (rows - 1)) / rows);
+        const visibleItems = items.slice(this.itemScrollOffset, this.itemScrollOffset + cols * rows);
+
+        visibleItems.forEach((item, i) => {
+            const col = i % cols;
+            const row = Math.floor(i / cols);
+            const x = col * (slotW + gapX);
+            const y = row * (slotH + gapY);
+
+            const slot = BattleItemPanelView.createItemSlot.call(this, x, y, slotW, slotH, item);
+            this.itemGridContainer.add(slot);
+        });
+
+        if (visibleItems.length === 0) {
+            const emptyText = this.add.text(Math.floor(layout.gridW / 2), Math.floor(layout.gridH / 2), '没有此类道具', {
+                fontSize: '14px',
+                fontFamily: 'Arial',
+                color: '#888888'
+            }).setOrigin(0.5);
+            this.itemGridContainer.add(emptyText);
+        }
+
+        if (items.length > cols * rows) {
+            const scrollInfo = this.add.text(layout.gridW - 4, layout.gridH - 2,
+                `▲ ▼ ${this.itemScrollOffset / (cols * rows) + 1}/${Math.ceil(items.length / (cols * rows))}`, {
+                    fontSize: '12px',
+                    fontFamily: 'Arial',
+                    color: '#aaaaaa'
+                }).setOrigin(1, 1);
+            this.itemGridContainer.add(scrollInfo);
+        }
+    },
+
+    createItemSlot(x, y, w, h, item) {
+        const container = this.add.container(x, y);
+
+        const bg = this.add.graphics();
+        bg.fillStyle(0x2a4a6a, 1);
+        bg.fillRoundedRect(0, 0, w, h, 6);
+        bg.lineStyle(1, 0x4a7aaa);
+        bg.strokeRoundedRect(0, 0, w, h, 6);
+        container.add(bg);
+
+        const itemIconKey = AssetMappings.getItemImageKey(item.itemId);
+        if (itemIconKey && this.textures.exists(itemIconKey)) {
+            const iconImage = this.add.image(w / 2, h / 2 - 2, itemIconKey);
+            const iconSize = w - 12;
+            const scale = Math.min(iconSize / iconImage.width, iconSize / iconImage.height);
+            iconImage.setScale(scale);
+            container.add(iconImage);
+        } else {
+            let iconChar = '📦';
+            if (item.category === 'capsule') {
+                iconChar = '🔴';
+            } else if (item.category === 'hp') {
+                iconChar = '❤️';
+            } else if (item.category === 'pp') {
+                iconChar = '💧';
+            }
+
+            const icon = this.add.text(w / 2, h / 2 - 5, iconChar, {
+                fontSize: '24px'
+            }).setOrigin(0.5);
+            container.add(icon);
+        }
+
+        const countBg = this.add.graphics();
+        countBg.fillStyle(0x1a1a2a, 0.9);
+        countBg.fillRoundedRect(w - 22, h - 18, 20, 16, 3);
+        container.add(countBg);
+
+        const countText = this.add.text(w - 12, h - 10, `${item.count}`, {
+            fontSize: '11px',
+            fontFamily: 'Arial',
+            color: '#ffffff'
+        }).setOrigin(0.5);
+        container.add(countText);
+
+        const hit = this.add.rectangle(w / 2, h / 2, w, h).setInteractive({ useHandCursor: true });
+        container.add(hit);
+
+        hit.on('pointerover', () => {
+            bg.clear();
+            bg.fillStyle(0x3a6a9a, 1);
+            bg.fillRoundedRect(0, 0, w, h, 6);
+            bg.lineStyle(2, 0x6a9aca);
+            bg.strokeRoundedRect(0, 0, w, h, 6);
+        });
+
+        hit.on('pointerout', () => {
+            bg.clear();
+            bg.fillStyle(0x2a4a6a, 1);
+            bg.fillRoundedRect(0, 0, w, h, 6);
+            bg.lineStyle(1, 0x4a7aaa);
+            bg.strokeRoundedRect(0, 0, w, h, 6);
+        });
+
+        hit.on('pointerdown', () => {
+            this.useItem(item);
+        });
+
+        return container;
+    },
+
+    useItem(item) {
+        const itemData = item.itemData;
+        if (!itemData || typeof item.itemId !== 'number') {
+            return;
+        }
+
+        if (itemData.type === 'capsule') {
+            const submitted = this.submitPanelIntent(BattleManager.ACTION.CATCH, { itemId: item.itemId });
+            if (submitted) {
+                this.closeItemPanel();
+            }
+            return;
+        }
+
+        const submitted = this.submitPanelIntent(BattleManager.ACTION.ITEM, { itemId: item.itemId });
+        if (submitted) {
+            this.closeItemPanel();
+        }
+    },
+
+    closeItemPanel(skipRefresh = false) {
+        if (this.itemPanelContainer) {
+            this.itemPanelContainer.destroy();
+            this.itemPanelContainer = null;
+        }
+        this.itemPanelLayout = null;
+        this.isItemPanelOpen = false;
+        if (!skipRefresh) {
+            this.refreshActionButtons();
+        }
+    }
+};
+
+if (typeof AppContext !== 'undefined' && typeof AppContext.register === 'function') {
+    AppContext.register('BattleItemPanelView', BattleItemPanelView);
+}
+
+window.BattleItemPanelView = BattleItemPanelView;
