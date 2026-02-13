@@ -24,6 +24,9 @@ const BattleActionButtonsView = {
         const btnH = 45;
         const gap = 10;
 
+        if (this.actionContainer && !this.actionContainer.scene) {
+            this.actionContainer = null;
+        }
         if (this.actionContainer) {
             this.actionContainer.destroy();
         }

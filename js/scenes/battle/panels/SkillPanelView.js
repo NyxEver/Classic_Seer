@@ -16,6 +16,9 @@ function renderSkillPanelTypeIcon(scene, container, x, y, type, options = {}) {
 const BattleSkillPanelView = {
     mount(options = {}) {
         const panelY = Number.isFinite(options.panelY) ? options.panelY : (this.bottomPanelY || 430);
+        if (this.skillContainer && !this.skillContainer.scene) {
+            this.skillContainer = null;
+        }
         if (this.skillContainer) {
             BattleSkillPanelView.rebuildSkillPanel.call(this);
             return;

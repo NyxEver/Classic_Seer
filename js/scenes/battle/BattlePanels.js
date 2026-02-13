@@ -70,10 +70,14 @@ const BattlePanels = {
         const panelY = 430;
         const panelH = 170;
 
+        unmountBattlePanelsViews(this);
+
         this.bottomPanelY = panelY;
         this.isItemPanelOpen = false;
         this.forceSwitchMode = false;
         this.selectedSwitchIndex = 0;
+        this.skillContainer = null;
+        this.actionContainer = null;
         this.itemPanelContainer = null;
         this.capsulePanelContainer = null;
         this.elfSwitchContainer = null;
@@ -98,6 +102,7 @@ const BattlePanels = {
             this._battlePanelsLifecycleBound = true;
             const cleanup = () => {
                 unmountBattlePanelsViews(this);
+                this._battlePanelsLifecycleBound = false;
             };
             this.events.once('shutdown', cleanup);
             this.events.once('destroy', cleanup);
@@ -122,6 +127,14 @@ const BattlePanels = {
         }
 
         const showSkillPanel = this.isItemPanelOpen !== true && this.forceSwitchMode !== true;
+        if (showSkillPanel) {
+            if (!this.skillContainer) {
+                this.createMiddleSkillPanel(this.bottomPanelY || 430);
+            } else if ((!this.skillButtons || this.skillButtons.length === 0) && typeof this.rebuildSkillPanel === 'function') {
+                this.rebuildSkillPanel();
+            }
+        }
+
         if (this.skillContainer) {
             this.skillContainer.setVisible(showSkillPanel);
         }
