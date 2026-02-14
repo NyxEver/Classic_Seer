@@ -316,6 +316,12 @@ class ElfManageScene extends Phaser.Scene {
                     elfData.skillPP[skillId] = skillData.pp;
                 }
             });
+
+            if (typeof StatusEffect !== 'undefined' && StatusEffect && typeof StatusEffect.clearAllOnInstanceData === 'function') {
+                StatusEffect.clearAllOnInstanceData(elfData);
+            } else {
+                elfData.status = { weakening: {}, control: null };
+            }
         });
         PlayerData.saveToStorage();
         this.refreshView();
@@ -334,7 +340,10 @@ class ElfManageScene extends Phaser.Scene {
             const baseData = DataLoader.getElf(elfData.elfId);
             if (!baseData) return false;
             const elf = new Elf(baseData, elfData);
-            return elfData.currentHp < elf.getMaxHp();
+            const hasStatus = (typeof StatusEffect !== 'undefined' && StatusEffect && typeof StatusEffect.hasAnyStatus === 'function')
+                ? StatusEffect.hasAnyStatus(elfData)
+                : false;
+            return elfData.currentHp < elf.getMaxHp() || hasStatus;
         });
     }
 

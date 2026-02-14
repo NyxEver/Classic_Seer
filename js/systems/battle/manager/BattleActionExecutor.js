@@ -11,9 +11,28 @@ const BattleActionExecutor = {
         const defender = isPlayer ? manager.enemyElf : manager.playerElf;
         const attackerStages = isPlayer ? manager.playerStatStages : manager.enemyStatStages;
         const defenderStages = isPlayer ? manager.enemyStatStages : manager.playerStatStages;
+        const statusEffect = manager.getDependency('StatusEffect');
 
         if (!action || action.type !== BattleManager.ACTION.SKILL) {
             return false;
+        }
+
+        if (statusEffect && typeof statusEffect.canAct === 'function') {
+            const actionState = statusEffect.canAct(attacker, manager.turnCount);
+            if (!actionState.canAct) {
+                const statusName = statusEffect.getStatusName(actionState.statusType);
+                if (actionState.reason === 'woken_this_turn') {
+                    manager.log(`${attacker.getDisplayName()} 刚从${statusName}中恢复，本回合无法行动！`);
+                } else {
+                    manager.log(`${attacker.getDisplayName()} 处于${statusName}状态，无法行动！`);
+                }
+                manager.appendTurnEvent(result, BattleManager.EVENT.ACTION_BLOCKED, {
+                    actor,
+                    status: actionState.statusType,
+                    reason: actionState.reason
+                });
+                return false;
+            }
         }
 
         const dataLoader = manager.getDependency('DataLoader');
@@ -99,6 +118,19 @@ const BattleActionExecutor = {
                 by: actor,
                 skillId: skill.id
             });
+
+            if (statusEffect && typeof statusEffect.onHitTarget === 'function') {
+                const wakeResult = statusEffect.onHitTarget(defender, manager.turnCount);
+                if (wakeResult && wakeResult.removed) {
+                    const wakeStatusName = statusEffect.getStatusName(wakeResult.statusType);
+                    manager.log(`${defender.getDisplayName()} 受击后从${wakeStatusName}状态中恢复了！`);
+                    manager.appendTurnEvent(result, BattleManager.EVENT.STATUS_REMOVED, {
+                        target: isPlayer ? 'enemy' : 'player',
+                        status: wakeResult.statusType,
+                        reason: 'hit_wake'
+                    });
+                }
+            }
 
             if (fainted) {
                 manager.log(`${defender.getDisplayName()} 倒下了！`);

@@ -53,7 +53,11 @@ class BattleManager {
         ESCAPE_RESULT: 'escape_result',
         SWITCH_DONE: 'switch_done',
         BATTLE_END: 'battle_end',
-        STAT_CHANGE: 'stat_change'
+        STAT_CHANGE: 'stat_change',
+        STATUS_APPLIED: 'status_applied',
+        STATUS_REMOVED: 'status_removed',
+        STATUS_DAMAGE: 'status_damage',
+        ACTION_BLOCKED: 'action_blocked'
     };
 
     constructor(config) {
@@ -299,6 +303,54 @@ class BattleManager {
             return 0;
         }
         return battleEffects.calculateExpReward(this);
+    }
+
+    applyEndTurnStatusEffects(result) {
+        const statusEffect = this.getDependency('StatusEffect');
+        if (!statusEffect || typeof statusEffect.tickTurnEnd !== 'function') {
+            return;
+        }
+
+        const targets = [
+            { side: 'player', elf: this.playerElf },
+            { side: 'enemy', elf: this.enemyElf }
+        ];
+
+        targets.forEach((entry) => {
+            if (!entry.elf || entry.elf.isFainted()) {
+                return;
+            }
+
+            const tickResult = statusEffect.tickTurnEnd(entry.elf);
+
+            (tickResult.damages || []).forEach((damageInfo) => {
+                this.log(`${entry.elf.getDisplayName()} 受到${statusEffect.getStatusName(damageInfo.statusType)}影响，损失了 ${damageInfo.damage} 点体力！`);
+                this.appendTurnEvent(result, BattleManager.EVENT.STATUS_DAMAGE, {
+                    target: entry.side,
+                    status: damageInfo.statusType,
+                    damage: damageInfo.damage,
+                    oldHp: damageInfo.oldHp,
+                    newHp: damageInfo.newHp
+                });
+                this.appendTurnEvent(result, BattleManager.EVENT.HP_CHANGE, {
+                    target: entry.side,
+                    oldHp: damageInfo.oldHp,
+                    newHp: damageInfo.newHp,
+                    delta: damageInfo.newHp - damageInfo.oldHp,
+                    reason: 'status_damage',
+                    status: damageInfo.statusType
+                });
+            });
+
+            (tickResult.endedStatuses || []).forEach((statusType) => {
+                this.log(`${entry.elf.getDisplayName()} 的${statusEffect.getStatusName(statusType)}状态解除了。`);
+                this.appendTurnEvent(result, BattleManager.EVENT.STATUS_REMOVED, {
+                    target: entry.side,
+                    status: statusType,
+                    reason: 'duration_end'
+                });
+            });
+        });
     }
 
     async processAfterActions(result) {

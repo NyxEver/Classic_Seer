@@ -42,6 +42,21 @@ const UIAssets = {
         mystery: '30px-mystery',
         dragon: '30px-dragon',
         spirit: '30px-spirit'
+    },
+
+    /**
+     * 异常状态图标映射
+     * key: 状态类型
+     * value: 图标文件名（不含路径和扩展名）
+     */
+    statusIcons: {
+        frostbite: 'dongshang',
+        fear: 'haipa',
+        paralysis: 'mabi',
+        exhausted: 'pibei',
+        burn: 'shaoshang',
+        sleep: 'shuimian',
+        poison: 'zhongdu'
     }
 };
 

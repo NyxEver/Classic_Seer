@@ -80,9 +80,14 @@ const DamageCalculator = {
         }
 
         // 1. 计算基础值
+        const powerMultiplier = (typeof StatusEffect !== 'undefined' && StatusEffect && typeof StatusEffect.getDamagePowerMultiplier === 'function')
+            ? StatusEffect.getDamagePowerMultiplier(attacker, skill)
+            : 1;
+        const effectivePower = Math.max(0, Math.floor(skill.power * powerMultiplier));
+
         const levelFactor = truncate4(attacker.level * 0.4 + 2);
         const atkDefRatio = truncate4(attackStat / defenseStat);
-        const baseDamage = truncate4((levelFactor * skill.power * atkDefRatio) / 50 + 2);
+        const baseDamage = truncate4((levelFactor * effectivePower * atkDefRatio) / 50 + 2);
 
         // 2. 应用加成
         // 本系加成（STAB）
@@ -105,7 +110,7 @@ const DamageCalculator = {
         }
 
         console.log(`[DamageCalculator] ${attacker.getDisplayName()} -> ${defender.getDisplayName()}`);
-        console.log(`  技能: ${skill.name} (${skill.type}, ${skill.category}, 威力${skill.power})`);
+        console.log(`  技能: ${skill.name} (${skill.type}, ${skill.category}, 威力${skill.power}${effectivePower !== skill.power ? ` -> ${effectivePower}` : ''})`);
         console.log(`  攻击/防御: ${attackStat}/${defenseStat}, 等级因子: ${levelFactor}`);
         console.log(`  基础伤害: ${baseDamage}, STAB: ${stab}, 克制: ${typeEffect}, 暴击: ${isCritical}`);
         console.log(`  随机系数: ${R}/255 = ${randomFactor.toFixed(4)}`);

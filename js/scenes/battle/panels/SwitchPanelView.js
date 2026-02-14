@@ -386,6 +386,9 @@ const BattleSwitchPanelView = {
             this.playerStatus.container.destroy();
         }
         this.createStatusBar(this.playerElf, 20, 10, true);
+        if (typeof this.refreshStatusIcons === 'function') {
+            this.refreshStatusIcons();
+        }
 
         this.rebuildSkillPanel();
     },

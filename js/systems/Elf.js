@@ -40,6 +40,14 @@ class Elf {
 
         // 保持对原始实例数据的引用，用于同步更新
         this._instanceData = instanceData;
+
+        if (typeof StatusEffect !== 'undefined' && StatusEffect && typeof StatusEffect.ensureElfStatus === 'function') {
+            this.status = StatusEffect.ensureElfStatus(this);
+        } else {
+            this.status = instanceData.status && typeof instanceData.status === 'object'
+                ? instanceData.status
+                : { weakening: {}, control: null };
+        }
     }
 
     /**
@@ -305,6 +313,7 @@ class Elf {
         this._instanceData.skillPP = this.skillPP;
         this._instanceData.iv = this.iv;
         this._instanceData.ev = this.ev;
+        this._instanceData.status = this.status;
         this._instanceData.pendingSkills = this.pendingSkills;  // 同步待学习技能
         this._instanceData.elfId = this.id;  // 同步精灵 ID（进化后会变）
     }
@@ -404,7 +413,10 @@ class Elf {
             skills: skills,
             skillPP: skillPP,
             iv: iv,
-            ev: ev
+            ev: ev,
+            status: (typeof StatusEffect !== 'undefined' && StatusEffect && typeof StatusEffect.createEmptyState === 'function')
+                ? StatusEffect.createEmptyState()
+                : { weakening: {}, control: null }
         };
 
         const elf = new Elf(elfData, instanceData);

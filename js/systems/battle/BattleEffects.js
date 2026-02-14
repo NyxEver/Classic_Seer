@@ -80,6 +80,29 @@ const BattleEffects = {
             }
         }
 
+        if (effect.type === 'status') {
+            this.applyStatusFromEffect(effect, context);
+            return;
+        }
+
+        if (effect.type === 'exhausted') {
+            this.applyStatusFromEffect({
+                target: effect.target || 'enemy',
+                status: 'exhausted',
+                duration: effect.duration
+            }, context);
+            return;
+        }
+
+        if (effect.type === 'selfExhausted') {
+            this.applyStatusFromEffect({
+                target: 'self',
+                status: 'exhausted',
+                duration: effect.duration
+            }, context);
+            return;
+        }
+
         if (effect.type === 'statChange') {
             const targetStages = effect.target === 'enemy' ? context.defenderStages : context.attackerStages;
             const targetElf = effect.target === 'enemy' ? context.defender : context.attacker;
@@ -122,6 +145,60 @@ const BattleEffects = {
                 const text = stages > 0 ? '已经不能再提高了' : '已经不能再降低了';
                 context.log(`${targetElf.getDisplayName()} 的${stat}${text}！`);
             }
+        }
+    },
+
+    applyStatusFromEffect(effect, context) {
+        if (!effect || !effect.status) {
+            return;
+        }
+
+        const statusEffect = (typeof AppContext !== 'undefined' && AppContext && typeof AppContext.get === 'function')
+            ? AppContext.get('StatusEffect', null)
+            : (typeof window !== 'undefined' ? window.StatusEffect : null);
+
+        if (!statusEffect || typeof statusEffect.applyStatus !== 'function') {
+            return;
+        }
+
+        const targetKey = effect.target === 'self' ? 'self' : 'enemy';
+        const targetElf = targetKey === 'self' ? context.attacker : context.defender;
+        if (!targetElf || targetElf.isFainted()) {
+            return;
+        }
+
+        const applyResult = statusEffect.applyStatus(targetElf, effect.status, {
+            duration: effect.duration
+        });
+
+        const statusName = statusEffect.getStatusName(effect.status);
+        if (applyResult.replacedStatus) {
+            const oldStatusName = statusEffect.getStatusName(applyResult.replacedStatus);
+            context.log(`${targetElf.getDisplayName()} 的${oldStatusName}状态被${statusName}覆盖了！`);
+            if (typeof context.appendEvent === 'function') {
+                context.appendEvent(BattleManager.EVENT.STATUS_REMOVED, {
+                    target: targetKey,
+                    status: applyResult.replacedStatus,
+                    reason: 'replaced'
+                });
+            }
+        }
+
+        if (applyResult.applied) {
+            context.log(`${targetElf.getDisplayName()} 陷入了${statusName}状态！`);
+        } else if (applyResult.refreshed) {
+            context.log(`${targetElf.getDisplayName()} 的${statusName}状态回合刷新了！`);
+        }
+
+        if ((applyResult.applied || applyResult.refreshed) && typeof context.appendEvent === 'function') {
+            context.appendEvent(BattleManager.EVENT.STATUS_APPLIED, {
+                target: targetKey,
+                status: applyResult.statusType,
+                category: applyResult.category,
+                duration: applyResult.duration,
+                refreshed: !!applyResult.refreshed,
+                replacedStatus: applyResult.replacedStatus || null
+            });
         }
     },
 

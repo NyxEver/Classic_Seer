@@ -17,6 +17,74 @@ const BattleHud = {
             stroke: '#000000',
             strokeThickness: 4
         }).setOrigin(0.5);
+
+        this.createStatusIconRows();
+    },
+
+    createStatusIconRows() {
+        if (this.playerStatusIconRow) {
+            this.playerStatusIconRow.destroy();
+        }
+        if (this.enemyStatusIconRow) {
+            this.enemyStatusIconRow.destroy();
+        }
+
+        this.playerStatusIconRow = this.add.container(12, 82);
+        this.enemyStatusIconRow = this.add.container(this.W - 12, 82);
+        this.playerStatusIconRow.setDepth(30);
+        this.enemyStatusIconRow.setDepth(30);
+        this.refreshStatusIcons();
+    },
+
+    refreshStatusIcons() {
+        if (!this.playerStatusIconRow || !this.enemyStatusIconRow) {
+            return;
+        }
+
+        this.playerStatusIconRow.removeAll(true);
+        this.enemyStatusIconRow.removeAll(true);
+
+        const statusEffect = (typeof StatusEffect !== 'undefined') ? StatusEffect : null;
+        if (!statusEffect || typeof statusEffect.getDisplayStatuses !== 'function') {
+            return;
+        }
+
+        const iconSize = 22;
+        const gap = 6;
+        const renderRow = (rowContainer, statuses, isRightAligned) => {
+            statuses.forEach((statusType, index) => {
+                const key = (typeof AssetMappings !== 'undefined' && AssetMappings && typeof AssetMappings.getStatusIconKey === 'function')
+                    ? AssetMappings.getStatusIconKey(statusType)
+                    : null;
+
+                const offsetX = (iconSize + gap) * index;
+                const x = isRightAligned ? -offsetX : offsetX;
+                const y = 0;
+
+                if (key && this.textures.exists(key)) {
+                    const icon = this.add.image(x, y, key).setOrigin(isRightAligned ? 1 : 0, 0.5);
+                    const scale = Math.min(iconSize / icon.width, iconSize / icon.height);
+                    icon.setScale(scale);
+                    rowContainer.add(icon);
+                    return;
+                }
+
+                const fallback = this.add.circle(x + (isRightAligned ? -11 : 11), y, 10, 0x334455, 1)
+                    .setStrokeStyle(1, 0xffffff, 0.8)
+                    .setOrigin(0.5, 0.5);
+                const label = this.add.text(x + (isRightAligned ? -11 : 11), y, statusEffect.getStatusName(statusType).charAt(0), {
+                    fontSize: '10px',
+                    fontFamily: 'Arial',
+                    color: '#ffffff',
+                    fontStyle: 'bold'
+                }).setOrigin(0.5, 0.5);
+                rowContainer.add(fallback);
+                rowContainer.add(label);
+            });
+        };
+
+        renderRow(this.playerStatusIconRow, statusEffect.getDisplayStatuses(this.playerElf), false);
+        renderRow(this.enemyStatusIconRow, statusEffect.getDisplayStatuses(this.enemyElf), true);
     },
 
     createStatusBar(elf, x, y, isPlayer) {
@@ -91,6 +159,9 @@ const BattleHud = {
         }
 
         this.updateStatusHp(isPlayer ? 'player' : 'enemy');
+        if (typeof this.refreshStatusIcons === 'function' && this.playerStatusIconRow && this.enemyStatusIconRow) {
+            this.refreshStatusIcons();
+        }
     },
 
     updateStatusHp(side) {

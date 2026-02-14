@@ -112,6 +112,9 @@ class BattleScene extends Phaser.Scene {
         let result = null;
         try {
             result = await this.battleManager.executeTurn();
+            if (typeof this.refreshStatusIcons === 'function') {
+                this.refreshStatusIcons();
+            }
         } catch (error) {
             console.error('[BattleScene] executeTurn 失败:', error);
             this.actionIntentLocked = false;
@@ -190,6 +193,8 @@ class BattleScene extends Phaser.Scene {
 const BATTLE_SCENE_FACADE_METHODS = {
     BattleHud: [
         'createTopBar',
+        'createStatusIconRows',
+        'refreshStatusIcons',
         'createStatusBar',
         'updateStatusHp',
         'createLeftInfoPanel',

@@ -124,6 +124,18 @@ class BootScene extends Phaser.Scene {
             console.log(`[BootScene] 预加载 ${loadedCount} 个属性图标`);
         }
 
+        // 加载异常状态图标资源
+        if (typeof AssetMappings !== 'undefined' && typeof AssetMappings.getAllStatusIconAssets === 'function') {
+            const statusAssets = AssetMappings.getAllStatusIconAssets();
+            let loadedCount = 0;
+            for (const asset of statusAssets) {
+                if (!asset || !asset.key || !asset.path) continue;
+                this.load.image(asset.key, asset.path);
+                loadedCount++;
+            }
+            console.log(`[BootScene] 预加载 ${loadedCount} 个异常状态图标`);
+        }
+
         // 加载背景音乐资源（优先 Base64，避免 file:// CORS）
         if (typeof AssetMappings !== 'undefined') {
             const loadedNames = new Set();

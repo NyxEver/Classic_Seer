@@ -10,6 +10,7 @@ const BattleOutcomeFlow = {
         }
 
         manager.setPhase(BattleManager.PHASE.CHECK_RESULT);
+        manager.applyEndTurnStatusEffects(result);
         const checkResult = manager.checkBattleEnd();
 
         if (checkResult.ended) {

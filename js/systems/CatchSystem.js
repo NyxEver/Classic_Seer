@@ -117,7 +117,10 @@ const CatchSystem = {
             skills: elf.skills ? [...elf.skills] : [],
             skillPP: elf.skillPP ? { ...elf.skillPP } : {},
             iv: elf.iv ? { ...elf.iv } : playerData.generateRandomIV(),
-            ev: elf.ev ? { ...elf.ev } : playerData.createInitialEV()
+            ev: elf.ev ? { ...elf.ev } : playerData.createInitialEV(),
+            status: (typeof StatusEffect !== 'undefined' && StatusEffect && typeof StatusEffect.cloneState === 'function')
+                ? StatusEffect.cloneState(elf.status)
+                : { weakening: {}, control: null }
         };
 
         // 添加到玩家精灵列表

@@ -31,6 +31,7 @@ const AssetMappings = {
 
     items: uiAssets.items || {},
     typeIcons: uiAssets.typeIcons || {},
+    statusIcons: uiAssets.statusIcons || {},
 
     /**
      * 获取精灵贴图 key
@@ -273,6 +274,42 @@ const AssetMappings = {
                 type,
                 key: `type_${name}`,
                 path: `assets/images/ui/icons/type/${name}.png`
+            });
+        }
+        return assets;
+    },
+
+    /**
+     * 获取异常状态图标 key
+     * @param {string} statusType - 异常状态类型
+     * @returns {string|null}
+     */
+    getStatusIconKey(statusType) {
+        const name = this.statusIcons[statusType];
+        return name ? `status_${name}` : null;
+    },
+
+    /**
+     * 获取异常状态图标路径
+     * @param {string} statusType - 异常状态类型
+     * @returns {string|null}
+     */
+    getStatusIconPath(statusType) {
+        const name = this.statusIcons[statusType];
+        return name ? `assets/images/ui/icons/status/${name}.png` : null;
+    },
+
+    /**
+     * 获取全部异常状态图标资源列表
+     * @returns {Array<{statusType: string, key: string, path: string}>}
+     */
+    getAllStatusIconAssets() {
+        const assets = [];
+        for (const [statusType, name] of Object.entries(this.statusIcons)) {
+            assets.push({
+                statusType,
+                key: `status_${name}`,
+                path: `assets/images/ui/icons/status/${name}.png`
             });
         }
         return assets;

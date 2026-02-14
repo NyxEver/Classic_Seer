@@ -110,7 +110,10 @@ const PlayerData = {
             skills: initialSkills,
             skillPP: skillPP,
             iv: iv,
-            ev: ev
+            ev: ev,
+            status: (typeof StatusEffect !== 'undefined' && StatusEffect && typeof StatusEffect.createEmptyState === 'function')
+                ? StatusEffect.createEmptyState()
+                : { weakening: {}, control: null }
         };
     },
 
@@ -195,6 +198,21 @@ const PlayerData = {
             this.lastSaveTime = saveData.lastSaveTime || null;
             this.seenElves = saveData.seenElves || [];
             this.caughtElves = saveData.caughtElves || [];
+
+            if (Array.isArray(this.elves)) {
+                this.elves.forEach((elfData) => {
+                    if (!elfData || typeof elfData !== 'object') {
+                        return;
+                    }
+                    if (typeof StatusEffect !== 'undefined' && StatusEffect && typeof StatusEffect.clearAllOnInstanceData === 'function') {
+                        if (!elfData.status || typeof elfData.status !== 'object') {
+                            StatusEffect.clearAllOnInstanceData(elfData);
+                        }
+                    } else if (!elfData.status || typeof elfData.status !== 'object') {
+                        elfData.status = { weakening: {}, control: null };
+                    }
+                });
+            }
 
             console.log('[PlayerData] 存档加载成功');
             return true;
