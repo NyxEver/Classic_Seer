@@ -675,6 +675,7 @@ const SkillsData = {
                 type: "status",
                 status: "parasitism",
                 duration: 5,
+                healRatio: 0.125,
                 immuneType: "grass",
                 description: "5回合吸取对方最大体力1/8（草系无效）"
             },
@@ -1590,11 +1591,10 @@ const SkillsData = {
                 immuneDamageDuration: 2,
                 regenDuration: 5,
                 regenRatio: 0.3333,
-                enemyTypePriorityBonus: 1,
                 guaranteedFirstStrikeDuration: 2,
                 damageMultiplierDuration: 2,
                 damageMultiplier: 2,
-                description: "2回合免疫伤害；5回合每回合回复1/3HP；遇天敌先制+1；下2回合必定先手；下2回合伤害翻倍"
+                description: "2回合免疫伤害；5回合每回合回复1/3HP；下2回合必定先手；下2回合伤害翻倍"
             },
             description: "复合强化技能。"
         },
@@ -1611,8 +1611,7 @@ const SkillsData = {
             effect: {
                 type: "transferBuffAndGrowingFixedDamage",
                 maxFixedDamage: 400,
-                enemyTypeDouble: true,
-                description: "转移对手能力提升；附加固定伤害递增，最高400点，天敌时翻倍"
+                description: "转移对手能力提升；附加固定伤害递增，最高400点"
             },
             description: "高先制圣灵系特殊攻击。"
         },

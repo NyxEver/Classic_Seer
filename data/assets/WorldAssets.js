@@ -138,6 +138,46 @@ const WorldAssets = {
     },
 
     /**
+     * 赛尔机器人（玩家）八方向行走图集基础资源
+     * 说明：当前资源仅提供 5 个方向，缺失方向在运行时通过镜像补全
+     */
+    seerDynamicAtlases: {
+        seer_dyn_front: {
+            texture: 'assets/images/Seer/front/seer_front.png',
+            atlas: 'assets/images/Seer/front/seer_front.json'
+        },
+        seer_dyn_back: {
+            texture: 'assets/images/Seer/back/seer_back.png',
+            atlas: 'assets/images/Seer/back/seer_back.json'
+        },
+        seer_dyn_left: {
+            texture: 'assets/images/Seer/left/seer_left.png',
+            atlas: 'assets/images/Seer/left/seer_left.json'
+        },
+        seer_dyn_left_down: {
+            texture: 'assets/images/Seer/left_side/seer_left_side.png',
+            atlas: 'assets/images/Seer/left_side/seer_left_side.json'
+        },
+        seer_dyn_right_up: {
+            texture: 'assets/images/Seer/rear_right/seer_rear_right.png',
+            atlas: 'assets/images/Seer/rear_right/seer_rear_right.json'
+        }
+    },
+
+    /**
+     * 赛尔机器人方向到图集 key 的映射（仅真实资源方向）
+     * 其他方向在运行时镜像补全：
+     * right <- left, right_down <- left_down, left_up <- right_up
+     */
+    seerDynamicClips: {
+        front: 'seer_dyn_front',
+        back: 'seer_dyn_back',
+        left: 'seer_dyn_left',
+        left_down: 'seer_dyn_left_down',
+        right_up: 'seer_dyn_right_up'
+    },
+
+    /**
      * 克洛斯星场景配置
      * 包含每个子场景的背景、入口点、精灵刷新区域、传送热点
      */

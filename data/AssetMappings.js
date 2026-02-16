@@ -25,9 +25,13 @@ const AssetMappings = {
     externalStillPaths: worldAssets.externalStillPaths || {},
     externalDynamicAtlases: worldAssets.externalDynamicAtlases || {},
     externalDynamicClips: worldAssets.externalDynamicClips || {},
+    seerDynamicAtlases: worldAssets.seerDynamicAtlases || {},
+    seerDynamicClips: worldAssets.seerDynamicClips || {},
     kloseScenes: worldAssets.kloseScenes || {},
 
     bgm: audioAssets.bgm || {},
+    bgmPaths: audioAssets.bgmPaths || {},
+    bgmDataKeys: audioAssets.bgmDataKeys || {},
 
     items: uiAssets.items || {},
     typeIcons: uiAssets.typeIcons || {},
@@ -162,6 +166,34 @@ const AssetMappings = {
     },
 
     /**
+     * 获取赛尔机器人方向图集 key（基础 5 向）
+     * @param {string} direction - front/back/left/left_down/right_up
+     * @returns {string|null}
+     */
+    getSeerDynamicAtlasKey(direction) {
+        const key = this.seerDynamicClips[direction];
+        if (!key) return null;
+        return this.seerDynamicAtlases[key] ? key : null;
+    },
+
+    /**
+     * 获取赛尔机器人方向图集资源列表（用于批量 preload）
+     * @returns {Array<{key: string, texturePath: string, atlasPath: string}>}
+     */
+    getAllSeerDynamicAtlases() {
+        const assets = [];
+        for (const [key, value] of Object.entries(this.seerDynamicAtlases)) {
+            if (!value || !value.texture || !value.atlas) continue;
+            assets.push({
+                key,
+                texturePath: value.texture,
+                atlasPath: value.atlas
+            });
+        }
+        return assets;
+    },
+
+    /**
      * 获取场景 BGM 资源 key
      * @param {string} sceneKey - 场景 key
      * @returns {string|null}
@@ -178,7 +210,22 @@ const AssetMappings = {
      */
     getBgmPath(sceneKey) {
         const name = this.bgm[sceneKey];
-        return name ? `assets/audio/bgm/${name}.mp3` : null;
+        if (!name) return null;
+        if (this.bgmPaths[name]) {
+            return this.bgmPaths[name];
+        }
+        return `assets/audio/bgm/${name}.mp3`;
+    },
+
+    /**
+     * 获取场景 BGM 对应 Base64 数据键
+     * @param {string} sceneKey - 场景 key
+     * @returns {string|null}
+     */
+    getBgmDataKey(sceneKey) {
+        const name = this.bgm[sceneKey];
+        if (!name) return null;
+        return this.bgmDataKeys[name] || name;
     },
 
     /**
@@ -187,10 +234,19 @@ const AssetMappings = {
      */
     getAllBgmAssets() {
         const assets = [];
-        for (const name of Object.values(this.bgm)) {
+        const loadedNames = new Set();
+        for (const [sceneKey, name] of Object.entries(this.bgm)) {
+            if (loadedNames.has(name)) continue;
+            loadedNames.add(name);
+
+            const path = this.bgmPaths[name] || `assets/audio/bgm/${name}.mp3`;
+            const dataKey = this.bgmDataKeys[name] || name;
             assets.push({
                 key: `bgm_${name}`,
-                path: `assets/audio/bgm/${name}.mp3`
+                path,
+                dataKey,
+                sceneKey,
+                name
             });
         }
         return assets;

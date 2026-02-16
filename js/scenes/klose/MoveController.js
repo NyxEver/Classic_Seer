@@ -6,6 +6,17 @@
 class KloseMoveController {
     constructor(scene) {
         this.scene = scene;
+        this.playerMoveTween = null;
+        this.playerMoveTarget = null;
+        this.playerMoveDirection = null;
+
+        // 玩家移动速度参数（可按体验微调）
+        // 目标风格：恒速慢速版（无起步停顿、无加减速）
+        this.playerMoveMsPerPixel = 5.5;
+        this.playerMoveMinDuration = 360;
+        this.playerMoveMaxDuration = 5200;
+        this.playerMoveStartDelay = 0;
+        this.playerMoveEase = 'Linear';
     }
 
     createMoveArea(width, height) {
@@ -19,28 +30,135 @@ class KloseMoveController {
     }
 
     movePlayerTo(targetX, targetY) {
+        if (!this.scene.player || !this.scene.player.scene) {
+            return;
+        }
+
         const { width, height } = this.scene.cameras.main;
         const clampedX = Phaser.Math.Clamp(targetX, 50, width - 50);
         const clampedY = Phaser.Math.Clamp(targetY, 100, height - 80);
 
+        const dx = clampedX - this.scene.player.x;
+        const dy = clampedY - this.scene.player.y;
         const distance = Phaser.Math.Distance.Between(
             this.scene.player.x,
             this.scene.player.y,
             clampedX,
             clampedY
         );
-        const duration = distance * 2;
 
-        this.scene.tweens.add({
+        if (distance < 2) {
+            if (this.scene.playerAnimator && typeof this.scene.playerAnimator.playIdle === 'function') {
+                this.scene.playerAnimator.playIdle(this.scene.playerDirection || 'front');
+            }
+            return;
+        }
+
+        const duration = Phaser.Math.Clamp(
+            Math.floor(distance * this.playerMoveMsPerPixel),
+            this.playerMoveMinDuration,
+            this.playerMoveMaxDuration
+        );
+        const playerDirection = this.getPlayerDirectionFromVector(dx, dy);
+
+        if (this.isDuplicateMoveRequest(clampedX, clampedY, playerDirection)) {
+            return;
+        }
+
+        this.scene.playerDirection = playerDirection;
+
+        if (this.scene.playerAnimator && typeof this.scene.playerAnimator.playMove === 'function') {
+            this.scene.playerAnimator.playMove(playerDirection, distance, duration);
+        }
+
+        if (this.playerMoveTween) {
+            this.playerMoveTween.stop();
+            this.playerMoveTween = null;
+        }
+
+        this.playerMoveTarget = { x: clampedX, y: clampedY };
+        this.playerMoveDirection = playerDirection;
+
+        this.playerMoveTween = this.scene.tweens.add({
             targets: this.scene.player,
             x: clampedX,
             y: clampedY,
+            delay: this.playerMoveStartDelay,
             duration,
-            ease: 'Linear'
+            ease: this.playerMoveEase,
+            onComplete: () => {
+                this.playerMoveTween = null;
+                this.playerMoveTarget = null;
+                this.playerMoveDirection = null;
+                if (this.scene.playerAnimator && typeof this.scene.playerAnimator.playIdle === 'function') {
+                    this.scene.playerAnimator.playIdle(playerDirection);
+                }
+            }
         });
 
         this.scene.playerX = clampedX;
         this.scene.playerY = clampedY;
+    }
+
+    isDuplicateMoveRequest(targetX, targetY, direction) {
+        if (!this.isPlayerMoveActive()) {
+            return false;
+        }
+        if (!this.playerMoveTarget || !this.playerMoveDirection) {
+            return false;
+        }
+
+        const targetTolerance = 10;
+        const sameTarget = Phaser.Math.Distance.Between(
+            targetX,
+            targetY,
+            this.playerMoveTarget.x,
+            this.playerMoveTarget.y
+        ) <= targetTolerance;
+
+        return sameTarget && direction === this.playerMoveDirection;
+    }
+
+    isPlayerMoveActive() {
+        if (!this.playerMoveTween) {
+            return false;
+        }
+
+        if (typeof this.playerMoveTween.isPlaying === 'function') {
+            return this.playerMoveTween.isPlaying();
+        }
+
+        return !!this.playerMoveTween.isPlaying;
+    }
+
+    getPlayerDirectionFromVector(dx, dy) {
+        const epsilon = 0.001;
+        if (Math.abs(dx) < epsilon && Math.abs(dy) < epsilon) {
+            return this.scene.playerDirection || 'front';
+        }
+
+        const octant = Math.round(Math.atan2(dy, dx) / (Math.PI / 4));
+        switch (octant) {
+            case 0:
+                return 'right';
+            case 1:
+                return 'right_down';
+            case 2:
+                return 'front';
+            case 3:
+                return 'left_down';
+            case 4:
+            case -4:
+                return 'left';
+            case -3:
+                return 'left_up';
+            case -2:
+                return 'back';
+            case -1:
+                return 'right_up';
+            default:
+                return 'front';
+        }
     }
 
     getSceneWildMoveRadius() {

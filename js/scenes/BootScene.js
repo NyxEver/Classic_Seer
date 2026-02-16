@@ -68,6 +68,18 @@ class BootScene extends Phaser.Scene {
             console.log(`[BootScene] 预加载 ${loadedCount} 组场景外动态图集`);
         }
 
+        // 加载赛尔机器人方向图集（克洛斯星玩家行走）
+        if (typeof AssetMappings !== 'undefined' && typeof AssetMappings.getAllSeerDynamicAtlases === 'function') {
+            const atlases = AssetMappings.getAllSeerDynamicAtlases();
+            let loadedCount = 0;
+            for (const atlas of atlases) {
+                if (!atlas || !atlas.key || !atlas.texturePath || !atlas.atlasPath) continue;
+                this.load.atlas(atlas.key, atlas.texturePath, atlas.atlasPath);
+                loadedCount++;
+            }
+            console.log(`[BootScene] 预加载 ${loadedCount} 组赛尔方向图集`);
+        }
+
         // 加载背景图片
         if (typeof BackgroundData !== 'undefined') {
             for (const [key, data] of Object.entries(BackgroundData)) {
@@ -136,23 +148,26 @@ class BootScene extends Phaser.Scene {
             console.log(`[BootScene] 预加载 ${loadedCount} 个异常状态图标`);
         }
 
-        // 加载背景音乐资源（优先 Base64，避免 file:// CORS）
-        if (typeof AssetMappings !== 'undefined') {
-            const loadedNames = new Set();
+        // 加载背景音乐资源
+        // 说明：优先使用 Base64（可跨 file:// / http 稳定加载），无 Base64 时在非 file:// 下回退文件路径
+        if (typeof AssetMappings !== 'undefined' && typeof AssetMappings.getAllBgmAssets === 'function') {
+            const bgmAssets = AssetMappings.getAllBgmAssets();
             let loadedCount = 0;
-            for (const bgmName of Object.values(AssetMappings.bgm || {})) {
-                if (loadedNames.has(bgmName)) continue;
-                loadedNames.add(bgmName);
+            for (const asset of bgmAssets) {
+                if (!asset || !asset.key || !asset.path) continue;
 
-                const key = `bgm_${bgmName}`;
-                if (typeof BgmData !== 'undefined' && BgmData[bgmName]) {
-                    this.load.audio(key, BgmData[bgmName]);
+                const dataKey = asset.dataKey || asset.name || null;
+                if (typeof BgmData !== 'undefined' && dataKey && BgmData[dataKey]) {
+                    this.load.audio(asset.key, BgmData[dataKey]);
                     loadedCount++;
-                } else if (!isFileProtocol) {
-                    this.load.audio(key, `assets/audio/bgm/${bgmName}.mp3`);
+                    continue;
+                }
+
+                if (!isFileProtocol) {
+                    this.load.audio(asset.key, asset.path);
                     loadedCount++;
                 } else {
-                    console.warn(`[BootScene] 缺少 BgmData: ${bgmName}`);
+                    console.warn(`[BootScene] 缺少 BgmData: ${dataKey || asset.key}`);
                 }
             }
             console.log(`[BootScene] 预加载 ${loadedCount} 个 BGM`);

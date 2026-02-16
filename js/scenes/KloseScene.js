@@ -3,6 +3,19 @@
  * 仅保留场景生命周期与服务协调
  */
 
+function getKloseSceneDependency(name) {
+    if (typeof AppContext !== 'undefined' && typeof AppContext.get === 'function') {
+        const dep = AppContext.get(name, null);
+        if (dep) {
+            return dep;
+        }
+    }
+    if (typeof window !== 'undefined') {
+        return window[name] || null;
+    }
+    return null;
+}
+
 class KloseScene extends Phaser.Scene {
     constructor() {
         super({ key: 'KloseScene' });
@@ -10,6 +23,7 @@ class KloseScene extends Phaser.Scene {
         this.currentSubScene = 1;
         this.playerX = 500;
         this.playerY = 400;
+        this.playerDirection = 'front';
         this.wildElves = [];
     }
 
@@ -41,6 +55,8 @@ class KloseScene extends Phaser.Scene {
         this.createBackground(width, height);
         this.createPlayer();
 
+        this.playKloseBgm();
+
         this.moveController = new KloseMoveController(this);
         this.spawnService = new KloseSpawnService(this, this.moveController);
         this.hotspotService = new KloseHotspotService(this);
@@ -49,6 +65,13 @@ class KloseScene extends Phaser.Scene {
         this.hotspotService.createHotspots();
         this.hotspotService.createBackButton();
         this.moveController.createMoveArea(width, height);
+
+        this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+            if (this.playerAnimator && typeof this.playerAnimator.destroy === 'function') {
+                this.playerAnimator.destroy();
+            }
+            this.playerAnimator = null;
+        });
 
         PlayerData.currentMapId = `klose_${this.currentSubScene}`;
         PlayerData.saveToStorage();
@@ -83,6 +106,22 @@ class KloseScene extends Phaser.Scene {
     }
 
     createPlayer() {
+        const playerName = PlayerData.playerName || '赛尔';
+        this.playerDirection = 'front';
+
+        if (typeof KlosePlayerAnimator !== 'undefined') {
+            this.playerAnimator = new KlosePlayerAnimator(this);
+            const animatedPlayer = this.playerAnimator.createPlayer(this.playerX, this.playerY, playerName);
+            if (animatedPlayer) {
+                this.player = animatedPlayer;
+                this.player.setDepth(10);
+                return;
+            }
+
+            console.warn('[KloseScene] 赛尔方向图集不可用，回退为图形玩家模型');
+            this.playerAnimator = null;
+        }
+
         this.player = this.add.container(this.playerX, this.playerY);
 
         const graphics = this.add.graphics();
@@ -94,16 +133,14 @@ class KloseScene extends Phaser.Scene {
         graphics.fillRoundedRect(-22, -55, 44, 25, 8);
         graphics.fillStyle(0x88ccff, 0.6);
         graphics.fillCircle(0, -35, 12);
-
         this.player.add(graphics);
 
-        const nameTag = this.add.text(0, 35, PlayerData.playerName || '赛尔', {
+        const nameTag = this.add.text(0, 35, playerName, {
             fontSize: '12px',
             color: '#ffffff',
             backgroundColor: '#00000080',
             padding: { x: 4, y: 2 }
         }).setOrigin(0.5);
-
         this.player.add(nameTag);
         this.player.setDepth(10);
     }
@@ -119,5 +156,13 @@ class KloseScene extends Phaser.Scene {
 
     getBattleBackgroundKey() {
         return this.sceneConfig ? this.sceneConfig.background : null;
+    }
+
+    playKloseBgm() {
+        const bgmManager = getKloseSceneDependency('BgmManager');
+        if (!bgmManager || typeof bgmManager.transitionTo !== 'function') {
+            return;
+        }
+        bgmManager.transitionTo('KloseScene', this);
     }
 }
