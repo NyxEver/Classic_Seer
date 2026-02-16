@@ -35,7 +35,7 @@ const WorldBottomBar = {
                 label: '背包',
                 iconKey: 'dock_btn_bag',
                 fallbackIcon: 'B',
-                iconScaleMultiplier: 1.05,
+                iconScaleMultiplier: 1.2,
                 disabled: false,
                 onClick: options.onBag
             },

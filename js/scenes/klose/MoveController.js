@@ -12,7 +12,7 @@ class KloseMoveController {
 
         // 玩家移动速度参数（可按体验微调）
         // 目标风格：恒速慢速版（无起步停顿、无加减速）
-        this.playerMoveMsPerPixel = 5.5;
+        this.playerMoveMsPerPixel = 9;
         this.playerMoveMinDuration = 360;
         this.playerMoveMaxDuration = 5200;
         this.playerMoveStartDelay = 0;

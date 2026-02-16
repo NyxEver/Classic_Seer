@@ -63,13 +63,6 @@ class BattleScene extends Phaser.Scene {
 
         this.playBattleBgm();
 
-        const startMsg = this.battleType === 'wild'
-            ? `野生的 ${this.enemyElf.getDisplayName()} 出现了！`
-            : `对手派出了 ${this.enemyElf.getDisplayName()}！`;
-
-        this.addLog(startMsg);
-        this.addLog(`去吧！${this.playerElf.getDisplayName()}！`);
-
         this.showLogs(() => {
             if (!this.battleEnded) {
                 this.enableMenu();
@@ -136,6 +129,14 @@ class BattleScene extends Phaser.Scene {
             ? animationResult.catchResult
             : (result.catchResult || null);
 
+        const floatTextsQueuedByAnimator = animationResult && animationResult.floatTextsQueued === true;
+        if (!floatTextsQueuedByAnimator && typeof this.showTurnFloatTexts === 'function') {
+            this.showTurnFloatTexts(result);
+        }
+        if (typeof this.queueTurnSkillLogs === 'function') {
+            this.queueTurnSkillLogs(result);
+        }
+
         if (catchResult) {
             if (catchResult.success) {
                 this.finalizeBattleOnce('capture_success', {
@@ -144,8 +145,6 @@ class BattleScene extends Phaser.Scene {
                 });
                 return;
             }
-
-            this.addLog(`${this.enemyElf.getDisplayName()} 挣脱了胶囊！`);
         }
 
         await new Promise((resolve) => this.showLogs(resolve));
@@ -174,8 +173,6 @@ class BattleScene extends Phaser.Scene {
         if (outcome.needSwitch || result.needSwitch) {
             this.playerElf._instanceData.currentHp = 0;
             PlayerData.saveToStorage();
-
-            this.addLog(`${this.playerElf.getDisplayName()} 倒下了！`);
             await new Promise((resolve) => this.showLogs(resolve));
             this.actionIntentLocked = false;
             this.showForceSwitchPanel();
@@ -201,7 +198,18 @@ const BATTLE_SCENE_FACADE_METHODS = {
         'createCenterPopupDialog',
         'showPopup',
         'addLog',
+        'getSkillNameById',
+        'getBattleSideDisplayName',
+        'getBattleSideStatusText',
+        'queueTurnSkillLogs',
+        'clipLogTextToWidth',
+        'appendLogEntry',
         'showLogs',
+        'resolveFloatStyle',
+        'getFloatAnchorBySide',
+        'createFloatBubble',
+        'playNextTurnFloatText',
+        'showTurnFloatTexts',
         'startTurnTimer',
         'stopTurnTimer',
         'updateTimerDisplay',

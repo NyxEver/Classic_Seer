@@ -18,11 +18,19 @@ const BattleActionButtonsView = {
     },
 
     createRightActionButtons(panelY) {
-        const x = 710;
-        const y = panelY + 15;
         const btnW = 120;
         const btnH = 45;
         const gap = 10;
+        const totalW = btnW * 2 + gap;
+        const totalH = btnH * 2 + gap;
+
+        const rightAreaX = 700;
+        const rightAreaY = panelY + 10;
+        const rightAreaW = Math.max(totalW, this.W - rightAreaX - 15);
+        const rightAreaH = 150;
+
+        const x = Math.round(rightAreaX + (rightAreaW - totalW) / 2);
+        const y = Math.round(rightAreaY + (rightAreaH - totalH) / 2);
 
         if (this.actionContainer && !this.actionContainer.scene) {
             this.actionContainer = null;

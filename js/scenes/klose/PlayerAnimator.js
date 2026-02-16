@@ -34,7 +34,7 @@ class KlosePlayerAnimator {
         sprite.setOrigin(0.5, 1);
         const targetHeight = 86;
         const scale = sprite.height > 0 ? targetHeight / sprite.height : 1;
-        sprite.setScale(scale);
+        sprite.setScale(scale * 0.68);
 
         const nameTag = this.scene.add.text(0, 46, playerName, {
             fontSize: '12px',

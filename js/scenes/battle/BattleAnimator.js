@@ -231,17 +231,24 @@ function waitMs(scene, ms) {
 }
 
 function getPhysicalStrikeX(scene, attackerIsPlayer) {
-    if (attackerIsPlayer) {
-        if (scene.enemyStatus && scene.enemyStatus.container) {
-            return scene.enemyStatus.container.x - 40;
-        }
-        return scene.W - 320;
+    const attackerSprite = attackerIsPlayer ? scene.playerSprite : scene.enemySprite;
+    const defenderSprite = attackerIsPlayer ? scene.enemySprite : scene.playerSprite;
+
+    let targetX = null;
+    if (attackerSprite && defenderSprite) {
+        const direction = attackerIsPlayer ? 1 : -1;
+        const distance = Math.abs(defenderSprite.x - attackerSprite.x);
+        const advance = Math.max(90, Math.min(140, Math.round(distance * 0.24)));
+        targetX = attackerSprite.x + direction * advance;
+    } else if (attackerSprite) {
+        targetX = attackerSprite.x + (attackerIsPlayer ? 120 : -120);
+    } else {
+        targetX = attackerIsPlayer ? (scene.W * 0.36) : (scene.W * 0.64);
     }
 
-    if (scene.playerStatus && scene.playerStatus.container) {
-        return scene.playerStatus.container.x + 290;
-    }
-    return 320;
+    const minX = Math.max(80, Math.floor(scene.W * 0.15));
+    const maxX = Math.min(scene.W - 80, Math.floor(scene.W * 0.85));
+    return Math.max(minX, Math.min(maxX, targetX));
 }
 
 function getStillClipDurationMs(scene, elfId) {
@@ -592,25 +599,94 @@ const BattleAnimator = {
                 const catchResult = catchEvent
                     ? (catchEvent.result || null)
                     : ((result && result.catchResult) || null);
+                let floatTextsQueued = false;
+
+                const isSkillCastEvent = (event) => event && (event.type === 'skill_cast' || event.type === 'skillCast');
+                const isHpChangeEvent = (event) => {
+                    return event
+                        && (event.type === BattleManager.EVENT.HP_CHANGE || event.type === 'hp_change')
+                        && Number.isFinite(event.delta)
+                        && event.delta !== 0;
+                };
+
+                const queueFloatTexts = (hpEvents) => {
+                    if (!Array.isArray(hpEvents) || hpEvents.length === 0) {
+                        return;
+                    }
+                    if (typeof this.showTurnFloatTexts !== 'function') {
+                        return;
+                    }
+
+                    this.showTurnFloatTexts({ events: hpEvents });
+                    floatTextsQueued = true;
+                };
+
+                const consumedHpIndexes = new Set();
+                const queueHpChangesInRange = (startIndex, endIndex) => {
+                    if (!Number.isFinite(startIndex) || !Number.isFinite(endIndex) || startIndex >= endIndex) {
+                        return;
+                    }
+
+                    const hpEvents = [];
+                    for (let index = startIndex; index < endIndex; index++) {
+                        const event = events[index];
+                        if (!isHpChangeEvent(event)) {
+                            continue;
+                        }
+
+                        hpEvents.push(event);
+                        consumedHpIndexes.add(index);
+                    }
+
+                    queueFloatTexts(hpEvents);
+                };
 
                 if (catchResult) {
                     await this.playCatchAnimation(catchResult);
                 }
 
-                for (const event of events) {
-                    if (event.type === 'skill_cast' || event.type === 'skillCast') {
+                for (let eventIndex = 0; eventIndex < events.length; eventIndex++) {
+                    const event = events[eventIndex];
+                    if (isSkillCastEvent(event)) {
                         await playSkillCastAnimation(this, event);
+
                         this.updateStatusHp('player');
                         this.updateStatusHp('enemy');
                         this.updateSkillPP();
+
+                        let nextSkillIndex = events.length;
+                        for (let index = eventIndex + 1; index < events.length; index++) {
+                            if (isSkillCastEvent(events[index])) {
+                                nextSkillIndex = index;
+                                break;
+                            }
+                        }
+
+                        queueHpChangesInRange(eventIndex + 1, nextSkillIndex);
                     }
                 }
+
+                const remainingHpEvents = [];
+                for (let index = 0; index < events.length; index++) {
+                    if (consumedHpIndexes.has(index)) {
+                        continue;
+                    }
+
+                    const event = events[index];
+                    if (isHpChangeEvent(event)) {
+                        remainingHpEvents.push(event);
+                    }
+                }
+                queueFloatTexts(remainingHpEvents);
 
                 this.updateStatusHp('player');
                 this.updateStatusHp('enemy');
                 this.updateSkillPP();
 
-                return { catchResult };
+                return {
+                    catchResult,
+                    floatTextsQueued
+                };
             },
             options.onUnlock
         );
