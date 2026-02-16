@@ -21,7 +21,7 @@ class SpaceshipScene extends Phaser.Scene {
         this.createTopBar(width);
 
         // 创建底部功能栏
-        this.createBottomBar(width, height);
+        this.createBottomBar();
 
         // 更新存档位置
         PlayerData.currentMapId = 'spaceship';
@@ -95,16 +95,15 @@ class SpaceshipScene extends Phaser.Scene {
         // 房间配置：名称、是否可用、目标场景
         const rooms = [
             { name: '船长室', enabled: true, scene: 'CaptainRoomScene', icon: '🎖️' },
-            { name: '机械室', enabled: false, scene: null, icon: '⚙️' },
+            { name: '机械室', enabled: false, scene: null, icon: '🛠️' },
             { name: '实验室', enabled: false, scene: null, icon: '🔬' },
             { name: '传送舱', enabled: true, scene: 'TeleportScene', icon: '🚀' },
             { name: '能源中心', enabled: false, scene: null, icon: '⚡' },
-            { name: '资料室', enabled: true, scene: 'PokedexScene', icon: '📚' }
+            { name: '设置', enabled: true, scene: 'SettingsScene', icon: '⚙️', data: { returnScene: 'SpaceshipScene' } }
         ];
 
         // 布局：2行3列
         const cols = 3;
-        const rows = 2;
         const buttonWidth = 180;
         const buttonHeight = 120;
         const startX = (width - cols * buttonWidth - (cols - 1) * 40) / 2 + buttonWidth / 2;
@@ -198,7 +197,7 @@ class SpaceshipScene extends Phaser.Scene {
 
             container.on('pointerup', () => {
                 container.setScale(1.05);
-                SceneRouter.start(this, room.scene);
+                SceneRouter.start(this, room.scene, room.data || {});
             });
         } else {
             container.on('pointerup', () => {
@@ -230,94 +229,39 @@ class SpaceshipScene extends Phaser.Scene {
     }
 
     // ========== 底部功能栏 ==========
-    createBottomBar(width, height) {
-        const barH = 60;
-        const barY = height - barH;
-
-        // 底栏背景
-        const graphics = this.add.graphics();
-        graphics.fillStyle(0x1a2a3a, 0.95);
-        graphics.fillRect(0, barY, width, barH);
-        graphics.lineStyle(2, 0x4a6a8a, 1);
-        graphics.lineBetween(0, barY, width, barY);
-
-        // 按钮配置
-        const buttons = [
-            { name: '物品背包', icon: '🎒', scene: 'ItemBagScene' },
-            { name: '精灵管理', icon: '🐾', scene: 'ElfManageScene' },
-            { name: '设置', icon: '⚙️', scene: 'SettingsScene' }
-        ];
-
-        const btnW = 140;
-        const btnH = 40;
-        const spacing = 30;
-        const totalW = buttons.length * btnW + (buttons.length - 1) * spacing;
-        const startX = (width - totalW) / 2 + btnW / 2;
-
-        buttons.forEach((btn, i) => {
-            const x = startX + i * (btnW + spacing);
-            const y = barY + barH / 2;
-            this.createQuickButton(x, y, btnW, btnH, btn);
+    createBottomBar() {
+        this.worldBottomBar = WorldBottomBar.create(this, {
+            disableMap: true,
+            onBag: () => this.openItemBagModal(),
+            onElf: () => this.openElfManageModal()
         });
     }
 
-    createQuickButton(x, y, w, h, btn) {
-        const container = this.add.container(x, y);
+    openItemBagModal() {
+        if (this.scene.isActive('ItemBagScene')) {
+            return;
+        }
 
-        // 背景
-        const bg = this.add.graphics();
-        bg.fillStyle(0x3a5a7a, 1);
-        bg.fillRoundedRect(-w / 2, -h / 2, w, h, 8);
-        bg.lineStyle(2, 0x6a9aca, 1);
-        bg.strokeRoundedRect(-w / 2, -h / 2, w, h, 8);
-        container.add(bg);
-
-        // 图标 + 名称
-        const label = this.add.text(0, 0, `${btn.icon} ${btn.name}`, {
-            fontSize: '14px',
-            color: '#ffffff',
-            fontStyle: 'bold'
-        }).setOrigin(0.5);
-        container.add(label);
-
-        // 交互
-        const hit = this.add.rectangle(0, 0, w, h).setInteractive({ useHandCursor: true });
-        container.add(hit);
-
-        hit.on('pointerover', () => {
-            bg.clear();
-            bg.fillStyle(0x5a7a9a, 1);
-            bg.fillRoundedRect(-w / 2, -h / 2, w, h, 8);
-            bg.lineStyle(2, 0x8abada, 1);
-            bg.strokeRoundedRect(-w / 2, -h / 2, w, h, 8);
-            container.setScale(1.05);
+        SceneRouter.launch(this, 'ItemBagScene', {
+            returnScene: 'SpaceshipScene',
+            returnData: {}
+        }, {
+            bgmStrategy: 'inherit'
         });
+        this.scene.bringToTop('ItemBagScene');
+    }
 
-        hit.on('pointerout', () => {
-            bg.clear();
-            bg.fillStyle(0x3a5a7a, 1);
-            bg.fillRoundedRect(-w / 2, -h / 2, w, h, 8);
-            bg.lineStyle(2, 0x6a9aca, 1);
-            bg.strokeRoundedRect(-w / 2, -h / 2, w, h, 8);
-            container.setScale(1);
+    openElfManageModal() {
+        if (this.scene.isActive('ElfManageScene')) {
+            return;
+        }
+
+        SceneRouter.launch(this, 'ElfManageScene', {
+            returnScene: 'SpaceshipScene',
+            returnData: {}
+        }, {
+            bgmStrategy: 'inherit'
         });
-
-        hit.on('pointerdown', () => {
-            if (btn.scene === 'ElfManageScene') {
-                // 精灵管理以弹窗场景叠加，不切走飞船场景
-                if (this.scene.isActive('ElfManageScene')) {
-                    return;
-                }
-                SceneRouter.launch(this, 'ElfManageScene', { returnScene: 'SpaceshipScene' }, {
-                    bgmStrategy: 'inherit'
-                });
-                SceneRouter.pause(this, 'SpaceshipScene');
-                this.scene.bringToTop('ElfManageScene');
-                return;
-            }
-            SceneRouter.start(this, btn.scene, { returnScene: 'SpaceshipScene' });
-        });
-
-        return container;
+        this.scene.bringToTop('ElfManageScene');
     }
 }

@@ -1,209 +1,258 @@
 /**
- * ItemBagScene - 物品背包场景
- * 显示玩家拥有的物品
+ * ItemBagScene - 物品背包弹窗
+ * 仅作为叠加弹窗使用：不暂停底层场景，关闭时仅 stop 自身。
  */
-
 class ItemBagScene extends Phaser.Scene {
     constructor() {
         super({ key: 'ItemBagScene' });
+        this.returnScene = 'SpaceshipScene';
+        this.returnData = {};
     }
 
     init(data) {
         this.returnScene = data.returnScene || 'SpaceshipScene';
+        this.returnData = data.returnData || {};
     }
 
     create() {
+        this.cameras.main.setBackgroundColor('rgba(0,0,0,0)');
         this.W = this.cameras.main.width;
         this.H = this.cameras.main.height;
 
-        this.createBackground();
+        const overlayState = ModalOverlayLayer.mount(this, { alpha: 0, depth: 5200 });
+        this.baseDepth = overlayState && Number.isFinite(overlayState.depth) ? overlayState.depth : 5200;
+
+        this.modalW = Math.min(860, this.W - 80);
+        this.modalH = Math.min(520, this.H - 70);
+        this.modalX = Math.floor((this.W - this.modalW) / 2);
+        this.modalY = Math.floor((this.H - this.modalH) / 2);
+
+        this.root = this.add.container(this.modalX, this.modalY).setDepth(this.baseDepth + 1);
+
+        this.createPanelFrame();
         this.createHeader();
         this.createItemList();
-        this.createBackButton();
+        this.createCloseControls();
     }
 
-    // ========== 背景 ==========
-    createBackground() {
-        const g = this.add.graphics();
-        g.fillGradientStyle(0x1a2a4a, 0x1a2a4a, 0x0a1a2a, 0x0a1a2a, 1);
-        g.fillRect(0, 0, this.W, this.H);
+    createPanelFrame() {
+        const frame = this.add.graphics();
+        frame.fillStyle(0x132537, 0.97);
+        frame.fillRoundedRect(0, 0, this.modalW, this.modalH, 16);
+        frame.lineStyle(2, 0x5f84a6, 1);
+        frame.strokeRoundedRect(0, 0, this.modalW, this.modalH, 16);
+        frame.fillStyle(0xffffff, 0.06);
+        frame.fillRoundedRect(8, 8, this.modalW - 16, 18, 8);
+        this.root.add(frame);
     }
 
-    // ========== 顶部信息栏 ==========
     createHeader() {
-        const headerH = 80;
-        const g = this.add.graphics();
-        g.fillStyle(0x2a4a6a, 0.9);
-        g.fillRect(0, 0, this.W, headerH);
-        g.lineStyle(2, 0x4a7a9a);
-        g.lineBetween(0, headerH, this.W, headerH);
+        const headerH = 72;
+        const header = this.add.graphics();
+        header.fillStyle(0x1d3a52, 0.95);
+        header.fillRoundedRect(0, 0, this.modalW, headerH, 16);
+        header.fillRect(0, 22, this.modalW, headerH - 22);
+        header.lineStyle(1, 0x6e95b8, 0.9);
+        header.lineBetween(0, headerH, this.modalW, headerH);
+        this.root.add(header);
 
-        // 标题
-        this.add.text(this.W / 2, 25, '物品背包', {
-            fontSize: '28px', fontFamily: 'Arial', color: '#ffffff', fontStyle: 'bold'
-        }).setOrigin(0.5);
+        const title = this.add.text(20, 18, '物品背包', {
+            fontSize: '24px',
+            color: '#ffffff',
+            fontStyle: 'bold'
+        });
+        this.root.add(title);
 
-        // 赛尔豆显示
-        this.add.text(this.W / 2, 55, `💰 赛尔豆: ${PlayerData.seerBeans}`, {
-            fontSize: '18px', fontFamily: 'Arial', color: '#ffdd44'
-        }).setOrigin(0.5);
+        const beanText = this.add.text(this.modalW - 20, 20, `赛尔豆: ${PlayerData.seerBeans}`, {
+            fontSize: '15px',
+            color: '#ffdd77',
+            fontStyle: 'bold'
+        }).setOrigin(1, 0);
+        this.root.add(beanText);
     }
 
-    // ========== 物品列表 ==========
     createItemList() {
-        const startY = 100;
-        const itemH = 70;
-        const padding = 20;
-        const itemW = this.W - padding * 2;
+        const contentX = 18;
+        const contentY = 86;
+        const contentW = this.modalW - 36;
+        const rowH = 68;
+        const sectionGap = 10;
 
-        // 获取所有物品
         const items = ItemBag.getAll();
         const itemIds = Object.keys(items);
 
         if (itemIds.length === 0) {
-            this.add.text(this.W / 2, this.H / 2, '背包是空的', {
-                fontSize: '20px', fontFamily: 'Arial', color: '#888888'
+            const empty = this.add.text(this.modalW / 2, this.modalH / 2, '背包是空的', {
+                fontSize: '20px',
+                color: '#8aa0b6'
             }).setOrigin(0.5);
+            this.root.add(empty);
             return;
         }
 
-        // 分类显示物品
         const categories = {
-            'capsule': { name: '精灵胶囊', items: [], color: 0x44aa88 },
-            'hpPotion': { name: '体力药剂', items: [], color: 0xdd6644 },
-            'ppPotion': { name: '活力药剂', items: [], color: 0x6688dd }
+            capsule: { name: '精灵胶囊', color: 0x3f8f7b, items: [] },
+            hpPotion: { name: '体力药剂', color: 0xaa6542, items: [] },
+            ppPotion: { name: '活力药剂', color: 0x4e6eb1, items: [] }
         };
 
-        // 分类物品
-        itemIds.forEach(id => {
-            const itemData = DataLoader.getItem(parseInt(id));
-            if (itemData && categories[itemData.type]) {
-                categories[itemData.type].items.push({
-                    id: parseInt(id),
-                    data: itemData,
-                    count: items[id]
-                });
+        itemIds.forEach((idText) => {
+            const itemId = parseInt(idText, 10);
+            const itemData = DataLoader.getItem(itemId);
+            if (!itemData || !categories[itemData.type]) {
+                return;
             }
+
+            categories[itemData.type].items.push({
+                id: itemId,
+                data: itemData,
+                count: items[idText]
+            });
         });
 
-        let y = startY;
+        let cursorY = contentY;
+        for (const category of Object.values(categories)) {
+            if (!category.items.length) {
+                continue;
+            }
 
-        // 渲染每个分类
-        for (const type in categories) {
-            const cat = categories[type];
-            if (cat.items.length === 0) continue;
+            const tag = this.add.graphics();
+            tag.fillStyle(category.color, 0.25);
+            tag.fillRoundedRect(contentX, cursorY, contentW, 28, 6);
+            this.root.add(tag);
 
-            // 分类标题
-            const catBg = this.add.graphics();
-            catBg.fillStyle(cat.color, 0.3);
-            catBg.fillRoundedRect(padding, y, itemW, 35, 6);
-            this.add.text(padding + 15, y + 17, cat.name, {
-                fontSize: '16px', fontFamily: 'Arial', color: '#ffffff', fontStyle: 'bold'
+            const tagText = this.add.text(contentX + 10, cursorY + 14, category.name, {
+                fontSize: '14px',
+                color: '#d7e8f8',
+                fontStyle: 'bold'
             }).setOrigin(0, 0.5);
-            y += 45;
+            this.root.add(tagText);
+            cursorY += 34;
 
-            // 分类下的物品
-            cat.items.forEach(item => {
-                this.createItemRow(padding, y, itemW, itemH - 10, item);
-                y += itemH;
+            category.items.forEach((item) => {
+                const row = this.createItemRow(contentX, cursorY, contentW, rowH, item);
+                this.root.add(row);
+                cursorY += rowH + 8;
             });
 
-            y += 10; // 分类间距
+            cursorY += sectionGap;
         }
     }
 
     createItemRow(x, y, w, h, item) {
-        const container = this.add.container(x, y);
+        const container = this.add.container(0, 0);
 
-        // 背景
         const bg = this.add.graphics();
-        bg.fillStyle(0x2a3a5a, 1);
-        bg.fillRoundedRect(0, 0, w, h, 8);
-        bg.lineStyle(2, 0x4a5a7a);
-        bg.strokeRoundedRect(0, 0, w, h, 8);
+        bg.fillStyle(0x1d3248, 0.96);
+        bg.fillRoundedRect(x, y, w, h, 8);
+        bg.lineStyle(1, 0x4f6f8d, 1);
+        bg.strokeRoundedRect(x, y, w, h, 8);
         container.add(bg);
 
-        // 物品图标背景
-        const iconBg = this.add.graphics();
-        iconBg.fillStyle(0x3a5a7a, 1);
-        iconBg.fillRoundedRect(10, 10, h - 20, h - 20, 6);
-        container.add(iconBg);
+        const iconPanel = this.add.graphics();
+        iconPanel.fillStyle(0x2a4864, 0.95);
+        iconPanel.fillRoundedRect(x + 10, y + 10, h - 20, h - 20, 6);
+        container.add(iconPanel);
 
-        // 物品图标：优先使用资源映射，缺失时回退首字
-        const itemIconKey = AssetMappings.getItemImageKey(item.id);
-        if (itemIconKey && this.textures.exists(itemIconKey)) {
-            const iconImage = this.add.image(10 + (h - 20) / 2, h / 2, itemIconKey);
-            const iconSize = h - 24;
-            const scale = Math.min(iconSize / iconImage.width, iconSize / iconImage.height);
-            iconImage.setScale(scale);
-            container.add(iconImage);
+        const iconKey = AssetMappings.getItemImageKey(item.id);
+        if (iconKey && this.textures.exists(iconKey)) {
+            const icon = this.add.image(x + 10 + (h - 20) / 2, y + h / 2, iconKey);
+            const scale = Math.min((h - 26) / icon.width, (h - 26) / icon.height);
+            icon.setScale(scale);
+            container.add(icon);
         } else {
-            const iconText = this.add.text(10 + (h - 20) / 2, h / 2, item.data.name.charAt(0), {
-                fontSize: '20px', fontFamily: 'Arial', color: '#ffffff', fontStyle: 'bold'
+            const fallback = this.add.text(x + 10 + (h - 20) / 2, y + h / 2, item.data.name.charAt(0), {
+                fontSize: '18px',
+                color: '#ffffff',
+                fontStyle: 'bold'
             }).setOrigin(0.5);
-            container.add(iconText);
+            container.add(fallback);
         }
 
-        // 物品名称
-        const nameText = this.add.text(h + 10, 15, item.data.name, {
-            fontSize: '16px', fontFamily: 'Arial', color: '#ffffff', fontStyle: 'bold'
+        const name = this.add.text(x + h + 6, y + 12, item.data.name, {
+            fontSize: '16px',
+            color: '#ffffff',
+            fontStyle: 'bold'
         });
-        container.add(nameText);
+        container.add(name);
 
-        // 物品描述
-        const descText = this.add.text(h + 10, 38, item.data.description, {
-            fontSize: '12px', fontFamily: 'Arial', color: '#aaaaaa'
+        const desc = this.add.text(x + h + 6, y + 36, item.data.description, {
+            fontSize: '12px',
+            color: '#a9bfd4'
         });
-        container.add(descText);
+        container.add(desc);
 
-        // 数量
-        const countText = this.add.text(w - 20, h / 2, `x${item.count}`, {
-            fontSize: '18px', fontFamily: 'Arial', color: '#aaddaa', fontStyle: 'bold'
+        const count = this.add.text(x + w - 14, y + h / 2, `x${item.count}`, {
+            fontSize: '18px',
+            color: '#b8f0b8',
+            fontStyle: 'bold'
         }).setOrigin(1, 0.5);
-        container.add(countText);
+        container.add(count);
+
+        return container;
     }
 
-    // ========== 返回按钮 ==========
-    createBackButton() {
-        const btnW = 120, btnH = 45;
-        const x = this.W / 2, y = this.H - 50;
+    createCloseControls() {
+        const topCloseBg = this.add.circle(this.modalX + this.modalW - 24, this.modalY + 24, 14, 0x7b3f3f)
+            .setDepth(this.baseDepth + 3)
+            .setInteractive({ useHandCursor: true });
+        const topCloseText = this.add.text(this.modalX + this.modalW - 24, this.modalY + 24, 'X', {
+            fontSize: '13px',
+            color: '#ffffff',
+            fontStyle: 'bold'
+        }).setOrigin(0.5).setDepth(this.baseDepth + 4);
 
-        const container = this.add.container(x, y);
+        topCloseBg.on('pointerover', () => topCloseBg.setFillStyle(0xa34f4f));
+        topCloseBg.on('pointerout', () => topCloseBg.setFillStyle(0x7b3f3f));
+        topCloseBg.on('pointerdown', () => this.closeModal());
 
-        const bg = this.add.graphics();
-        bg.fillStyle(0x5a3a3a, 1);
-        bg.fillRoundedRect(-btnW / 2, -btnH / 2, btnW, btnH, 8);
-        bg.lineStyle(2, 0x8a5a5a);
-        bg.strokeRoundedRect(-btnW / 2, -btnH / 2, btnW, btnH, 8);
-        container.add(bg);
+        const btnW = 128;
+        const btnH = 38;
+        const closeBtn = this.add.container(this.modalX + this.modalW / 2, this.modalY + this.modalH - 28)
+            .setDepth(this.baseDepth + 3);
 
-        const text = this.add.text(0, 0, '返回', {
-            fontSize: '18px', fontFamily: 'Arial', color: '#ffffff', fontStyle: 'bold'
+        const closeBg = this.add.graphics();
+        closeBg.fillStyle(0x4d6278, 1);
+        closeBg.fillRoundedRect(-btnW / 2, -btnH / 2, btnW, btnH, 8);
+        closeBg.lineStyle(1, 0x8db2d3, 1);
+        closeBg.strokeRoundedRect(-btnW / 2, -btnH / 2, btnW, btnH, 8);
+        closeBtn.add(closeBg);
+
+        const closeText = this.add.text(0, 0, '关闭', {
+            fontSize: '16px',
+            color: '#ffffff',
+            fontStyle: 'bold'
         }).setOrigin(0.5);
-        container.add(text);
+        closeBtn.add(closeText);
 
-        const hit = this.add.rectangle(0, 0, btnW, btnH).setInteractive({ useHandCursor: true });
-        container.add(hit);
-
-        hit.on('pointerover', () => {
-            bg.clear();
-            bg.fillStyle(0x7a5a5a, 1);
-            bg.fillRoundedRect(-btnW / 2, -btnH / 2, btnW, btnH, 8);
-            bg.lineStyle(2, 0xaa7a7a);
-            bg.strokeRoundedRect(-btnW / 2, -btnH / 2, btnW, btnH, 8);
+        const closeHit = this.add.rectangle(0, 0, btnW, btnH).setInteractive({ useHandCursor: true });
+        closeHit.on('pointerover', () => {
+            closeBg.clear();
+            closeBg.fillStyle(0x6685a5, 1);
+            closeBg.fillRoundedRect(-btnW / 2, -btnH / 2, btnW, btnH, 8);
+            closeBg.lineStyle(1, 0xb7d8f4, 1);
+            closeBg.strokeRoundedRect(-btnW / 2, -btnH / 2, btnW, btnH, 8);
         });
-
-        hit.on('pointerout', () => {
-            bg.clear();
-            bg.fillStyle(0x5a3a3a, 1);
-            bg.fillRoundedRect(-btnW / 2, -btnH / 2, btnW, btnH, 8);
-            bg.lineStyle(2, 0x8a5a5a);
-            bg.strokeRoundedRect(-btnW / 2, -btnH / 2, btnW, btnH, 8);
+        closeHit.on('pointerout', () => {
+            closeBg.clear();
+            closeBg.fillStyle(0x4d6278, 1);
+            closeBg.fillRoundedRect(-btnW / 2, -btnH / 2, btnW, btnH, 8);
+            closeBg.lineStyle(1, 0x8db2d3, 1);
+            closeBg.strokeRoundedRect(-btnW / 2, -btnH / 2, btnW, btnH, 8);
         });
+        closeHit.on('pointerdown', () => this.closeModal());
+        closeBtn.add(closeHit);
+    }
 
-        hit.on('pointerdown', () => {
-            SceneRouter.start(this, this.returnScene);
-        });
+    closeModal() {
+        ModalOverlayLayer.unmount(this);
+
+        if (this.scene.isActive(this.returnScene)) {
+            this.scene.stop();
+            return;
+        }
+
+        SceneRouter.start(this, this.returnScene, this.returnData || {});
     }
 }
 

@@ -96,6 +96,9 @@ class BootScene extends Phaser.Scene {
             console.log(`[BootScene] 预加载 ${Object.keys(UIAssetData).length} 个 UI 资源`);
         }
 
+        // 加载底栏与弹窗按钮图标
+        this.preloadUiButtonIcons();
+
         // 加载物品图标资源（优先 Base64，避免 file:// CORS）
         if (typeof AssetMappings !== 'undefined') {
             const loadedNames = new Set();
@@ -260,6 +263,29 @@ class BootScene extends Phaser.Scene {
             this.statusText.setText('请检查控制台错误信息');
             this.loadingText.setColor('#ff0000');
         }
+    }
+
+    preloadUiButtonIcons() {
+        const iconAssets = [
+            { key: 'dock_btn_map', path: 'assets/images/ui/buttons/dock_column/map.png' },
+            { key: 'dock_btn_bag', path: 'assets/images/ui/buttons/dock_column/bag.png' },
+            { key: 'dock_btn_elf', path: 'assets/images/ui/buttons/dock_column/elf.png' },
+            { key: 'elf_manage_btn_first', path: 'assets/images/ui/buttons/ElfManageScene/first.png' },
+            { key: 'elf_manage_btn_cure', path: 'assets/images/ui/buttons/ElfManageScene/cure.png' },
+            { key: 'elf_manage_btn_storage', path: 'assets/images/ui/buttons/ElfManageScene/elf_storage.png' },
+            { key: 'elf_manage_btn_handbook', path: 'assets/images/ui/buttons/ElfManageScene/elf_handbook.png' },
+            { key: 'elf_manage_btn_exp', path: 'assets/images/ui/buttons/ElfManageScene/exp.png' }
+        ];
+
+        let loadedCount = 0;
+        for (const asset of iconAssets) {
+            if (!asset || !asset.key || !asset.path) {
+                continue;
+            }
+            this.load.image(asset.key, asset.path);
+            loadedCount++;
+        }
+        console.log(`[BootScene] 预加载 ${loadedCount} 个底栏/弹窗按钮图标`);
     }
 
     /**

@@ -20,6 +20,7 @@ class SkillLearnScene extends Phaser.Scene {
      * @param {Object} data.chainData - 链式处理数据（用于处理多个待学习技能和进化）
      */
     init(data) {
+        data = data || {};
         this.elf = data.elf;
         this.newSkillId = data.newSkillId;
         this.returnScene = data.returnScene || 'SpaceshipScene';
@@ -40,6 +41,12 @@ class SkillLearnScene extends Phaser.Scene {
         const { width, height } = this.cameras.main;
         const centerX = width / 2;
         const centerY = height / 2;
+
+        if (!this.elf || typeof this.elf.getDisplayName !== 'function') {
+            console.error('[SkillLearnScene] 缺少有效精灵实例，跳过技能学习流程');
+            this.returnToPrevious();
+            return;
+        }
 
         // 背景
         this.add.rectangle(0, 0, width, height, 0x1a1a2e).setOrigin(0);
@@ -304,10 +311,15 @@ class SkillLearnScene extends Phaser.Scene {
         // 防止重复调用
         if (this.isTransitioning) return;
 
-        console.log(`[SkillLearnScene] ${this.elf.getDisplayName()} 放弃学习 ${this.newSkillData?.name || '技能'}`);
+        const elfName = this.elf && typeof this.elf.getDisplayName === 'function'
+            ? this.elf.getDisplayName()
+            : '精灵';
+        console.log(`[SkillLearnScene] ${elfName} 放弃学习 ${this.newSkillData?.name || '技能'}`);
 
         // 从待学习列表中移除该技能（放弃也要移除）
-        this.elf.removePendingSkill(this.newSkillId);
+        if (this.elf && typeof this.elf.removePendingSkill === 'function' && Number.isFinite(this.newSkillId)) {
+            this.elf.removePendingSkill(this.newSkillId);
+        }
         PlayerData.saveToStorage();
 
         if (this.callback) {
@@ -325,13 +337,38 @@ class SkillLearnScene extends Phaser.Scene {
         if (this.isTransitioning) return;
         this.isTransitioning = true;
 
+        const safeDefaultReturnScene = this.resolveSafeReturnScene(this.returnScene);
+        const safeDefaultReturnData = this.returnData || {};
+
         // 检查是否有链式处理数据
         if (this.chainData) {
             const { canEvolve, evolveTo, playerElf, returnScene, returnData } = this.chainData;
             const chainedReturnData = this.returnData || returnData || {};
+            const safeChainReturnScene = this.resolveSafeReturnScene(returnScene || safeDefaultReturnScene);
 
             // 【重要】使用精灵当前的待学习列表，而不是chainData中的旧列表
-            const remainingSkills = this.elf.getPendingSkills();
+            const pendingSkills = this.elf && typeof this.elf.getPendingSkills === 'function'
+                ? this.elf.getPendingSkills()
+                : [];
+            const remainingSkills = [];
+            pendingSkills.forEach((skillId) => {
+                if (!Number.isFinite(skillId)) {
+                    if (this.elf && typeof this.elf.removePendingSkill === 'function') {
+                        this.elf.removePendingSkill(skillId);
+                    }
+                    return;
+                }
+
+                const skillData = DataLoader.getSkill(skillId);
+                if (!skillData) {
+                    if (this.elf && typeof this.elf.removePendingSkill === 'function') {
+                        this.elf.removePendingSkill(skillId);
+                    }
+                    return;
+                }
+
+                remainingSkills.push(skillId);
+            });
 
             // 检查是否还有更多待学习技能
             if (remainingSkills && remainingSkills.length > 0) {
@@ -340,13 +377,13 @@ class SkillLearnScene extends Phaser.Scene {
                     SceneRouter.start(this, 'SkillLearnScene', {
                         elf: this.elf,
                         newSkillId: remainingSkills[0],  // 取第一个待学习技能
-                        returnScene: returnScene,
+                        returnScene: safeChainReturnScene,
                         returnData: chainedReturnData,
                         chainData: {
                             canEvolve: canEvolve,
                             evolveTo: evolveTo,
                             playerElf: playerElf,
-                            returnScene: returnScene,
+                            returnScene: safeChainReturnScene,
                             returnData: chainedReturnData
                         }
                     }, {
@@ -362,7 +399,7 @@ class SkillLearnScene extends Phaser.Scene {
                     SceneRouter.start(this, 'EvolutionScene', {
                         elf: playerElf,
                         newElfId: evolveTo,
-                        returnScene: returnScene,
+                        returnScene: safeChainReturnScene,
                         returnData: chainedReturnData,
                         callback: (evolvedElfId) => {
                             playerElf.evolve();
@@ -377,11 +414,27 @@ class SkillLearnScene extends Phaser.Scene {
             }
 
             // 没有更多任务，返回地图
-            SceneRouter.start(this, returnScene || this.returnScene, this.returnData);
+            SceneRouter.start(this, safeChainReturnScene, chainedReturnData);
         } else {
             // 没有链式数据，直接返回
-            SceneRouter.start(this, this.returnScene, this.returnData);
+            SceneRouter.start(this, safeDefaultReturnScene, safeDefaultReturnData);
         }
+    }
+
+    resolveSafeReturnScene(sceneKey) {
+        if (!sceneKey) {
+            return 'SpaceshipScene';
+        }
+
+        const transientSceneKeys = {
+            SkillLearnScene: true,
+            EvolutionScene: true
+        };
+        if (transientSceneKeys[sceneKey]) {
+            return 'SpaceshipScene';
+        }
+
+        return sceneKey;
     }
 
     /**

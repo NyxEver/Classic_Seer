@@ -246,8 +246,17 @@ class EvolutionScene extends Phaser.Scene {
      * 返回上一场景
      */
     returnToPrevious() {
-        if (this.returnScene) {
-            SceneRouter.start(this, this.returnScene, this.returnData);
+        const invalidReturnTargets = {
+            SkillLearnScene: true,
+            EvolutionScene: true
+        };
+
+        const targetScene = this.returnScene && !invalidReturnTargets[this.returnScene]
+            ? this.returnScene
+            : 'SpaceshipScene';
+
+        if (targetScene) {
+            SceneRouter.start(this, targetScene, this.returnData);
         } else {
             // 默认返回飞船场景
             SceneRouter.start(this, 'SpaceshipScene');

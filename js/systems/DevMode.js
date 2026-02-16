@@ -26,6 +26,9 @@ const DevMode = {
     // 100% 捕捉是否开启
     alwaysCatch: false,
 
+    // 过场类场景（不应作为返回目标）
+    transientSceneKeys: ['SkillLearnScene', 'EvolutionScene'],
+
     /**
      * 开启开发者模式
      */
@@ -235,9 +238,32 @@ const DevMode = {
 
         const scenes = gameInstance.scene.getScenes(true);
         if (scenes.length > 0) {
-            return scenes[0].scene.key;
+            const currentScene = scenes[0];
+            if (!currentScene || !currentScene.scene) {
+                return null;
+            }
+
+            const currentKey = currentScene.scene.key;
+            const transientSet = new Set(this.transientSceneKeys || []);
+            if (transientSet.has(currentKey)) {
+                const fallback = currentScene.returnScene || null;
+                if (fallback && !transientSet.has(fallback) && fallback !== currentKey) {
+                    return fallback;
+                }
+                return 'SpaceshipScene';
+            }
+
+            return currentKey;
         }
         return null;
+    },
+
+    _sanitizeReturnSceneKey(sceneKey) {
+        const transientSet = new Set(this.transientSceneKeys || []);
+        if (!sceneKey || transientSet.has(sceneKey)) {
+            return 'SpaceshipScene';
+        }
+        return sceneKey;
     },
 
     /**
@@ -259,7 +285,23 @@ const DevMode = {
             return;
         }
 
-        const pendingSkills = elf.getPendingSkills();
+        const dataLoader = getDevModeDependency('DataLoader');
+        const pendingSkills = (elf.getPendingSkills() || []).filter((skillId) => {
+            if (!Number.isFinite(skillId)) {
+                if (typeof elf.removePendingSkill === 'function') {
+                    elf.removePendingSkill(skillId);
+                }
+                return false;
+            }
+            if (!dataLoader || typeof dataLoader.getSkill !== 'function') {
+                return true;
+            }
+            const exists = !!dataLoader.getSkill(skillId);
+            if (!exists && typeof elf.removePendingSkill === 'function') {
+                elf.removePendingSkill(skillId);
+            }
+            return exists;
+        });
         if (pendingSkills.length === 0) return;
 
         const currentScene = gameInstance.scene.getScenes(true)[0];
@@ -268,16 +310,18 @@ const DevMode = {
             return;
         }
 
+        const safeReturnSceneKey = this._sanitizeReturnSceneKey(returnSceneKey);
+
         sceneRouter.start(currentScene, 'SkillLearnScene', {
             elf: elf,
             newSkillId: pendingSkills[0],
-            returnScene: returnSceneKey,
+            returnScene: safeReturnSceneKey,
             returnData: {},
             chainData: {
                 canEvolve: canEvolve,
                 evolveTo: elf.evolvesTo,
                 playerElf: elf,
-                returnScene: returnSceneKey
+                returnScene: safeReturnSceneKey
             }
         }, {
             bgmStrategy: 'inherit'
@@ -309,10 +353,12 @@ const DevMode = {
             return;
         }
 
+        const safeReturnSceneKey = this._sanitizeReturnSceneKey(returnSceneKey);
+
         sceneRouter.start(currentScene, 'EvolutionScene', {
             elf: elf,
             newElfId: elf.evolvesTo,
-            returnScene: returnSceneKey,
+            returnScene: safeReturnSceneKey,
             returnData: {},
             callback: (evolvedElfId) => {
                 elf.evolve();

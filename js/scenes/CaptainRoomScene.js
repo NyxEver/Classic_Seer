@@ -26,6 +26,9 @@ class CaptainRoomScene extends Phaser.Scene {
         // 创建返回按钮
         this.createBackButton();
 
+        // 创建底部功能栏
+        this.createBottomBar();
+
         // 更新存档位置
         PlayerData.currentMapId = 'captain';
         PlayerData.saveToStorage();
@@ -654,5 +657,45 @@ class CaptainRoomScene extends Phaser.Scene {
         btn.on('pointerup', () => {
             SceneRouter.start(this, 'SpaceshipScene');
         });
+    }
+
+    createBottomBar() {
+        this.worldBottomBar = WorldBottomBar.create(this, {
+            onMap: () => this.openSpaceshipFromBottomBar(),
+            onBag: () => this.openItemBagModal(),
+            onElf: () => this.openElfManageModal()
+        });
+    }
+
+    openSpaceshipFromBottomBar() {
+        SceneRouter.start(this, 'SpaceshipScene');
+    }
+
+    openItemBagModal() {
+        if (this.scene.isActive('ItemBagScene')) {
+            return;
+        }
+
+        SceneRouter.launch(this, 'ItemBagScene', {
+            returnScene: 'CaptainRoomScene',
+            returnData: {}
+        }, {
+            bgmStrategy: 'inherit'
+        });
+        this.scene.bringToTop('ItemBagScene');
+    }
+
+    openElfManageModal() {
+        if (this.scene.isActive('ElfManageScene')) {
+            return;
+        }
+
+        SceneRouter.launch(this, 'ElfManageScene', {
+            returnScene: 'CaptainRoomScene',
+            returnData: {}
+        }, {
+            bgmStrategy: 'inherit'
+        });
+        this.scene.bringToTop('ElfManageScene');
     }
 }

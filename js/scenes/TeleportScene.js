@@ -6,6 +6,13 @@
 class TeleportScene extends Phaser.Scene {
     constructor() {
         super({ key: 'TeleportScene' });
+        this.returnScene = 'SpaceshipScene';
+        this.returnData = {};
+    }
+
+    init(data) {
+        this.returnScene = data.returnScene || 'SpaceshipScene';
+        this.returnData = data.returnData || {};
     }
 
     create() {
@@ -19,6 +26,9 @@ class TeleportScene extends Phaser.Scene {
 
         // 创建返回按钮
         this.createBackButton();
+
+        // 创建底部功能栏
+        this.createBottomBar();
 
         // 更新存档位置
         PlayerData.currentMapId = 'teleport';
@@ -222,7 +232,8 @@ class TeleportScene extends Phaser.Scene {
         bg.lineStyle(2, 0x6a8aaa, 1);
         bg.strokeRoundedRect(-60, -20, 120, 40, 8);
 
-        const label = this.add.text(0, 0, '← 返回飞船', {
+        const fallbackToSpaceship = this.resolveReturnScene() === 'SpaceshipScene';
+        const label = this.add.text(0, 0, fallbackToSpaceship ? '← 返回飞船' : '← 返回来源', {
             fontSize: '16px',
             color: '#ffffff'
         }).setOrigin(0.5);
@@ -249,7 +260,70 @@ class TeleportScene extends Phaser.Scene {
         });
 
         btn.on('pointerup', () => {
-            SceneRouter.start(this, 'SpaceshipScene');
+            this.returnToSourceScene();
         });
+    }
+
+    createBottomBar() {
+        this.worldBottomBar = WorldBottomBar.create(this, {
+            disableMap: true,
+            onBag: () => this.openItemBagModal(),
+            onElf: () => this.openElfManageModal()
+        });
+    }
+
+    openItemBagModal() {
+        if (this.scene.isActive('ItemBagScene')) {
+            return;
+        }
+
+        SceneRouter.launch(this, 'ItemBagScene', {
+            returnScene: 'TeleportScene',
+            returnData: this.getTeleportReturnPayload()
+        }, {
+            bgmStrategy: 'inherit'
+        });
+        this.scene.bringToTop('ItemBagScene');
+    }
+
+    openElfManageModal() {
+        if (this.scene.isActive('ElfManageScene')) {
+            return;
+        }
+
+        SceneRouter.launch(this, 'ElfManageScene', {
+            returnScene: 'TeleportScene',
+            returnData: this.getTeleportReturnPayload()
+        }, {
+            bgmStrategy: 'inherit'
+        });
+        this.scene.bringToTop('ElfManageScene');
+    }
+
+    getTeleportReturnPayload() {
+        return {
+            returnScene: this.returnScene,
+            returnData: this.returnData
+        };
+    }
+
+    resolveReturnScene() {
+        const candidate = this.returnScene;
+        if (!candidate || candidate === 'TeleportScene') {
+            return 'SpaceshipScene';
+        }
+
+        const exists = this.scene.get(candidate);
+        if (!exists) {
+            return 'SpaceshipScene';
+        }
+
+        return candidate;
+    }
+
+    returnToSourceScene() {
+        const targetScene = this.resolveReturnScene();
+        const data = targetScene === 'SpaceshipScene' ? {} : (this.returnData || {});
+        SceneRouter.start(this, targetScene, data);
     }
 }

@@ -569,7 +569,7 @@ class MainMenuScene extends Phaser.Scene {
         // 加载存档
         if (PlayerData.loadFromSave()) {
             // 根据存档的位置进入相应场景
-            const targetScene = PlayerData.currentMapId || 'spaceship';
+            const targetMapId = PlayerData.currentMapId || 'spaceship';
 
             // 映射 mapId 到场景 key
             const sceneMap = {
@@ -579,8 +579,18 @@ class MainMenuScene extends Phaser.Scene {
                 'klose': 'KloseScene'
             };
 
-            const sceneKey = sceneMap[targetScene] || 'SpaceshipScene';
-            SceneRouter.start(this, sceneKey);
+            let sceneKey = sceneMap[targetMapId] || 'SpaceshipScene';
+            let sceneData = {};
+
+            if (/^klose_\d+$/.test(targetMapId)) {
+                const subScene = parseInt(targetMapId.split('_')[1], 10);
+                sceneKey = 'KloseScene';
+                sceneData = {
+                    subScene: Number.isFinite(subScene) ? subScene : 1
+                };
+            }
+
+            SceneRouter.start(this, sceneKey, sceneData);
         } else {
             console.error('Failed to load save data');
         }

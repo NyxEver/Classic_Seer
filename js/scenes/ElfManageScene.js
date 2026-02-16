@@ -10,6 +10,7 @@ class ElfManageScene extends Phaser.Scene {
 
     init(data) {
         this.returnScene = data.returnScene || 'SpaceshipScene';
+        this.returnData = data.returnData || {};
     }
 
     create() {
@@ -25,9 +26,10 @@ class ElfManageScene extends Phaser.Scene {
     }
 
     createModalLayout() {
-        // 半透明遮罩（弹窗风格）
-        const mask = this.add.rectangle(this.W / 2, this.H / 2, this.W, this.H, 0x000000, 0.25);
-        mask.setInteractive();
+        const overlayState = ModalOverlayLayer.mount(this, { alpha: 0, depth: 5300 });
+        this.modalDepth = overlayState && Number.isFinite(overlayState.depth)
+            ? overlayState.depth + 1
+            : 5301;
 
         this.modalW = Math.min(960, this.W - 60);
         this.modalH = Math.min(560, this.H - 50);
@@ -44,13 +46,14 @@ class ElfManageScene extends Phaser.Scene {
         panel.fillRoundedRect(this.modalX, this.modalY, this.modalW, this.modalH, 14);
         panel.lineStyle(2, 0x4f6f8f, 1);
         panel.strokeRoundedRect(this.modalX, this.modalY, this.modalW, this.modalH, 14);
+        panel.setDepth(this.modalDepth);
 
         // 左右分隔线
         panel.lineStyle(2, 0x2a425f, 1);
         panel.lineBetween(this.modalX + this.splitX, this.modalY + 14, this.modalX + this.splitX, this.modalY + this.modalH - 14);
 
-        this.leftContainer = this.add.container(this.modalX, this.modalY);
-        this.rightContainer = this.add.container(this.modalX + this.rightStartX, this.modalY);
+        this.leftContainer = this.add.container(this.modalX, this.modalY).setDepth(this.modalDepth + 1);
+        this.rightContainer = this.add.container(this.modalX + this.rightStartX, this.modalY).setDepth(this.modalDepth + 1);
 
         this.createLeftPanelSkeleton();
         this.createRightPanelSkeleton();
@@ -219,43 +222,56 @@ class ElfManageScene extends Phaser.Scene {
         this.leftActionContainer.removeAll(true);
 
         const y = this.modalH - 78;
-        const gap = 76;
-        const startX = this.leftW / 2 - gap * 1.5;
         const selectedIsStarter = this.selectedElfIndex === 0;
         const canHealAll = this.canHealAnyElf();
 
-        const starterBtn = this.createCircleActionButton(startX, y, {
-            label: '首发',
-            icon: 'S',
-            enabled: this.selectedElfIndex >= 0 && !selectedIsStarter,
-            onClick: () => this.setStarterElf()
-        });
-        const storageBtn = this.createCircleActionButton(startX + gap, y, {
-            label: '仓库',
-            icon: 'B',
-            enabled: false,
-            onClick: () => {}
-        });
-        const healBtn = this.createCircleActionButton(startX + gap * 2, y, {
-            label: `回复(${this.healAllCost})`,
-            icon: '+',
-            enabled: canHealAll,
-            onClick: () => this.healAllElves()
-        });
-        this.leftActionContainer.add(starterBtn);
-        this.leftActionContainer.add(storageBtn);
-        this.leftActionContainer.add(healBtn);
+        const actions = [
+            {
+                label: '首发',
+                icon: 'S',
+                iconKey: 'elf_manage_btn_first',
+                enabled: this.selectedElfIndex >= 0 && !selectedIsStarter,
+                onClick: () => this.setStarterElf()
+            },
+            {
+                label: `回复(${this.healAllCost})`,
+                icon: '+',
+                iconKey: 'elf_manage_btn_cure',
+                enabled: canHealAll,
+                onClick: () => this.healAllElves()
+            },
+            {
+                label: '仓库',
+                icon: 'B',
+                iconKey: 'elf_manage_btn_storage',
+                enabled: false,
+                onClick: () => {}
+            },
+            {
+                label: '图鉴',
+                icon: 'P',
+                iconKey: 'elf_manage_btn_handbook',
+                enabled: true,
+                onClick: () => this.openPokedexModal()
+            }
+        ];
 
-        // 开发者模式关闭时不显示 +5000经验 按钮
         if (typeof DevMode !== 'undefined' && DevMode.enabled) {
-            const devBtn = this.createCircleActionButton(startX + gap * 3, y, {
+            actions.push({
                 label: '+5000经验',
                 icon: 'D',
+                iconKey: 'elf_manage_btn_exp',
                 enabled: this.selectedElfIndex >= 0,
                 onClick: () => this.giveDevExp()
             });
-            this.leftActionContainer.add(devBtn);
         }
+
+        const gap = 72;
+        const startX = this.leftW / 2 - ((actions.length - 1) * gap) / 2;
+        actions.forEach((action, index) => {
+            const btn = this.createCircleActionButton(startX + index * gap, y, action);
+            this.leftActionContainer.add(btn);
+        });
 
         this.seerBeansText = this.add.text(12, this.modalH - 20, `赛尔豆: ${PlayerData.seerBeans}`, {
             fontSize: '12px', color: '#ffdd66'
@@ -270,9 +286,21 @@ class ElfManageScene extends Phaser.Scene {
         const hoverColor = enabled ? 0x5590c0 : 0x5a5a5a;
 
         const circle = this.add.circle(0, 0, 24, baseColor).setStrokeStyle(2, enabled ? 0xcfe9ff : 0x888888);
-        const icon = this.add.text(0, 0, config.icon, {
-            fontSize: '16px', color: '#ffffff', fontStyle: 'bold'
-        }).setOrigin(0.5);
+
+        let icon;
+        if (config.iconKey && this.textures.exists(config.iconKey)) {
+            icon = this.add.image(0, 0, config.iconKey).setOrigin(0.5);
+            const scale = Math.min(20 / icon.width, 20 / icon.height);
+            icon.setScale(scale);
+            if (!enabled) {
+                icon.setTint(0x999999);
+            }
+        } else {
+            icon = this.add.text(0, 0, config.icon, {
+                fontSize: '16px', color: '#ffffff', fontStyle: 'bold'
+            }).setOrigin(0.5);
+        }
+
         const label = this.add.text(0, 34, config.label, {
             fontSize: '11px', color: enabled ? '#d6ecff' : '#9a9a9a'
         }).setOrigin(0.5);
@@ -289,6 +317,23 @@ class ElfManageScene extends Phaser.Scene {
         }
 
         return container;
+    }
+
+    openPokedexModal() {
+        if (this.scene.isActive('PokedexScene')) {
+            return;
+        }
+
+        SceneRouter.launch(this, 'PokedexScene', {
+            returnScene: 'ElfManageScene',
+            returnData: {
+                returnScene: this.returnScene,
+                returnData: this.returnData
+            }
+        }, {
+            bgmStrategy: 'inherit'
+        });
+        this.scene.bringToTop('PokedexScene');
     }
 
     setStarterElf() {
@@ -602,13 +647,14 @@ class ElfManageScene extends Phaser.Scene {
     }
 
     closePanel() {
-        const returnScene = this.scene.get(this.returnScene);
-        if (returnScene) {
-            SceneRouter.resume(this, this.returnScene);
+        ModalOverlayLayer.unmount(this);
+
+        if (this.scene.isActive(this.returnScene)) {
             this.scene.stop();
             return;
         }
-        SceneRouter.start(this, this.returnScene);
+
+        SceneRouter.start(this, this.returnScene, this.returnData || {});
     }
 }
 

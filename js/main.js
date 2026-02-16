@@ -60,7 +60,6 @@ const gameConfig = {
         CaptainRoomScene,
         TeleportScene,
         KloseScene,
-        ElfBagScene,
         ItemBagScene,
         ElfManageScene,
         BattleScene,

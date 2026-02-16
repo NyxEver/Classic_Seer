@@ -63,8 +63,8 @@ class KloseScene extends Phaser.Scene {
 
         this.spawnService.spawnWildElves();
         this.hotspotService.createHotspots();
-        this.hotspotService.createBackButton();
         this.moveController.createMoveArea(width, height);
+        this.createBottomBar();
 
         this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
             if (this.playerAnimator && typeof this.playerAnimator.destroy === 'function') {
@@ -156,6 +156,58 @@ class KloseScene extends Phaser.Scene {
 
     getBattleBackgroundKey() {
         return this.sceneConfig ? this.sceneConfig.background : null;
+    }
+
+    createBottomBar() {
+        this.worldBottomBar = WorldBottomBar.create(this, {
+            onMap: () => this.openSpaceshipFromBottomBar(),
+            onBag: () => this.openItemBagModal(),
+            onElf: () => this.openElfManageModal()
+        });
+    }
+
+    openSpaceshipFromBottomBar() {
+        SceneRouter.start(this, 'SpaceshipScene');
+    }
+
+    openItemBagModal() {
+        if (this.scene.isActive('ItemBagScene')) {
+            return;
+        }
+
+        SceneRouter.launch(this, 'ItemBagScene', {
+            returnScene: 'KloseScene',
+            returnData: this.getKloseReturnData()
+        }, {
+            bgmStrategy: 'inherit'
+        });
+        this.scene.bringToTop('ItemBagScene');
+    }
+
+    openElfManageModal() {
+        if (this.scene.isActive('ElfManageScene')) {
+            return;
+        }
+
+        SceneRouter.launch(this, 'ElfManageScene', {
+            returnScene: 'KloseScene',
+            returnData: this.getKloseReturnData()
+        }, {
+            bgmStrategy: 'inherit'
+        });
+        this.scene.bringToTop('ElfManageScene');
+    }
+
+    getKloseReturnData() {
+        const entryX = this.player && Number.isFinite(this.player.x) ? this.player.x : this.playerX;
+        const entryY = this.player && Number.isFinite(this.player.y) ? this.player.y : this.playerY;
+        return {
+            subScene: this.currentSubScene,
+            customEntry: {
+                x: Math.floor(entryX),
+                y: Math.floor(entryY)
+            }
+        };
     }
 
     playKloseBgm() {
