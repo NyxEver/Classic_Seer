@@ -57,7 +57,10 @@ class BattleManager {
         STATUS_APPLIED: 'status_applied',
         STATUS_REMOVED: 'status_removed',
         STATUS_DAMAGE: 'status_damage',
-        ACTION_BLOCKED: 'action_blocked'
+        ACTION_BLOCKED: 'action_blocked',
+        EFFECT_APPLIED: 'effect_applied',
+        EFFECT_TICK: 'effect_tick',
+        EFFECT_EXPIRED: 'effect_expired'
     };
 
     constructor(config) {
@@ -157,6 +160,17 @@ class BattleManager {
     finalizeTurnResult(result) {
         const protocol = requireBattleManagerModule('BattleTurnProtocol');
         return protocol.finalizeTurnResult(result);
+    }
+
+    finalizeAndCleanup(result) {
+        const finalized = this.finalizeTurnResult(result);
+        if (finalized && finalized.outcome && finalized.outcome.battleEnded) {
+            const runtime = this.getDependency('BattleEffectRuntime');
+            if (runtime && typeof runtime.onBattleEnd === 'function') {
+                runtime.onBattleEnd(this);
+            }
+        }
+        return finalized;
     }
 
     markActionRejected(result, reason) {
@@ -308,6 +322,10 @@ class BattleManager {
     applyEndTurnStatusEffects(result) {
         const statusEffect = this.getDependency('StatusEffect');
         if (!statusEffect || typeof statusEffect.tickTurnEnd !== 'function') {
+            const runtimeOnly = this.getDependency('BattleEffectRuntime');
+            if (runtimeOnly && typeof runtimeOnly.tickTurnEnd === 'function') {
+                runtimeOnly.tickTurnEnd(this, result);
+            }
             return;
         }
 
@@ -351,6 +369,11 @@ class BattleManager {
                 });
             });
         });
+
+        const runtime = this.getDependency('BattleEffectRuntime');
+        if (runtime && typeof runtime.tickTurnEnd === 'function') {
+            runtime.tickTurnEnd(this, result);
+        }
     }
 
     async processAfterActions(result) {
@@ -372,6 +395,11 @@ class BattleManager {
         this.turnCount++;
         this.setPhase(BattleManager.PHASE.EXECUTE_TURN);
 
+        const runtime = this.getDependency('BattleEffectRuntime');
+        if (runtime && typeof runtime.resetRoundState === 'function') {
+            runtime.resetRoundState(this);
+        }
+
         const result = this.createTurnResult();
         this.appendTurnEvent(result, BattleManager.EVENT.TURN_START, {
             phase: this.turnPhase,
@@ -384,7 +412,7 @@ class BattleManager {
                 this.log('本回合未提交有效行动。');
                 this.markActionRejected(result, 'invalid_player_action');
                 this.setPhase(BattleManager.PHASE.PLAYER_CHOOSE);
-                return this.finalizeTurnResult(result);
+                return this.finalizeAndCleanup(result);
             }
 
             this.appendActionSubmittedEvent(result, 'player', this.playerAction);
@@ -392,14 +420,14 @@ class BattleManager {
 
             if (result.outcome.actionRejected) {
                 this.setPhase(BattleManager.PHASE.PLAYER_CHOOSE);
-                return this.finalizeTurnResult(result);
+                return this.finalizeAndCleanup(result);
             }
 
             if (!result.outcome.battleEnded) {
                 await this.processAfterActions(result);
             }
 
-            return this.finalizeTurnResult(result);
+            return this.finalizeAndCleanup(result);
         } finally {
             this.playerAction = null;
             this.enemyAction = null;

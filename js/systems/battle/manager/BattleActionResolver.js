@@ -47,6 +47,12 @@ const BattleActionResolver = {
         }
 
         if (itemData.type === 'hpPotion') {
+            const runtime = manager.getDependency('BattleEffectRuntime');
+            if (runtime && typeof runtime.isNoHeal === 'function' && runtime.isNoHeal(manager, 'player')) {
+                manager.log(`${manager.playerElf.getDisplayName()} 处于禁疗状态，无法使用回复药剂！`);
+                return { applied: false, consumesTurn: false };
+            }
+
             const healAmount = itemData.effect ? (itemData.effect.hpRestore || 20) : 20;
             const maxHp = manager.playerElf.getMaxHp();
             const oldHp = manager.playerElf.currentHp;
@@ -205,6 +211,11 @@ const BattleActionResolver = {
             this.prepareEnemyAction(manager, result);
 
             const order = manager.determineOrder();
+            const runtime = manager.getDependency('BattleEffectRuntime');
+            if (runtime && typeof runtime.recordTurnOrder === 'function') {
+                runtime.recordTurnOrder(manager, order);
+            }
+            result.turnOrder = order.slice();
             console.log('[BattleManager] 行动顺序:', order);
 
             for (const actor of order) {

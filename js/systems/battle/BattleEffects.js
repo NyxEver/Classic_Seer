@@ -53,8 +53,22 @@ const BattleEffects = {
         const playerPriority = this.getActionPriority(manager.playerAction);
         const enemyPriority = this.getActionPriority(manager.enemyAction);
 
-        if (playerPriority !== enemyPriority) {
-            return playerPriority > enemyPriority ? ['player', 'enemy'] : ['enemy', 'player'];
+        let runtimePriorityPlayer = 0;
+        let runtimePriorityEnemy = 0;
+        const runtime = (typeof AppContext !== 'undefined' && AppContext && typeof AppContext.get === 'function')
+            ? AppContext.get('BattleEffectRuntime', null)
+            : (typeof window !== 'undefined' ? window.BattleEffectRuntime : null);
+
+        if (runtime && typeof runtime.getPriorityBonus === 'function') {
+            runtimePriorityPlayer = runtime.getPriorityBonus(manager, 'player', manager.enemyElf);
+            runtimePriorityEnemy = runtime.getPriorityBonus(manager, 'enemy', manager.playerElf);
+        }
+
+        const playerTotalPriority = playerPriority + runtimePriorityPlayer;
+        const enemyTotalPriority = enemyPriority + runtimePriorityEnemy;
+
+        if (playerTotalPriority !== enemyTotalPriority) {
+            return playerTotalPriority > enemyTotalPriority ? ['player', 'enemy'] : ['enemy', 'player'];
         }
 
         const playerSpeed = this.getEffectiveSpeed(manager.playerElf, manager.playerStatStages);
@@ -73,79 +87,27 @@ const BattleEffects = {
      * @param {Object} context
      */
     applySkillEffect(effect, context) {
-        if (effect.chance && effect.chance < 100) {
-            const roll = Math.random() * 100;
-            if (roll > effect.chance) {
-                return;
-            }
-        }
-
-        if (effect.type === 'status') {
-            this.applyStatusFromEffect(effect, context);
+        if (!effect || !context || !context.manager) {
             return;
         }
 
-        if (effect.type === 'exhausted') {
-            this.applyStatusFromEffect({
-                target: effect.target || 'enemy',
-                status: 'exhausted',
-                duration: effect.duration
-            }, context);
+        const executor = (typeof AppContext !== 'undefined' && AppContext && typeof AppContext.get === 'function')
+            ? AppContext.get('BattleActionExecutor', null)
+            : (typeof window !== 'undefined' ? window.BattleActionExecutor : null);
+
+        if (!executor || typeof executor.applySkillEffect !== 'function') {
             return;
         }
 
-        if (effect.type === 'selfExhausted') {
-            this.applyStatusFromEffect({
-                target: 'self',
-                status: 'exhausted',
-                duration: effect.duration
-            }, context);
-            return;
-        }
-
-        if (effect.type === 'statChange') {
-            const targetStages = effect.target === 'enemy' ? context.defenderStages : context.attackerStages;
-            const targetElf = effect.target === 'enemy' ? context.defender : context.attacker;
-            const stat = effect.stat;
-            const stages = effect.stages;
-
-            const oldStage = targetStages[stat];
-            targetStages[stat] = Math.max(-6, Math.min(6, targetStages[stat] + stages));
-            const newStage = targetStages[stat];
-
-            if (oldStage !== newStage) {
-                const statNames = {
-                    atk: '攻击',
-                    def: '防御',
-                    spAtk: '特攻',
-                    spDef: '特防',
-                    spd: '速度',
-                    accuracy: '命中'
-                };
-                const statName = statNames[stat] || stat;
-                const changeText = stages > 0 ? '提高了' : '降低了';
-                const amount = Math.abs(stages) === 1 ? '' : `${Math.abs(stages)}级`;
-
-                context.log(`${targetElf.getDisplayName()} 的${statName}${changeText}${amount}！`);
-
-                const statEvent = {
-                    target: effect.target,
-                    stat: stat,
-                    stages: stages
-                };
-                if (typeof context.appendEvent === 'function') {
-                    context.appendEvent('stat_change', statEvent);
-                } else {
-                    context.result.events.push({
-                        type: 'stat_change',
-                        ...statEvent
-                    });
-                }
-            } else {
-                const text = stages > 0 ? '已经不能再提高了' : '已经不能再降低了';
-                context.log(`${targetElf.getDisplayName()} 的${stat}${text}！`);
-            }
-        }
+        executor.applySkillEffect(
+            context.manager,
+            effect,
+            context.attacker,
+            context.defender,
+            context.attackerStages,
+            context.defenderStages,
+            context.result
+        );
     },
 
     applyStatusFromEffect(effect, context) {

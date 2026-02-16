@@ -30,9 +30,10 @@ const DamageCalculator = {
      * @param {Elf} attacker - 攻击方精灵实例
      * @param {Elf} defender - 防御方精灵实例
      * @param {Object} skill - 技能数据
+     * @param {Object} options - 额外选项（overridePower/forceCritical）
      * @returns {Object} - { damage, isCritical, effectiveness, stab }
      */
-    calculate(attacker, defender, skill) {
+    calculate(attacker, defender, skill, options = {}) {
         const randomInt = (typeof this === 'object' && this && typeof this.randomInt === 'function')
             ? this.randomInt.bind(this)
             : DamageCalculator.randomInt.bind(DamageCalculator);
@@ -41,7 +42,7 @@ const DamageCalculator = {
             : DamageCalculator.truncate4.bind(DamageCalculator);
 
         // 非伤害技能返回 0
-        if (skill.power === 0) {
+        if (skill.power === 0 && !Number.isFinite(options.overridePower)) {
             return {
                 damage: 0,
                 isCritical: false,
@@ -71,7 +72,10 @@ const DamageCalculator = {
         // 计算暴击
         let isCritical = false;
         let critMultiplier = 1;
-        if (skill.critRate && skill.critRate > 0) {
+        if (options.forceCritical) {
+            isCritical = true;
+            critMultiplier = 1.5;
+        } else if (skill.critRate && skill.critRate > 0) {
             const critRoll = randomInt(1, skill.critRate);
             if (critRoll === 1) {
                 isCritical = true;
@@ -80,10 +84,11 @@ const DamageCalculator = {
         }
 
         // 1. 计算基础值
+        const sourcePower = Number.isFinite(options.overridePower) ? options.overridePower : skill.power;
         const powerMultiplier = (typeof StatusEffect !== 'undefined' && StatusEffect && typeof StatusEffect.getDamagePowerMultiplier === 'function')
             ? StatusEffect.getDamagePowerMultiplier(attacker, skill)
             : 1;
-        const effectivePower = Math.max(0, Math.floor(skill.power * powerMultiplier));
+        const effectivePower = Math.max(0, Math.floor(sourcePower * powerMultiplier));
 
         const levelFactor = truncate4(attacker.level * 0.4 + 2);
         const atkDefRatio = truncate4(attackStat / defenseStat);
@@ -110,7 +115,7 @@ const DamageCalculator = {
         }
 
         console.log(`[DamageCalculator] ${attacker.getDisplayName()} -> ${defender.getDisplayName()}`);
-        console.log(`  技能: ${skill.name} (${skill.type}, ${skill.category}, 威力${skill.power}${effectivePower !== skill.power ? ` -> ${effectivePower}` : ''})`);
+        console.log(`  技能: ${skill.name} (${skill.type}, ${skill.category}, 威力${sourcePower}${effectivePower !== sourcePower ? ` -> ${effectivePower}` : ''})`);
         console.log(`  攻击/防御: ${attackStat}/${defenseStat}, 等级因子: ${levelFactor}`);
         console.log(`  基础伤害: ${baseDamage}, STAB: ${stab}, 克制: ${typeEffect}, 暴击: ${isCritical}`);
         console.log(`  随机系数: ${R}/255 = ${randomFactor.toFixed(4)}`);
@@ -135,13 +140,15 @@ const DamageCalculator = {
             ? this.randomInt.bind(this)
             : DamageCalculator.randomInt.bind(DamageCalculator);
 
-        // 必中技能
-        if (skill.accuracy === 0 || skill.accuracy >= 100) {
+        const accuracy = Number(skill.accuracy);
+
+        // 必中技能 / 未定义命中值按必中处理
+        if (!Number.isFinite(accuracy) || accuracy === 0 || accuracy >= 100) {
             return true;
         }
 
         // 基础命中率
-        let hitChance = skill.accuracy;
+        let hitChance = accuracy;
 
         // 应用命中率修正（每级 ±15%）
         // accuracyMod > 0: 降低对手命中 -> 提高闪避
