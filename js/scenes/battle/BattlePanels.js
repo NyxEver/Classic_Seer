@@ -127,6 +127,7 @@ const BattlePanels = {
             && typeof SkillTooltipView !== 'undefined'
             && SkillTooltipView
             && typeof SkillTooltipView.hide === 'function') {
+            // 面板切换/战斗结束时强制隐藏 Tooltip，避免悬浮层停留在已销毁技能按钮上。
             SkillTooltipView.hide(this);
         }
 

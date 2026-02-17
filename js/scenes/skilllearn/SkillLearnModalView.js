@@ -128,11 +128,16 @@ const SkillLearnModalView = {
         container.add(titleText);
 
         if (skill) {
-            this.addSkillTypeVisual(container, x + w - 12, y + 10, skill, {
-                iconSize: 18,
-                originX: 1,
-                originY: 0
-            });
+            if (typeof TypeIconView !== 'undefined' && TypeIconView && typeof TypeIconView.renderSkill === 'function') {
+                TypeIconView.renderSkill(this, container, x + w - 12, y + 10, skill, {
+                    iconSize: 18,
+                    originX: 1,
+                    originY: 0
+                });
+            } else {
+                const fallbackDot = this.add.circle(x + w - 12, y + 10, 8, 0x8899aa, 1).setOrigin(1, 0);
+                container.add(fallbackDot);
+            }
 
             const nameText = this.add.text(x + 12, y + 30, skill.name, {
                 fontSize: '18px',
@@ -191,11 +196,15 @@ const SkillLearnModalView = {
                 bg.lineStyle(normalPalette.borderWidth, normalPalette.border, 1);
                 bg.strokeRoundedRect(x, y, w, h, 10);
             });
-            this.bindSkillTooltip(hit, skill);
+            if (typeof SkillTooltipView !== 'undefined' && SkillTooltipView && typeof SkillTooltipView.bind === 'function') {
+                SkillTooltipView.bind(this, hit, skill, { bindKey: '__seerSkillTooltipBound' });
+            }
             container.add(hit);
         } else if (skill) {
             hit = this.add.rectangle(x + w / 2, y + h / 2, w, h, 0x000000, 0.001).setInteractive({ useHandCursor: true });
-            this.bindSkillTooltip(hit, skill);
+            if (typeof SkillTooltipView !== 'undefined' && SkillTooltipView && typeof SkillTooltipView.bind === 'function') {
+                SkillTooltipView.bind(this, hit, skill, { bindKey: '__seerSkillTooltipBound' });
+            }
             container.add(hit);
         }
 
@@ -309,36 +318,6 @@ const SkillLearnModalView = {
         this.selectedSlotIndex = index;
         this.renderSkillCards();
         this.refreshReplaceButtonState();
-    },
-
-    bindSkillTooltip(target, skill) {
-        if (!target || !skill || typeof SkillTooltipView === 'undefined' || !SkillTooltipView) {
-            return;
-        }
-        target.on('pointerover', (pointer) => SkillTooltipView.show(this, pointer, skill));
-        target.on('pointermove', (pointer) => SkillTooltipView.move(this, pointer));
-        target.on('pointerout', () => SkillTooltipView.hide(this));
-    },
-
-    hideSkillTooltip() {
-        if (typeof SkillTooltipView !== 'undefined' && SkillTooltipView && typeof SkillTooltipView.hide === 'function') {
-            SkillTooltipView.hide(this);
-        }
-    },
-
-    addSkillTypeVisual(container, x, y, skill, options = {}) {
-        if (typeof TypeIconView !== 'undefined' && TypeIconView && typeof TypeIconView.renderSkill === 'function') {
-            TypeIconView.renderSkill(this, container, x, y, skill, {
-                iconSize: options.iconSize || 16,
-                originX: options.originX ?? 0.5,
-                originY: options.originY ?? 0.5
-            });
-            return;
-        }
-
-        const radius = Math.max(5, Math.floor((options.iconSize || 16) / 2));
-        const fallback = this.add.circle(x, y, radius, 0x8899aa, 1).setOrigin(options.originX ?? 0.5, options.originY ?? 0.5);
-        container.add(fallback);
     }
 };
 

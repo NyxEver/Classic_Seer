@@ -233,7 +233,7 @@ class SpaceshipScene extends Phaser.Scene {
         this.worldBottomBar = WorldBottomBar.create(this, {
             disableMap: true,
             onBag: () => this.openItemBagModal(),
-            onElf: () => this.openElfManageModal()
+            onElfManage: () => this.openElfManageModal()
         });
     }
 

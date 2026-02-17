@@ -663,7 +663,7 @@ class CaptainRoomScene extends Phaser.Scene {
         this.worldBottomBar = WorldBottomBar.create(this, {
             onMap: () => this.openSpaceshipFromBottomBar(),
             onBag: () => this.openItemBagModal(),
-            onElf: () => this.openElfManageModal()
+            onElfManage: () => this.openElfManageModal()
         });
     }
 

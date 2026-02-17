@@ -106,7 +106,9 @@ class SkillLearnScene extends Phaser.Scene {
             return;
         }
         this.isTransitioning = true;
-        this.hideSkillTooltip();
+        if (typeof SkillTooltipView !== 'undefined' && SkillTooltipView && typeof SkillTooltipView.hide === 'function') {
+            SkillTooltipView.hide(this);
+        }
 
         const defaultReturnScene = this.resolveSafeReturnScene(this.returnScene);
         const defaultReturnData = this.returnData && typeof this.returnData === 'object' ? this.returnData : {};
@@ -121,6 +123,8 @@ class SkillLearnScene extends Phaser.Scene {
             ? this.chainData.returnData
             : defaultReturnData;
 
+        // 链式返回优先级：继续 pending skill -> 进入进化 -> 返回来源场景。
+        // 这样可以保证“逐个处理待学习技能”与“学技后进化”两条规则同时成立。
         const remainingSkills = this.getRemainingPendingSkills();
         if (remainingSkills.length > 0) {
             const started = SceneRouter.start(this, 'SkillLearnScene', {

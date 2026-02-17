@@ -1,18 +1,3 @@
-function renderSkillPanelTypeIcon(scene, container, x, y, skill, options = {}) {
-    if (typeof TypeIconView !== 'undefined' && TypeIconView && typeof TypeIconView.renderSkill === 'function') {
-        TypeIconView.renderSkill(scene, container, x, y, skill, {
-            iconSize: options.iconSize || 16,
-            originX: options.fallbackOriginX ?? 0.5,
-            originY: 0.5
-        });
-        return;
-    }
-
-    const radius = Math.max(4, Math.floor((options.iconSize || 16) / 2));
-    const fallbackDot = scene.add.circle(x, y, radius, 0x8899aa, 1);
-    container.add(fallbackDot);
-}
-
 const BattleSkillPanelView = {
     mount(options = {}) {
         const panelY = Number.isFinite(options.panelY) ? options.panelY : (this.bottomPanelY || 430);
@@ -103,12 +88,16 @@ const BattleSkillPanelView = {
         });
         container.add(nameText);
 
-        renderSkillPanelTypeIcon(this, container, 10, 38, skill, {
-            iconSize: 14,
-            fallbackFontSize: '12px',
-            fallbackColor: '#88aacc',
-            fallbackOriginX: 0
-        });
+        if (typeof TypeIconView !== 'undefined' && TypeIconView && typeof TypeIconView.renderSkill === 'function') {
+            TypeIconView.renderSkill(this, container, 10, 38, skill, {
+                iconSize: 14,
+                originX: 0,
+                originY: 0.5
+            });
+        } else {
+            const fallbackDot = this.add.circle(10, 38, 7, 0x8899aa, 1).setOrigin(0, 0.5);
+            container.add(fallbackDot);
+        }
 
         const ppText = this.add.text(w - 10, h / 2, `PP ${skill.currentPP}/${skill.pp}`, {
             fontSize: '13px',
@@ -121,32 +110,27 @@ const BattleSkillPanelView = {
             .setInteractive({ useHandCursor: true });
         container.add(hit);
 
-        hit.on('pointerover', (pointer) => {
-            const disabledNow = BattleSkillPanelView.syncSkillButtonState.call(this, container);
-            if (!disabledNow) {
-                bg.clear();
-                bg.fillStyle(0x3a6aaa, 1);
-                bg.fillRoundedRect(0, 0, w, h, 6);
-                bg.lineStyle(2, 0x5a9ada);
-                bg.strokeRoundedRect(0, 0, w, h, 6);
+        if (typeof SkillTooltipView !== 'undefined' && SkillTooltipView) {
+            if (typeof SkillTooltipView.bind === 'function') {
+                SkillTooltipView.bind(this, hit, skill, {
+                    bindKey: '__seerSkillTooltipBound',
+                    onOver: () => {
+                        const disabledNow = BattleSkillPanelView.syncSkillButtonState.call(this, container);
+                        if (disabledNow) {
+                            return;
+                        }
+                        bg.clear();
+                        bg.fillStyle(0x3a6aaa, 1);
+                        bg.fillRoundedRect(0, 0, w, h, 6);
+                        bg.lineStyle(2, 0x5a9ada);
+                        bg.strokeRoundedRect(0, 0, w, h, 6);
+                    },
+                    onOut: () => {
+                        BattleSkillPanelView.syncSkillButtonState.call(this, container);
+                    }
+                });
             }
-            if (typeof SkillTooltipView !== 'undefined' && SkillTooltipView && typeof SkillTooltipView.show === 'function') {
-                SkillTooltipView.show(this, pointer, skill);
-            }
-        });
-
-        hit.on('pointermove', (pointer) => {
-            if (typeof SkillTooltipView !== 'undefined' && SkillTooltipView && typeof SkillTooltipView.move === 'function') {
-                SkillTooltipView.move(this, pointer);
-            }
-        });
-
-        hit.on('pointerout', () => {
-            BattleSkillPanelView.syncSkillButtonState.call(this, container);
-            if (typeof SkillTooltipView !== 'undefined' && SkillTooltipView && typeof SkillTooltipView.hide === 'function') {
-                SkillTooltipView.hide(this);
-            }
-        });
+        }
 
         hit.on('pointerdown', () => {
             const disabledNow = BattleSkillPanelView.syncSkillButtonState.call(this, container);

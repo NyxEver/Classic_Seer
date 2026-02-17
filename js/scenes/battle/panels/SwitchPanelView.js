@@ -1,18 +1,3 @@
-function renderSwitchPanelTypeIcon(scene, container, x, y, skill, options = {}) {
-    if (typeof TypeIconView !== 'undefined' && TypeIconView && typeof TypeIconView.renderSkill === 'function') {
-        TypeIconView.renderSkill(scene, container, x, y, skill, {
-            iconSize: options.iconSize || 16,
-            originX: options.fallbackOriginX ?? 0.5,
-            originY: 0.5
-        });
-        return;
-    }
-
-    const radius = Math.max(4, Math.floor((options.iconSize || 16) / 2));
-    const fallbackDot = scene.add.circle(x, y, radius, 0x8899aa, 1);
-    container.add(fallbackDot);
-}
-
 const BattleSwitchPanelView = {
     mount() {},
 
@@ -315,12 +300,16 @@ const BattleSwitchPanelView = {
         });
         container.add(metaText);
 
-        renderSwitchPanelTypeIcon(this, container, w - 12, h / 2, skill, {
-            iconSize: 16,
-            fallbackFontSize: '10px',
-            fallbackColor: '#aaddaa',
-            fallbackOriginX: 1
-        });
+        if (typeof TypeIconView !== 'undefined' && TypeIconView && typeof TypeIconView.renderSkill === 'function') {
+            TypeIconView.renderSkill(this, container, w - 12, h / 2, skill, {
+                iconSize: 16,
+                originX: 1,
+                originY: 0.5
+            });
+        } else {
+            const fallbackDot = this.add.circle(w - 12, h / 2, 8, 0x8899aa, 1).setOrigin(1, 0.5);
+            container.add(fallbackDot);
+        }
 
         return container;
     },

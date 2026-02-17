@@ -1,6 +1,7 @@
 /**
  * WorldBottomBar - 非战斗场景通用底栏
  * 按钮顺序固定：地图 -> 背包 -> 精灵背包。
+ * 其中“精灵背包”按钮统一打开 ElfManageScene（语义名：onElfManage）。
  */
 const WorldBottomBar = {
     create(scene, options = {}) {
@@ -14,6 +15,7 @@ const WorldBottomBar = {
         const dockHeight = 66;
         const dockX = width / 2;
         const dockY = height - 34;
+        const onElfManage = typeof options.onElfManage === 'function' ? options.onElfManage : options.onElf;
 
         const root = scene.add.container(0, 0);
         root.setDepth(depth);
@@ -45,7 +47,7 @@ const WorldBottomBar = {
                 iconKey: 'dock_btn_elf',
                 fallbackIcon: 'E',
                 disabled: false,
-                onClick: options.onElf
+                onClick: onElfManage
             }
         ];
 

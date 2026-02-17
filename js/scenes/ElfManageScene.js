@@ -327,7 +327,9 @@ class ElfManageScene extends Phaser.Scene {
     }
 
     openPokedexModal() {
-        this.hideSkillTooltip();
+        if (typeof SkillTooltipView !== 'undefined' && SkillTooltipView && typeof SkillTooltipView.hide === 'function') {
+            SkillTooltipView.hide(this);
+        }
         if (this.scene.isActive('PokedexScene')) {
             return;
         }
@@ -406,7 +408,10 @@ class ElfManageScene extends Phaser.Scene {
     }
 
     renderRightDetail() {
-        this.hideSkillTooltip();
+        // 切换精灵会重建右侧技能卡，先隐藏 Tooltip 防止残留在旧卡片坐标。
+        if (typeof SkillTooltipView !== 'undefined' && SkillTooltipView && typeof SkillTooltipView.hide === 'function') {
+            SkillTooltipView.hide(this);
+        }
         this.rightContent.removeAll(true);
         const index = this.selectedElfIndex;
         if (index < 0 || index >= PlayerData.elves.length) {
@@ -557,7 +562,17 @@ class ElfManageScene extends Phaser.Scene {
             });
             this.rightContent.add(name);
 
-            this.addSkillTypeVisual(this.rightContent, sx + cardW - 10, sy + 10, skill);
+            if (typeof TypeIconView !== 'undefined' && TypeIconView && typeof TypeIconView.renderSkill === 'function') {
+                TypeIconView.renderSkill(this, this.rightContent, sx + cardW - 10, sy + 10, skill, {
+                    iconSize: 16,
+                    originX: 1,
+                    originY: 0
+                });
+            } else {
+                const fallback = this.add.circle(sx + cardW - 10, sy + 10, 7, 0x8899aa, 1).setOrigin(1, 0);
+                fallback.setStrokeStyle(1, 0xffffff, 0.7);
+                this.rightContent.add(fallback);
+            }
 
             const power = this.add.text(sx + 8, sy + cardH - 18, `威力 ${skill.power || '-'}`, {
                 fontSize: '12px', color: '#bcd8ef'
@@ -569,36 +584,10 @@ class ElfManageScene extends Phaser.Scene {
             this.rightContent.add(pp);
 
             const hit = this.add.rectangle(sx + cardW / 2, sy + cardH / 2, cardW, cardH, 0x000000, 0.001).setInteractive();
-            this.bindSkillTooltip(hit, skill);
+            if (typeof SkillTooltipView !== 'undefined' && SkillTooltipView && typeof SkillTooltipView.bind === 'function') {
+                SkillTooltipView.bind(this, hit, skill, { bindKey: '__seerSkillTooltipBound' });
+            }
             this.rightContent.add(hit);
-        }
-    }
-
-    addSkillTypeVisual(container, x, y, skill) {
-        if (typeof TypeIconView !== 'undefined' && TypeIconView && typeof TypeIconView.renderSkill === 'function') {
-            TypeIconView.renderSkill(this, container, x, y, skill, {
-                iconSize: 16,
-                originX: 1,
-                originY: 0
-            });
-            return;
-        }
-
-        const fallback = this.add.circle(x - 7, y + 7, 7, 0x8899aa, 1).setOrigin(1, 0);
-        fallback.setStrokeStyle(1, 0xffffff, 0.7);
-        container.add(fallback);
-    }
-
-    bindSkillTooltip(target, skill) {
-        if (!target || !skill || typeof SkillTooltipView === 'undefined' || !SkillTooltipView) return;
-        target.on('pointerover', (pointer) => SkillTooltipView.show(this, pointer, skill));
-        target.on('pointermove', (pointer) => SkillTooltipView.move(this, pointer));
-        target.on('pointerout', () => SkillTooltipView.hide(this));
-    }
-
-    hideSkillTooltip() {
-        if (typeof SkillTooltipView !== 'undefined' && SkillTooltipView && typeof SkillTooltipView.hide === 'function') {
-            SkillTooltipView.hide(this);
         }
     }
 
@@ -679,7 +668,9 @@ class ElfManageScene extends Phaser.Scene {
     }
 
     closePanel() {
-        this.hideSkillTooltip();
+        if (typeof SkillTooltipView !== 'undefined' && SkillTooltipView && typeof SkillTooltipView.hide === 'function') {
+            SkillTooltipView.hide(this);
+        }
         ModalOverlayLayer.unmount(this);
 
         const requestedTarget = this.returnScene || 'SpaceshipScene';

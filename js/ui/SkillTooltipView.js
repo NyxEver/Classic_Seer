@@ -59,6 +59,50 @@ const SkillTooltipView = {
         return state;
     },
 
+    /**
+     * 统一绑定 Tooltip 指针事件。
+     * 场景层只传入目标与技能数据，不再各自重复实现 pointerover/move/out。
+     */
+    bind(scene, target, skill, hooks = {}) {
+        if (!scene || !target || !skill || typeof target.on !== 'function') {
+            return;
+        }
+
+        const bindKey = typeof hooks.bindKey === 'string' ? hooks.bindKey : '';
+        if (bindKey && target[bindKey]) {
+            return;
+        }
+
+        const onOver = typeof hooks.onOver === 'function' ? hooks.onOver : null;
+        const onMove = typeof hooks.onMove === 'function' ? hooks.onMove : null;
+        const onOut = typeof hooks.onOut === 'function' ? hooks.onOut : null;
+
+        target.on('pointerover', (pointer) => {
+            if (onOver) {
+                onOver(pointer);
+            }
+            this.show(scene, pointer, skill);
+        });
+
+        target.on('pointermove', (pointer) => {
+            if (onMove) {
+                onMove(pointer);
+            }
+            this.move(scene, pointer);
+        });
+
+        target.on('pointerout', (pointer) => {
+            if (onOut) {
+                onOut(pointer);
+            }
+            this.hide(scene);
+        });
+
+        if (bindKey) {
+            target[bindKey] = true;
+        }
+    },
+
     show(scene, pointer, skill) {
         if (!scene || !skill) {
             return;

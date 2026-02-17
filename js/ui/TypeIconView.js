@@ -50,6 +50,7 @@ const TypeIconView = {
     /**
      * Resolve display type for a skill icon.
      * Status category uses dedicated status icon.
+     * 注意：这里只影响 UI 图标展示，不会改动技能真实 type/category 业务语义。
      * @param {{type?: string, category?: string}|null} skill
      * @returns {string|null}
      */
