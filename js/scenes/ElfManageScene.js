@@ -6,9 +6,11 @@
 class ElfManageScene extends Phaser.Scene {
     constructor() {
         super({ key: 'ElfManageScene' });
+        this.returnScene = 'SpaceshipScene';
+        this.returnData = {};
     }
 
-    init(data) {
+    init(data = {}) {
         this.returnScene = data.returnScene || 'SpaceshipScene';
         this.returnData = data.returnData || {};
     }
@@ -324,11 +326,16 @@ class ElfManageScene extends Phaser.Scene {
             return;
         }
 
+        const parentReturnScene = this.returnScene || 'SpaceshipScene';
+        const parentReturnData = this.returnData && typeof this.returnData === 'object'
+            ? this.returnData
+            : {};
+
         SceneRouter.launch(this, 'PokedexScene', {
             returnScene: 'ElfManageScene',
             returnData: {
-                returnScene: this.returnScene,
-                returnData: this.returnData
+                returnScene: parentReturnScene,
+                returnData: parentReturnData
             }
         }, {
             bgmStrategy: 'inherit'
@@ -649,12 +656,16 @@ class ElfManageScene extends Phaser.Scene {
     closePanel() {
         ModalOverlayLayer.unmount(this);
 
-        if (this.scene.isActive(this.returnScene)) {
+        const requestedTarget = this.returnScene || 'SpaceshipScene';
+        const targetScene = this.scene.get(requestedTarget) ? requestedTarget : 'SpaceshipScene';
+        const targetData = this.returnData && typeof this.returnData === 'object' ? this.returnData : {};
+
+        if (this.scene.isActive(targetScene)) {
             this.scene.stop();
             return;
         }
 
-        SceneRouter.start(this, this.returnScene, this.returnData || {});
+        SceneRouter.start(this, targetScene, targetData);
     }
 }
 
