@@ -31,6 +31,9 @@ const BattleSkillPanelView = {
     },
 
     unmount() {
+        if (typeof SkillTooltipView !== 'undefined' && SkillTooltipView && typeof SkillTooltipView.hide === 'function') {
+            SkillTooltipView.hide(this);
+        }
         if (this.skillContainer) {
             this.skillContainer.destroy();
             this.skillContainer = null;
@@ -84,19 +87,18 @@ const BattleSkillPanelView = {
 
     createSkillButton(x, y, w, h, skill, index) {
         const container = this.add.container(x, y);
-        const disabled = skill.currentPP <= 0;
 
         const bg = this.add.graphics();
-        bg.fillStyle(disabled ? 0x333333 : 0x2a4a7a, 1);
+        bg.fillStyle(0x2a4a7a, 1);
         bg.fillRoundedRect(0, 0, w, h, 6);
-        bg.lineStyle(2, disabled ? 0x444444 : 0x4a7aba);
+        bg.lineStyle(2, 0x4a7aba);
         bg.strokeRoundedRect(0, 0, w, h, 6);
         container.add(bg);
 
         const nameText = this.add.text(10, 10, skill.name, {
             fontSize: '16px',
             fontFamily: 'Arial',
-            color: disabled ? '#666666' : '#ffffff',
+            color: '#ffffff',
             fontStyle: 'bold'
         });
         container.add(nameText);
@@ -111,40 +113,60 @@ const BattleSkillPanelView = {
         const ppText = this.add.text(w - 10, h / 2, `PP ${skill.currentPP}/${skill.pp}`, {
             fontSize: '13px',
             fontFamily: 'Arial',
-            color: disabled ? '#444444' : '#aaddaa'
+            color: '#aaddaa'
         }).setOrigin(1, 0.5);
         container.add(ppText);
 
-        if (!disabled) {
-            const hit = this.add.rectangle(w / 2, h / 2, w, h).setInteractive({ useHandCursor: true });
-            container.add(hit);
+        const hit = this.add.rectangle(w / 2, h / 2, w, h, 0x000000, 0.001)
+            .setInteractive({ useHandCursor: true });
+        container.add(hit);
 
-            hit.on('pointerover', () => {
+        hit.on('pointerover', (pointer) => {
+            const disabledNow = BattleSkillPanelView.syncSkillButtonState.call(this, container);
+            if (!disabledNow) {
                 bg.clear();
                 bg.fillStyle(0x3a6aaa, 1);
                 bg.fillRoundedRect(0, 0, w, h, 6);
                 bg.lineStyle(2, 0x5a9ada);
                 bg.strokeRoundedRect(0, 0, w, h, 6);
-            });
+            }
+            if (typeof SkillTooltipView !== 'undefined' && SkillTooltipView && typeof SkillTooltipView.show === 'function') {
+                SkillTooltipView.show(this, pointer, skill);
+            }
+        });
 
-            hit.on('pointerout', () => {
-                bg.clear();
-                bg.fillStyle(0x2a4a7a, 1);
-                bg.fillRoundedRect(0, 0, w, h, 6);
-                bg.lineStyle(2, 0x4a7aba);
-                bg.strokeRoundedRect(0, 0, w, h, 6);
-            });
+        hit.on('pointermove', (pointer) => {
+            if (typeof SkillTooltipView !== 'undefined' && SkillTooltipView && typeof SkillTooltipView.move === 'function') {
+                SkillTooltipView.move(this, pointer);
+            }
+        });
 
-            hit.on('pointerdown', () => {
-                if (this.menuEnabled && !this.battleEnded) {
-                    this.doSkill(skill.id);
-                }
-            });
-        }
+        hit.on('pointerout', () => {
+            BattleSkillPanelView.syncSkillButtonState.call(this, container);
+            if (typeof SkillTooltipView !== 'undefined' && SkillTooltipView && typeof SkillTooltipView.hide === 'function') {
+                SkillTooltipView.hide(this);
+            }
+        });
+
+        hit.on('pointerdown', () => {
+            const disabledNow = BattleSkillPanelView.syncSkillButtonState.call(this, container);
+            if (disabledNow) {
+                return;
+            }
+            if (this.menuEnabled && !this.battleEnded) {
+                this.doSkill(skill.id);
+            }
+        });
 
         container._skill = skill;
         container._ppText = ppText;
+        container._nameText = nameText;
+        container._bg = bg;
+        container._hit = hit;
+        container._w = w;
+        container._h = h;
         container._index = index;
+        BattleSkillPanelView.syncSkillButtonState.call(this, container);
         return container;
     },
 
@@ -173,9 +195,49 @@ const BattleSkillPanelView = {
             const btn = this.skillButtons[i];
             if (btn._skill && btn._ppText) {
                 const skill = skills[i];
-                btn._ppText.setText(`PP ${skill.currentPP}/${skill.pp}`);
+                btn._skill.currentPP = skill.currentPP;
+                BattleSkillPanelView.syncSkillButtonState.call(this, btn);
             }
         }
+    },
+
+    syncSkillButtonState(btn) {
+        if (!btn || !btn._skill || !btn._bg || !btn._ppText) {
+            return false;
+        }
+
+        const skillId = btn._skill.id;
+        const ppNowRaw = this.playerElf && this.playerElf.skillPP ? this.playerElf.skillPP[skillId] : btn._skill.currentPP;
+        const ppNow = Number.isFinite(ppNowRaw) ? ppNowRaw : 0;
+        const ppMax = Number.isFinite(btn._skill.pp) ? btn._skill.pp : 0;
+        const disabled = ppNow <= 0;
+
+        btn._skill.currentPP = ppNow;
+        btn._ppText.setText(`PP ${ppNow}/${ppMax}`);
+
+        if (btn._nameText) {
+            btn._nameText.setColor(disabled ? '#666666' : '#ffffff');
+        }
+        btn._ppText.setColor(disabled ? '#444444' : '#aaddaa');
+
+        btn._bg.clear();
+        if (disabled) {
+            btn._bg.fillStyle(0x333333, 1);
+            btn._bg.fillRoundedRect(0, 0, btn._w, btn._h, 6);
+            btn._bg.lineStyle(2, 0x444444);
+            btn._bg.strokeRoundedRect(0, 0, btn._w, btn._h, 6);
+        } else {
+            btn._bg.fillStyle(0x2a4a7a, 1);
+            btn._bg.fillRoundedRect(0, 0, btn._w, btn._h, 6);
+            btn._bg.lineStyle(2, 0x4a7aba);
+            btn._bg.strokeRoundedRect(0, 0, btn._w, btn._h, 6);
+        }
+
+        if (btn._hit && btn._hit.input) {
+            btn._hit.input.cursor = disabled ? 'default' : 'pointer';
+        }
+
+        return disabled;
     },
 
     showSkillPanel() {
@@ -187,6 +249,9 @@ const BattleSkillPanelView = {
     },
 
     rebuildSkillPanel() {
+        if (typeof SkillTooltipView !== 'undefined' && SkillTooltipView && typeof SkillTooltipView.hide === 'function') {
+            SkillTooltipView.hide(this);
+        }
         if (this.skillContainer) {
             this.skillContainer.removeAll(true);
         }

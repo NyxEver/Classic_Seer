@@ -23,6 +23,11 @@ class ElfManageScene extends Phaser.Scene {
         this.healAllCost = 120;
         this.maxSlots = 6;
 
+        if (typeof SkillTooltipView !== 'undefined' && SkillTooltipView && typeof SkillTooltipView.unmount === 'function') {
+            this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => SkillTooltipView.unmount(this));
+            this.events.once(Phaser.Scenes.Events.DESTROY, () => SkillTooltipView.unmount(this));
+        }
+
         this.createModalLayout();
         this.refreshView();
     }
@@ -322,6 +327,7 @@ class ElfManageScene extends Phaser.Scene {
     }
 
     openPokedexModal() {
+        this.hideSkillTooltip();
         if (this.scene.isActive('PokedexScene')) {
             return;
         }
@@ -400,6 +406,7 @@ class ElfManageScene extends Phaser.Scene {
     }
 
     renderRightDetail() {
+        this.hideSkillTooltip();
         this.rightContent.removeAll(true);
         const index = this.selectedElfIndex;
         if (index < 0 || index >= PlayerData.elves.length) {
@@ -560,6 +567,10 @@ class ElfManageScene extends Phaser.Scene {
             }).setOrigin(1, 0);
             this.rightContent.add(power);
             this.rightContent.add(pp);
+
+            const hit = this.add.rectangle(sx + cardW / 2, sy + cardH / 2, cardW, cardH, 0x000000, 0.001).setInteractive();
+            this.bindSkillTooltip(hit, skill);
+            this.rightContent.add(hit);
         }
     }
 
@@ -576,6 +587,19 @@ class ElfManageScene extends Phaser.Scene {
         const fallback = this.add.circle(x - 7, y + 7, 7, 0x8899aa, 1).setOrigin(1, 0);
         fallback.setStrokeStyle(1, 0xffffff, 0.7);
         container.add(fallback);
+    }
+
+    bindSkillTooltip(target, skill) {
+        if (!target || !skill || typeof SkillTooltipView === 'undefined' || !SkillTooltipView) return;
+        target.on('pointerover', (pointer) => SkillTooltipView.show(this, pointer, skill));
+        target.on('pointermove', (pointer) => SkillTooltipView.move(this, pointer));
+        target.on('pointerout', () => SkillTooltipView.hide(this));
+    }
+
+    hideSkillTooltip() {
+        if (typeof SkillTooltipView !== 'undefined' && SkillTooltipView && typeof SkillTooltipView.hide === 'function') {
+            SkillTooltipView.hide(this);
+        }
     }
 
     drawPanelBlock(container, x, y, w, h, color) {
@@ -655,6 +679,7 @@ class ElfManageScene extends Phaser.Scene {
     }
 
     closePanel() {
+        this.hideSkillTooltip();
         ModalOverlayLayer.unmount(this);
 
         const requestedTarget = this.returnScene || 'SpaceshipScene';

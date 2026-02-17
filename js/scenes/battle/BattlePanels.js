@@ -70,6 +70,10 @@ const BattlePanels = {
         const panelY = 430;
         const panelH = 170;
 
+        if (typeof SkillTooltipView !== 'undefined' && SkillTooltipView && typeof SkillTooltipView.hide === 'function') {
+            SkillTooltipView.hide(this);
+        }
+
         unmountBattlePanelsViews(this);
 
         this.bottomPanelY = panelY;
@@ -118,6 +122,13 @@ const BattlePanels = {
 
     refreshPanelVisibility() {
         ensureBattlePanelsState(this);
+
+        if ((this.isItemPanelOpen === true || this.forceSwitchMode === true || this.battleEnded === true)
+            && typeof SkillTooltipView !== 'undefined'
+            && SkillTooltipView
+            && typeof SkillTooltipView.hide === 'function') {
+            SkillTooltipView.hide(this);
+        }
 
         if (this.isItemPanelOpen === true && !this.itemPanelContainer) {
             this.isItemPanelOpen = false;

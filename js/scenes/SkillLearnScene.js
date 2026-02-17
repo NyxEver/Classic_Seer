@@ -42,6 +42,11 @@ class SkillLearnScene extends Phaser.Scene {
         const centerX = width / 2;
         const centerY = height / 2;
 
+        if (typeof SkillTooltipView !== 'undefined' && SkillTooltipView && typeof SkillTooltipView.unmount === 'function') {
+            this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => SkillTooltipView.unmount(this));
+            this.events.once(Phaser.Scenes.Events.DESTROY, () => SkillTooltipView.unmount(this));
+        }
+
         if (!this.elf || typeof this.elf.getDisplayName !== 'function') {
             console.error('[SkillLearnScene] 缺少有效精灵实例，跳过技能学习流程');
             this.returnToPrevious();
@@ -125,6 +130,8 @@ class SkillLearnScene extends Phaser.Scene {
             fill: '#aaccaa',
             wordWrap: { width: cardW - 20 }
         }).setOrigin(0.5);
+
+        this.bindSkillTooltip(this.add.rectangle(x, y, cardW, cardH, 0x000000, 0.001).setInteractive(), skill);
     }
 
     addSkillTypeVisual(container, x, y, skill, options = {}) {
@@ -215,6 +222,8 @@ class SkillLearnScene extends Phaser.Scene {
             bg.lineStyle(2, 0x88aacc);
             bg.strokeRoundedRect(-w / 2, -h / 2, w, h, 8);
         });
+
+        this.bindSkillTooltip(hitArea, skill);
 
         hitArea.on('pointerout', () => {
             if (this.selectedSlotIndex !== index) {
@@ -347,6 +356,7 @@ class SkillLearnScene extends Phaser.Scene {
         // 防止重复调用
         if (this.isTransitioning) return;
         this.isTransitioning = true;
+        if (typeof SkillTooltipView !== 'undefined' && SkillTooltipView && typeof SkillTooltipView.hide === 'function') SkillTooltipView.hide(this);
 
         const safeDefaultReturnScene = this.resolveSafeReturnScene(this.returnScene);
         const safeDefaultReturnData = this.returnData || {};
@@ -446,6 +456,13 @@ class SkillLearnScene extends Phaser.Scene {
         }
 
         return sceneKey;
+    }
+
+    bindSkillTooltip(target, skill) {
+        if (!target || !skill || typeof SkillTooltipView === 'undefined' || !SkillTooltipView) return;
+        target.on('pointerover', (pointer) => SkillTooltipView.show(this, pointer, skill));
+        target.on('pointermove', (pointer) => SkillTooltipView.move(this, pointer));
+        target.on('pointerout', () => SkillTooltipView.hide(this));
     }
 
     /**
