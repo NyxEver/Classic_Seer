@@ -107,17 +107,13 @@ class SkillLearnScene extends Phaser.Scene {
             fontStyle: 'bold'
         }).setOrigin(0.5);
 
-        // 技能信息（使用属性图标）
-        const typeIconKey = AssetMappings.getTypeIconKey(skill.type);
-        let info = `威力: ${skill.power || '-'}  |  PP: ${skill.pp}`;
-        if (typeIconKey && this.textures.exists(typeIconKey)) {
-            const typeIcon = this.add.image(x - 145, y + 5, typeIconKey).setOrigin(0.5);
-            const scale = Math.min(20 / typeIcon.width, 20 / typeIcon.height);
-            typeIcon.setScale(scale);
-        } else {
-            const fallback = this.add.circle(x - 145, y + 5, 8, DataLoader.getTypeColor(skill.type), 1).setOrigin(0.5);
-            fallback.setStrokeStyle(1, 0xffffff, 0.7);
-        }
+        // 技能信息（使用统一技能图标解析：status 类显示专用 status 图标）
+        const info = `威力: ${skill.power || '-'}  |  PP: ${skill.pp}`;
+        const typeIconContainer = this.add.container(x - 145, y + 5);
+        this.addSkillTypeVisual(typeIconContainer, 0, 0, skill, {
+            iconSize: 20
+        });
+
         this.add.text(x + 10, y + 5, info, {
             fontSize: '14px',
             fill: '#88ddaa'
@@ -129,6 +125,21 @@ class SkillLearnScene extends Phaser.Scene {
             fill: '#aaccaa',
             wordWrap: { width: cardW - 20 }
         }).setOrigin(0.5);
+    }
+
+    addSkillTypeVisual(container, x, y, skill, options = {}) {
+        if (typeof TypeIconView !== 'undefined' && TypeIconView && typeof TypeIconView.renderSkill === 'function') {
+            TypeIconView.renderSkill(this, container, x, y, skill, {
+                iconSize: options.iconSize || 16,
+                originX: 0.5,
+                originY: 0.5
+            });
+            return;
+        }
+
+        const radius = Math.max(4, Math.floor((options.iconSize || 16) / 2));
+        const fallback = this.add.circle(x, y, radius, 0x8899aa, 1).setOrigin(0.5);
+        container.add(fallback);
     }
 
     /**

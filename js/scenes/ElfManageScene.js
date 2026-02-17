@@ -550,7 +550,7 @@ class ElfManageScene extends Phaser.Scene {
             });
             this.rightContent.add(name);
 
-            this.addTypeVisual(this.rightContent, sx + cardW - 10, sy + 10, skill.type);
+            this.addSkillTypeVisual(this.rightContent, sx + cardW - 10, sy + 10, skill);
 
             const power = this.add.text(sx + 8, sy + cardH - 18, `威力 ${skill.power || '-'}`, {
                 fontSize: '12px', color: '#bcd8ef'
@@ -563,16 +563,17 @@ class ElfManageScene extends Phaser.Scene {
         }
     }
 
-    addTypeVisual(container, x, y, type) {
-        const key = AssetMappings.getTypeIconKey(type);
-        if (key && this.textures.exists(key)) {
-            const icon = this.add.image(x, y, key).setOrigin(1, 0);
-            const scale = Math.min(16 / icon.width, 16 / icon.height);
-            icon.setScale(scale);
-            container.add(icon);
+    addSkillTypeVisual(container, x, y, skill) {
+        if (typeof TypeIconView !== 'undefined' && TypeIconView && typeof TypeIconView.renderSkill === 'function') {
+            TypeIconView.renderSkill(this, container, x, y, skill, {
+                iconSize: 16,
+                originX: 1,
+                originY: 0
+            });
             return;
         }
-        const fallback = this.add.circle(x - 7, y + 7, 7, DataLoader.getTypeColor(type), 1).setOrigin(1, 0);
+
+        const fallback = this.add.circle(x - 7, y + 7, 7, 0x8899aa, 1).setOrigin(1, 0);
         fallback.setStrokeStyle(1, 0xffffff, 0.7);
         container.add(fallback);
     }

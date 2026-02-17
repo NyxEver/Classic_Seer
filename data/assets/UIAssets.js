@@ -41,7 +41,8 @@ const UIAssets = {
         shadow: '30px-shadow',
         mystery: '30px-mystery',
         dragon: '30px-dragon',
-        spirit: '30px-spirit'
+        spirit: '30px-spirit',
+        status: '30px-status'
     },
 
     /**

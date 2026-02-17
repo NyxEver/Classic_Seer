@@ -47,7 +47,38 @@ const TypeIconView = {
         return fallback;
     },
 
+    /**
+     * Resolve display type for a skill icon.
+     * Status category uses dedicated status icon.
+     * @param {{type?: string, category?: string}|null} skill
+     * @returns {string|null}
+     */
+    resolveSkillDisplayType(skill) {
+        if (!skill || typeof skill !== 'object') {
+            return null;
+        }
+
+        if (skill.category === 'status') {
+            return 'status';
+        }
+
+        return typeof skill.type === 'string' ? skill.type : null;
+    },
+
+    getSkillIconKey(skill) {
+        const displayType = this.resolveSkillDisplayType(skill);
+        return this.getTypeIconKey(displayType);
+    },
+
+    renderSkill(scene, container, x, y, skill, options = {}) {
+        const displayType = this.resolveSkillDisplayType(skill);
+        return this.render(scene, container, x, y, displayType, options);
+    },
+
     getTypeIconKey(type) {
+        if (!type) {
+            return null;
+        }
         if (typeof AssetMappings === 'undefined' || typeof AssetMappings.getTypeIconKey !== 'function') {
             return null;
         }

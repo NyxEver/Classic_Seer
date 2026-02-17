@@ -1,6 +1,6 @@
-function renderSwitchPanelTypeIcon(scene, container, x, y, type, options = {}) {
-    if (typeof TypeIconView !== 'undefined' && TypeIconView && typeof TypeIconView.render === 'function') {
-        TypeIconView.render(scene, container, x, y, type, {
+function renderSwitchPanelTypeIcon(scene, container, x, y, skill, options = {}) {
+    if (typeof TypeIconView !== 'undefined' && TypeIconView && typeof TypeIconView.renderSkill === 'function') {
+        TypeIconView.renderSkill(scene, container, x, y, skill, {
             iconSize: options.iconSize || 16,
             originX: options.fallbackOriginX ?? 0.5,
             originY: 0.5
@@ -315,7 +315,7 @@ const BattleSwitchPanelView = {
         });
         container.add(metaText);
 
-        renderSwitchPanelTypeIcon(this, container, w - 12, h / 2, skill.type, {
+        renderSwitchPanelTypeIcon(this, container, w - 12, h / 2, skill, {
             iconSize: 16,
             fallbackFontSize: '10px',
             fallbackColor: '#aaddaa',

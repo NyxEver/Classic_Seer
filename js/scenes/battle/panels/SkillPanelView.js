@@ -1,6 +1,6 @@
-function renderSkillPanelTypeIcon(scene, container, x, y, type, options = {}) {
-    if (typeof TypeIconView !== 'undefined' && TypeIconView && typeof TypeIconView.render === 'function') {
-        TypeIconView.render(scene, container, x, y, type, {
+function renderSkillPanelTypeIcon(scene, container, x, y, skill, options = {}) {
+    if (typeof TypeIconView !== 'undefined' && TypeIconView && typeof TypeIconView.renderSkill === 'function') {
+        TypeIconView.renderSkill(scene, container, x, y, skill, {
             iconSize: options.iconSize || 16,
             originX: options.fallbackOriginX ?? 0.5,
             originY: 0.5
@@ -101,7 +101,7 @@ const BattleSkillPanelView = {
         });
         container.add(nameText);
 
-        renderSkillPanelTypeIcon(this, container, 10, 38, skill.type, {
+        renderSkillPanelTypeIcon(this, container, 10, 38, skill, {
             iconSize: 14,
             fallbackFontSize: '12px',
             fallbackColor: '#88aacc',
