@@ -13,6 +13,117 @@ const BATTLE_STAGE_LABELS = {
     accuracy: '命中'
 };
 
+const BATTLE_HUD_LAYOUT_DEFAULTS = {
+    player: {
+        mirrored: false,
+        hpFillOrigin: 'left',
+        statusRowAlign: 'left'
+    },
+    enemy: {
+        mirrored: true,
+        hpFillOrigin: 'right',
+        statusRowAlign: 'right'
+    }
+};
+
+function toObject(value) {
+    return value && typeof value === 'object' ? value : {};
+}
+
+function normalizeHudSideLayout(rawConfig, defaults) {
+    const config = toObject(rawConfig);
+
+    return {
+        mirrored: typeof config.mirrored === 'boolean' ? config.mirrored : defaults.mirrored,
+        hpFillOrigin: (config.hpFillOrigin === 'left' || config.hpFillOrigin === 'right')
+            ? config.hpFillOrigin
+            : defaults.hpFillOrigin,
+        statusRowAlign: (config.statusRowAlign === 'left' || config.statusRowAlign === 'right')
+            ? config.statusRowAlign
+            : defaults.statusRowAlign
+    };
+}
+
+function getGlobalHudLayoutConfig() {
+    if (typeof window === 'undefined') {
+        return {};
+    }
+    return toObject(window.__seerBattleHudLayoutConfig);
+}
+
+function getSceneHudLayoutConfig(scene) {
+    if (!scene || typeof scene !== 'object') {
+        return {};
+    }
+    return toObject(scene.battleHudLayoutConfig);
+}
+
+function resolveBattleHudLayoutConfig(scene) {
+    const globalConfig = getGlobalHudLayoutConfig();
+    const sceneConfig = getSceneHudLayoutConfig(scene);
+
+    return {
+        player: normalizeHudSideLayout(
+            {
+                ...toObject(globalConfig.player),
+                ...toObject(sceneConfig.player)
+            },
+            BATTLE_HUD_LAYOUT_DEFAULTS.player
+        ),
+        enemy: normalizeHudSideLayout(
+            {
+                ...toObject(globalConfig.enemy),
+                ...toObject(sceneConfig.enemy)
+            },
+            BATTLE_HUD_LAYOUT_DEFAULTS.enemy
+        )
+    };
+}
+
+function getBattleHudSideLayout(scene, side) {
+    const config = resolveBattleHudLayoutConfig(scene);
+    return side === 'enemy' ? config.enemy : config.player;
+}
+
+function getStatusBarLocalLayout(sideLayout) {
+    const frameW = 108;
+    const infoW = 270;
+    const infoGap = 8;
+    const frameOnLeft = !sideLayout.mirrored;
+
+    const frameX = frameOnLeft ? 0 : -frameW;
+    const infoX = frameOnLeft
+        ? frameX + frameW + infoGap
+        : frameX - infoGap - infoW;
+
+    const minX = Math.min(frameX, infoX);
+    const maxX = Math.max(frameX + frameW, infoX + infoW);
+
+    return {
+        frameX,
+        infoX,
+        minX,
+        maxX,
+        frameW,
+        infoW,
+        infoGap
+    };
+}
+
+function resolveStatusBarAnchorX(scene, side, sideLayout) {
+    const marginX = 20;
+    const local = getStatusBarLocalLayout(sideLayout);
+    const sceneWidth = scene && Number.isFinite(scene.W)
+        ? scene.W
+        : (scene && scene.cameras && scene.cameras.main ? scene.cameras.main.width : 1000);
+
+    if (side === 'player') {
+        return marginX - local.minX;
+    }
+
+    return sceneWidth - marginX - local.maxX;
+}
+
 function getHudStatusEffect() {
     if (typeof StatusEffect !== 'undefined' && StatusEffect) {
         return StatusEffect;
@@ -184,33 +295,42 @@ const BattleHud = {
             });
         };
 
-        const playerRight = this.playerStatus ? !!this.playerStatus.statusRowRightAligned : false;
-        const enemyRight = this.enemyStatus ? !!this.enemyStatus.statusRowRightAligned : true;
+        const playerDefaultLayout = getBattleHudSideLayout(this, 'player');
+        const enemyDefaultLayout = getBattleHudSideLayout(this, 'enemy');
+        const playerRight = this.playerStatus
+            ? !!this.playerStatus.statusRowRightAligned
+            : playerDefaultLayout.statusRowAlign === 'right';
+        const enemyRight = this.enemyStatus
+            ? !!this.enemyStatus.statusRowRightAligned
+            : enemyDefaultLayout.statusRowAlign === 'right';
         renderRow(this.playerStatusIconRow, 'player', playerRight);
         renderRow(this.enemyStatusIconRow, 'enemy', enemyRight);
     },
 
     createStatusBar(elf, x, y, isPlayer) {
+        const side = isPlayer ? 'player' : 'enemy';
+        const sideLayout = getBattleHudSideLayout(this, side);
+        const localLayout = getStatusBarLocalLayout(sideLayout);
+
         const sideKey = isPlayer ? 'playerStatus' : 'enemyStatus';
         const oldInfo = this[sideKey];
         if (oldInfo && oldInfo.container) {
             oldInfo.container.destroy();
         }
 
-        const container = this.add.container(x, y);
+        const anchorX = resolveStatusBarAnchorX(this, side, sideLayout);
+        const anchorY = Number.isFinite(y) ? y : 10;
+        const container = this.add.container(anchorX, anchorY);
         container.setDepth(26);
 
-        const frameW = 108;
+        const frameW = localLayout.frameW;
         const frameH = 82;
-        const infoW = 270;
-        const infoGap = 8;
+        const infoW = localLayout.infoW;
         const hpBarH = 14;
 
-        const frameX = isPlayer ? 0 : -frameW;
+        const frameX = localLayout.frameX;
         const frameY = 0;
-        const infoX = isPlayer
-            ? frameX + frameW + infoGap
-            : frameX - infoGap - infoW;
+        const infoX = localLayout.infoX;
         const infoTextY = 16;
         const hpBarY = 38;
 
@@ -261,10 +381,11 @@ const BattleHud = {
         }).setOrigin(0.5, 1);
         container.add(lvText);
 
-        const nameX = isPlayer ? infoX : (infoX + infoW);
-        const nameOriginX = isPlayer ? 0 : 1;
-        const hpX = isPlayer ? (infoX + infoW) : infoX;
-        const hpOriginX = isPlayer ? 1 : 0;
+        const textMirrored = !!sideLayout.mirrored;
+        const nameX = textMirrored ? (infoX + infoW) : infoX;
+        const nameOriginX = textMirrored ? 1 : 0;
+        const hpX = textMirrored ? infoX : (infoX + infoW);
+        const hpOriginX = textMirrored ? 0 : 1;
 
         const nameText = this.add.text(nameX, infoTextY, elf.getDisplayName(), {
             fontSize: '20px',
@@ -292,6 +413,7 @@ const BattleHud = {
         const hpBar = this.add.graphics();
         container.add(hpBar);
 
+        const statusRowRightAligned = sideLayout.statusRowAlign === 'right';
         const info = {
             container,
             hpBar,
@@ -302,9 +424,10 @@ const BattleHud = {
             hpBarY,
             hpBarW: infoW,
             hpBarH,
-            statusRowX: container.x + (isPlayer ? infoX : (infoX + infoW)),
+            hpFillFromRight: sideLayout.hpFillOrigin === 'right',
+            statusRowX: container.x + (statusRowRightAligned ? (infoX + infoW) : infoX),
             statusRowY: container.y + hpBarY + hpBarH + 20,
-            statusRowRightAligned: !isPlayer
+            statusRowRightAligned
         };
 
         this[sideKey] = info;
@@ -334,8 +457,12 @@ const BattleHud = {
 
         info.hpBar.clear();
         if (pct > 0) {
+            const fillWidth = (info.hpBarW - 4) * pct;
+            const fillX = info.hpFillFromRight
+                ? (info.hpBarX + info.hpBarW - 2 - fillWidth)
+                : (info.hpBarX + 2);
             info.hpBar.fillStyle(color, 1);
-            info.hpBar.fillRoundedRect(info.hpBarX + 2, info.hpBarY + 2, (info.hpBarW - 4) * pct, info.hpBarH - 4, 4);
+            info.hpBar.fillRoundedRect(fillX, info.hpBarY + 2, fillWidth, info.hpBarH - 4, 4);
         }
 
         info.nameText.setText(elf.getDisplayName());

@@ -31,9 +31,12 @@ function startBattleFollowupScene(scene, targetScene, data) {
     }
 
     scene.fadeOutBattleBgm(() => {
-        sceneRouter.start(scene, targetScene, data, {
+        const launched = sceneRouter.launch(scene, targetScene, data, {
             bgmStrategy: 'inherit'
         });
+        if (launched) {
+            scene.scene.bringToTop(targetScene);
+        }
     });
     return true;
 }
@@ -176,6 +179,7 @@ const BattlePostFlow = {
             newSkillId: skillId,
             returnScene: this.returnScene,
             returnData,
+            closeSceneKeys: ['BattleScene'],
             chainData: {
                 canEvolve: result.canEvolve,
                 evolveTo: result.evolveTo,
@@ -213,6 +217,7 @@ const BattlePostFlow = {
                 newElfId,
                 returnScene: this.returnScene,
                 returnData,
+                closeSceneKeys: ['BattleScene'],
                 callback: () => {
                     elfBeforeEvolution.evolve();
                     playerData.saveToStorage();

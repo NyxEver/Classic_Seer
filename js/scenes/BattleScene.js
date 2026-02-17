@@ -17,6 +17,9 @@ class BattleScene extends Phaser.Scene {
         this.returnScene = data.returnScene || 'BootScene';
         this.returnData = data.returnData || {};
         this.battleBackgroundKey = data.battleBackgroundKey || null;
+        this.battleHudLayoutConfig = data.battleHudLayoutConfig && typeof data.battleHudLayoutConfig === 'object'
+            ? data.battleHudLayoutConfig
+            : null;
     }
 
     create() {

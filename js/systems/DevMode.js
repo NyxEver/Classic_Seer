@@ -312,7 +312,11 @@ const DevMode = {
 
         const safeReturnSceneKey = this._sanitizeReturnSceneKey(returnSceneKey);
 
-        sceneRouter.start(currentScene, 'SkillLearnScene', {
+        if (gameInstance.scene.isActive('SkillLearnScene')) {
+            return;
+        }
+
+        const launched = sceneRouter.launch(currentScene, 'SkillLearnScene', {
             elf: elf,
             newSkillId: pendingSkills[0],
             returnScene: safeReturnSceneKey,
@@ -326,6 +330,10 @@ const DevMode = {
         }, {
             bgmStrategy: 'inherit'
         });
+
+        if (launched) {
+            currentScene.scene.bringToTop('SkillLearnScene');
+        }
     },
 
     /**
@@ -355,7 +363,11 @@ const DevMode = {
 
         const safeReturnSceneKey = this._sanitizeReturnSceneKey(returnSceneKey);
 
-        sceneRouter.start(currentScene, 'EvolutionScene', {
+        if (gameInstance.scene.isActive('EvolutionScene')) {
+            return;
+        }
+
+        const launched = sceneRouter.launch(currentScene, 'EvolutionScene', {
             elf: elf,
             newElfId: elf.evolvesTo,
             returnScene: safeReturnSceneKey,
@@ -368,6 +380,10 @@ const DevMode = {
         }, {
             bgmStrategy: 'inherit'
         });
+
+        if (launched) {
+            currentScene.scene.bringToTop('EvolutionScene');
+        }
     }
 };
 
