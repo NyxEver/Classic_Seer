@@ -265,39 +265,12 @@ class TeleportScene extends Phaser.Scene {
     }
 
     createBottomBar() {
+        WorldSceneModalMixin.apply(this, 'TeleportScene', () => this.getTeleportReturnPayload());
         this.worldBottomBar = WorldBottomBar.create(this, {
             disableMap: true,
             onBag: () => this.openItemBagModal(),
             onElfManage: () => this.openElfManageModal()
         });
-    }
-
-    openItemBagModal() {
-        if (this.scene.isActive('ItemBagScene')) {
-            return;
-        }
-
-        SceneRouter.launch(this, 'ItemBagScene', {
-            returnScene: 'TeleportScene',
-            returnData: this.getTeleportReturnPayload()
-        }, {
-            bgmStrategy: 'inherit'
-        });
-        this.scene.bringToTop('ItemBagScene');
-    }
-
-    openElfManageModal() {
-        if (this.scene.isActive('ElfManageScene')) {
-            return;
-        }
-
-        SceneRouter.launch(this, 'ElfManageScene', {
-            returnScene: 'TeleportScene',
-            returnData: this.getTeleportReturnPayload()
-        }, {
-            bgmStrategy: 'inherit'
-        });
-        this.scene.bringToTop('ElfManageScene');
     }
 
     getTeleportReturnPayload() {

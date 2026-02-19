@@ -230,38 +230,11 @@ class SpaceshipScene extends Phaser.Scene {
 
     // ========== 底部功能栏 ==========
     createBottomBar() {
+        WorldSceneModalMixin.apply(this, 'SpaceshipScene');
         this.worldBottomBar = WorldBottomBar.create(this, {
             disableMap: true,
             onBag: () => this.openItemBagModal(),
             onElfManage: () => this.openElfManageModal()
         });
-    }
-
-    openItemBagModal() {
-        if (this.scene.isActive('ItemBagScene')) {
-            return;
-        }
-
-        SceneRouter.launch(this, 'ItemBagScene', {
-            returnScene: 'SpaceshipScene',
-            returnData: {}
-        }, {
-            bgmStrategy: 'inherit'
-        });
-        this.scene.bringToTop('ItemBagScene');
-    }
-
-    openElfManageModal() {
-        if (this.scene.isActive('ElfManageScene')) {
-            return;
-        }
-
-        SceneRouter.launch(this, 'ElfManageScene', {
-            returnScene: 'SpaceshipScene',
-            returnData: {}
-        }, {
-            bgmStrategy: 'inherit'
-        });
-        this.scene.bringToTop('ElfManageScene');
     }
 }

@@ -159,43 +159,12 @@ class KloseScene extends Phaser.Scene {
     }
 
     createBottomBar() {
+        WorldSceneModalMixin.apply(this, 'KloseScene', () => this.getKloseReturnData());
         this.worldBottomBar = WorldBottomBar.create(this, {
             onMap: () => this.openSpaceshipFromBottomBar(),
             onBag: () => this.openItemBagModal(),
             onElfManage: () => this.openElfManageModal()
         });
-    }
-
-    openSpaceshipFromBottomBar() {
-        SceneRouter.start(this, 'SpaceshipScene');
-    }
-
-    openItemBagModal() {
-        if (this.scene.isActive('ItemBagScene')) {
-            return;
-        }
-
-        SceneRouter.launch(this, 'ItemBagScene', {
-            returnScene: 'KloseScene',
-            returnData: this.getKloseReturnData()
-        }, {
-            bgmStrategy: 'inherit'
-        });
-        this.scene.bringToTop('ItemBagScene');
-    }
-
-    openElfManageModal() {
-        if (this.scene.isActive('ElfManageScene')) {
-            return;
-        }
-
-        SceneRouter.launch(this, 'ElfManageScene', {
-            returnScene: 'KloseScene',
-            returnData: this.getKloseReturnData()
-        }, {
-            bgmStrategy: 'inherit'
-        });
-        this.scene.bringToTop('ElfManageScene');
     }
 
     getKloseReturnData() {
