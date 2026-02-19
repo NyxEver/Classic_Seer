@@ -1,3 +1,4 @@
+/** 反击效果处理器 */
 const CounterEffectHandler = {
     type: 'counter',
 

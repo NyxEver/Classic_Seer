@@ -1,19 +1,24 @@
 /**
- * ElfPortraitView - unified still portrait renderer
- * Fallback chain: external still -> battle still first frame.
+ * ElfPortraitView - 精灵静态肖像渲染器
+ *
+ * 职责：
+ * - 统一提供精灵静态图片的渲染接口
+ * - 回退链：外部静态图 → 战斗图集的首帧
+ * - 自动缩放以适配指定尺寸
  */
 
 const ElfPortraitView = {
+    /** @type {Set<string>} 已警告过缺失图片的精灵（避免重复警告） */
     _warnedMissing: new Set(),
 
     /**
-     * Add elf still portrait into container.
+     * 将精灵静态肖像添加到容器中
      * @param {Phaser.Scene} scene
      * @param {Phaser.GameObjects.Container} container
      * @param {number} x
      * @param {number} y
      * @param {number} elfId
-     * @param {object} options
+     * @param {Object} [options={}] - { maxSize, maxWidth, maxHeight, originX, originY, tint, alpha, warnTag }
      * @returns {Phaser.GameObjects.GameObject|null}
      */
     addStillPortrait(scene, container, x, y, elfId, options = {}) {
@@ -64,6 +69,16 @@ const ElfPortraitView = {
         return null;
     },
 
+    /**
+     * 添加图片到容器
+     * @param {Phaser.Scene} scene
+     * @param {Phaser.GameObjects.Container} container
+     * @param {number} x
+     * @param {number} y
+     * @param {string} key - 纹理键
+     * @param {Object} [options={}]
+     * @returns {Phaser.GameObjects.Image}
+     */
     addImage(scene, container, x, y, key, options = {}) {
         const image = scene.add.image(x, y, key).setOrigin(options.originX ?? 0.5, options.originY ?? 0.5);
         this.fitScale(image, options.maxSize, options.maxWidth, options.maxHeight);
@@ -77,6 +92,13 @@ const ElfPortraitView = {
         return image;
     },
 
+    /**
+     * 等比缩放以适配限制尺寸
+     * @param {Phaser.GameObjects.GameObject} displayObject
+     * @param {number} [maxSize]
+     * @param {number} [maxWidth]
+     * @param {number} [maxHeight]
+     */
     fitScale(displayObject, maxSize, maxWidth, maxHeight) {
         const widthLimit = maxSize || maxWidth;
         const heightLimit = maxSize || maxHeight;
@@ -87,6 +109,11 @@ const ElfPortraitView = {
         displayObject.setScale(scale);
     },
 
+    /**
+     * 获取外部静态图纹理键
+     * @param {number} elfId
+     * @returns {string|null}
+     */
     getExternalStillKey(elfId) {
         if (typeof AssetMappings === 'undefined' || typeof AssetMappings.getExternalStillKey !== 'function') {
             return null;
@@ -94,6 +121,11 @@ const ElfPortraitView = {
         return AssetMappings.getExternalStillKey(elfId);
     },
 
+    /**
+     * 获取战斗图集键列表（用于首帧回退）
+     * @param {number} elfId
+     * @returns {string[]}
+     */
     getBattleStillKeys(elfId) {
         if (typeof AssetMappings === 'undefined' || typeof AssetMappings.getBattleClipKeys !== 'function') {
             return [];
@@ -102,11 +134,23 @@ const ElfPortraitView = {
         return Array.isArray(keys) ? keys : [];
     },
 
+    /**
+     * 获取图集的第一帧名称
+     * @param {Phaser.Scene} scene
+     * @param {string} atlasKey
+     * @returns {string|null}
+     */
     getFirstAtlasFrameName(scene, atlasKey) {
         const frameNames = this.getAtlasFrameNames(scene, atlasKey);
         return frameNames.length ? frameNames[0] : null;
     },
 
+    /**
+     * 获取图集所有帧名称（按自然顺序排序）
+     * @param {Phaser.Scene} scene
+     * @param {string} atlasKey
+     * @returns {string[]}
+     */
     getAtlasFrameNames(scene, atlasKey) {
         if (!scene || !atlasKey) {
             return [];
@@ -137,6 +181,12 @@ const ElfPortraitView = {
             .map((item) => item.name);
     },
 
+    /**
+     * 计算帧排序权重（支持多种命名格式）
+     * @param {string} frameName
+     * @param {number} fallbackIndex
+     * @returns {{ group: number, value: number, fallbackIndex: number }}
+     */
     getFrameOrderValue(frameName, fallbackIndex) {
         const parenMatch = frameName.match(/\((\d+)\)/);
         if (parenMatch) return { group: 0, value: parseInt(parenMatch[1], 10), fallbackIndex };
@@ -150,6 +200,12 @@ const ElfPortraitView = {
         return { group: 3, value: Number.MAX_SAFE_INTEGER, fallbackIndex };
     },
 
+    /**
+     * 记录精灵图片缺失警告（每个精灵只警告一次）
+     * @param {number} elfId
+     * @param {string} warnTag
+     * @param {string|null} externalStillKey
+     */
     warnMissing(elfId, warnTag, externalStillKey) {
         const token = `${warnTag}:${elfId}`;
         if (this._warnedMissing.has(token)) {

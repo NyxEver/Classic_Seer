@@ -1,12 +1,31 @@
+/**
+ * BattleSwitchPanelView - 战斗换宠面板
+ *
+ * 职责：
+ * - 展示玩家精灵队伍列表（头像槽位 + 选中高亮）
+ * - 展示选中精灵的 HP、技能预览与"出战"按钮
+ * - 支持普通换宠与强制换宠（forceSwitchMode）两种模式
+ * - 执行换宠后更新精灵容器、状态栏与技能面板
+ *
+ * 以 BattleScene 的 this 执行所有方法。
+ */
+
 const BattleSwitchPanelView = {
-    mount() {},
+    /** 面板挂载时无操作（由 showElfSwitchPanel 按需创建） */
+    mount() { },
 
-    update() {},
+    /** 面板更新时无操作 */
+    update() { },
 
+    /** 面板卸载时关闭换宠面板 */
     unmount() {
         BattleSwitchPanelView.closeElfSwitchPanel.call(this);
     },
 
+    /**
+     * 打开换宠面板
+     * @param {boolean} [forceSwitch=false] - 是否为强制换宠模式（玩家精灵倒下后必须选择）
+     */
     showElfSwitchPanel(forceSwitch = false) {
         if (!forceSwitch && (!this.menuEnabled || this.battleEnded || this.forceSwitchMode)) {
             return;
@@ -76,6 +95,15 @@ const BattleSwitchPanelView = {
         this.forceSwitchMode = forceSwitch;
     },
 
+    /**
+     * 创建单个精灵头像槽位
+     * @param {number} x - 槽位 X
+     * @param {number} y - 槽位 Y
+     * @param {number} size - 槽位边长
+     * @param {Object} elfData - 精灵持久化数据
+     * @param {number} index - 队伍索引
+     * @returns {Phaser.GameObjects.Container} 槽位容器
+     */
     createElfSlot(x, y, size, elfData, index) {
         const container = this.add.container(x, y);
         const baseData = DataLoader.getElf(elfData.elfId);
@@ -136,6 +164,10 @@ const BattleSwitchPanelView = {
         return container;
     },
 
+    /**
+     * 选中指定索引的精灵（更新槽位高亮与详情区）
+     * @param {number} index - 队伍索引
+     */
     selectSwitchElf(index) {
         this.selectedSwitchIndex = index;
 
@@ -165,6 +197,10 @@ const BattleSwitchPanelView = {
         this.updateElfSwitchInfo(index);
     },
 
+    /**
+     * 更新选中精灵的详情区（HP、属性、技能预览、出战按钮）
+     * @param {number} index - 队伍索引
+     */
     updateElfSwitchInfo(index) {
         this.elfInfoContainer.removeAll(true);
         this.elfSkillContainer.removeAll(true);
@@ -275,6 +311,16 @@ const BattleSwitchPanelView = {
         }
     },
 
+    /**
+     * 创建换宠面板中的技能预览卡片
+     * @param {number} x - 卡片 X
+     * @param {number} y - 卡片 Y
+     * @param {number} w - 卡片宽
+     * @param {number} h - 卡片高
+     * @param {Object} skill - 技能数据
+     * @param {number} currentPP - 当前 PP
+     * @returns {Phaser.GameObjects.Container} 卡片容器
+     */
     createSwitchSkillCard(x, y, w, h, skill, currentPP) {
         const container = this.add.container(x, y);
 
@@ -314,6 +360,7 @@ const BattleSwitchPanelView = {
         return container;
     },
 
+    /** 关闭换宠面板并重置 forceSwitchMode */
     closeElfSwitchPanel() {
         if (this.elfSwitchContainer) {
             this.elfSwitchContainer.destroy();
@@ -322,6 +369,12 @@ const BattleSwitchPanelView = {
         this.forceSwitchMode = false;
     },
 
+    /**
+     * 执行换宠操作
+     * - 普通模式：提交 SWITCH 行动意图
+     * - 强制模式：直接换宠后恢复菜单与计时器
+     * @param {number} elfIndex - 队伍索引
+     */
     doSwitch(elfIndex) {
         const elfData = PlayerData.elves[elfIndex];
         const baseData = DataLoader.getElf(elfData.elfId);
@@ -365,6 +418,9 @@ const BattleSwitchPanelView = {
         }
     },
 
+    /**
+     * 换宠后刷新玩家精灵容器、状态栏与技能面板
+     */
     updatePlayerSpriteAndStatus() {
         if (this.playerSprite) {
             this.playerSprite.destroy();
@@ -382,6 +438,10 @@ const BattleSwitchPanelView = {
         this.rebuildSkillPanel();
     },
 
+    /**
+     * 显示强制换宠面板（玩家精灵倒下后调用）
+     * @returns {boolean} 如果队伍中无可战斗精灵则返回 false
+     */
     showForceSwitchPanel() {
         const availableElves = PlayerData.elves.filter((e) => e.currentHp > 0);
 

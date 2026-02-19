@@ -1,5 +1,5 @@
 /**
- * CaptainRoomScene - 船长室场景
+ * CaptainRoomScene - 船长室场景（临时）
  * 任务系统中心，与船长对话接取任务
  */
 

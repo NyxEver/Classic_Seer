@@ -1,3 +1,4 @@
+/** 转移增益并累积固伤效果处理器 */
 const TransferBuffAndGrowingFixedDamageEffectHandler = {
     type: 'transferBuffAndGrowingFixedDamage',
 

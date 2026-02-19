@@ -1,3 +1,4 @@
+/** 力竭效果处理器（标记目标力竭） */
 const ExhaustedEffectHandler = {
     type: 'exhausted',
 

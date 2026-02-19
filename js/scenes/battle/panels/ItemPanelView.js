@@ -1,16 +1,37 @@
-const BattleItemPanelView = {
-    mount() {},
+/**
+ * BattleItemPanelView - 战斗道具面板
+ *
+ * 职责：
+ * - 展示道具网格（按分类筛选：血药 / PP 药 / 胶囊 / 全部）
+ * - 提供分类切换按钮与分页滚动
+ * - 点击道具后提交 ITEM / CATCH 行动意图
+ * - 与 SkillPanel、SwitchPanel、CapsulePanel 互斥显示
+ *
+ * 以 BattleScene 的 this 执行所有方法。
+ */
 
+const BattleItemPanelView = {
+    /** 面板挂载时无操作（由 showItemPanel 按需创建） */
+    mount() { },
+
+    /**
+     * 面板更新：如果道具面板已打开，刷新道具网格
+     */
     update() {
         if (this.itemPanelContainer && this.isItemPanelOpen === true) {
             BattleItemPanelView.updateItemGrid.call(this);
         }
     },
 
+    /** 面板卸载时关闭道具面板 */
     unmount() {
         BattleItemPanelView.closeItemPanel.call(this, true);
     },
 
+    /**
+     * 打开道具面板（覆盖技能面板区域）
+     * 初始化分类按钮与道具网格，默认显示全部
+     */
     showItemPanel() {
         if (!this.menuEnabled || this.battleEnded || this.forceSwitchMode) {
             return;
@@ -83,6 +104,15 @@ const BattleItemPanelView = {
         this.updateItemGrid();
     },
 
+    /**
+     * 创建分类筛选按钮
+     * @param {number} x - 按钮 X
+     * @param {number} y - 按钮 Y
+     * @param {number} w - 按钮宽
+     * @param {number} h - 按钮高
+     * @param {Object} cat - 分类配置 { key, label, icon }
+     * @returns {Phaser.GameObjects.Container} 按钮容器
+     */
     createCategoryButton(x, y, w, h, cat) {
         const container = this.add.container(x, y);
 
@@ -123,6 +153,7 @@ const BattleItemPanelView = {
         return container;
     },
 
+    /** 刷新分类按钮高亮状态 */
     updateCategoryHighlight() {
         this.categoryButtons.forEach((btn) => {
             const bg = btn._bg;
@@ -137,6 +168,10 @@ const BattleItemPanelView = {
         });
     },
 
+    /**
+     * 刷新道具网格（按当前分类和滚动偏移渲染可见道具槽位）
+     * 包含空状态提示与分页指示器
+     */
     updateItemGrid() {
         this.itemGridContainer.removeAll(true);
         const layout = this.itemPanelLayout || {
@@ -204,14 +239,23 @@ const BattleItemPanelView = {
         if (items.length > cols * rows) {
             const scrollInfo = this.add.text(layout.gridW - 4, layout.gridH - 2,
                 `▲ ▼ ${this.itemScrollOffset / (cols * rows) + 1}/${Math.ceil(items.length / (cols * rows))}`, {
-                    fontSize: '12px',
-                    fontFamily: 'Arial',
-                    color: '#aaaaaa'
-                }).setOrigin(1, 1);
+                fontSize: '12px',
+                fontFamily: 'Arial',
+                color: '#aaaaaa'
+            }).setOrigin(1, 1);
             this.itemGridContainer.add(scrollInfo);
         }
     },
 
+    /**
+     * 创建单个道具槽位（含图标、数量标签与交互热区）
+     * @param {number} x - 槽位 X
+     * @param {number} y - 槽位 Y
+     * @param {number} w - 槽位宽
+     * @param {number} h - 槽位高
+     * @param {Object} item - { itemId, itemData, count, category }
+     * @returns {Phaser.GameObjects.Container} 槽位容器
+     */
     createItemSlot(x, y, w, h, item) {
         const container = this.add.container(x, y);
 
@@ -283,6 +327,10 @@ const BattleItemPanelView = {
         return container;
     },
 
+    /**
+     * 使用道具：胶囊提交 CATCH，其他提交 ITEM
+     * @param {Object} item - 道具数据
+     */
     useItem(item) {
         const itemData = item.itemData;
         if (!itemData || typeof item.itemId !== 'number') {
@@ -303,6 +351,10 @@ const BattleItemPanelView = {
         }
     },
 
+    /**
+     * 关闭道具面板
+     * @param {boolean} [skipRefresh=false] - 是否跳过刷新操作按钮
+     */
     closeItemPanel(skipRefresh = false) {
         if (this.itemPanelContainer) {
             this.itemPanelContainer.destroy();

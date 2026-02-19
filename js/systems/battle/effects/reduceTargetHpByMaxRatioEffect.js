@@ -1,3 +1,4 @@
+/** 按最大HP比例扣血效果处理器 */
 const ReduceTargetHpByMaxRatioEffectHandler = {
     type: 'reduceTargetHpByMaxRatio',
 

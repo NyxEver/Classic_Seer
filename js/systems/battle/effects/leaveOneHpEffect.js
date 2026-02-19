@@ -1,3 +1,4 @@
+/** 保留1HP效果处理器（濒死保护） */
 const LeaveOneHpEffectHandler = {
     type: 'leaveOneHp',
 

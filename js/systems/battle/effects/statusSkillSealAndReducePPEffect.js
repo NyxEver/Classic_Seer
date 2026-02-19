@@ -1,3 +1,4 @@
+/** 封技并扣PP效果处理器 */
 const StatusSkillSealAndReducePPEffectHandler = {
     type: 'statusSkillSealAndReducePP',
 

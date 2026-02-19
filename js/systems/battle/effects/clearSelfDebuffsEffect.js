@@ -1,3 +1,4 @@
+/** 清除自身减益效果处理器 */
 const ClearSelfDebuffsEffectHandler = {
     type: 'clearSelfDebuffs',
 

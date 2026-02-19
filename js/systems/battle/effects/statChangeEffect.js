@@ -1,3 +1,4 @@
+/** 能力变化效果处理器（单属性升降） */
 const StatChangeEffectHandler = {
     type: 'statChange',
 

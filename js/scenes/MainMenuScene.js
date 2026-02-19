@@ -8,6 +8,7 @@ class MainMenuScene extends Phaser.Scene {
         super({ key: 'MainMenuScene' });
     }
 
+    /** 场景创建：渲染背景、标题、菜单按钮与版本号 */
     create() {
         const { width, height } = this.cameras.main;
 
@@ -30,6 +31,11 @@ class MainMenuScene extends Phaser.Scene {
     }
 
     // ========== 背景 ==========
+    /**
+     * 创建深空背景（渐变 + 星星 + 闪烁动画）
+     * @param {number} width - 画布宽
+     * @param {number} height - 画布高
+     */
     createBackground(width, height) {
         // 深空背景
         const graphics = this.add.graphics();
@@ -53,6 +59,11 @@ class MainMenuScene extends Phaser.Scene {
         this.createTwinklingStars(width, height);
     }
 
+    /**
+     * 创建闪烁星星动画
+     * @param {number} width
+     * @param {number} height
+     */
     createTwinklingStars(width, height) {
         for (let i = 0; i < 20; i++) {
             const x = Phaser.Math.Between(0, width);
@@ -73,6 +84,11 @@ class MainMenuScene extends Phaser.Scene {
     }
 
     // ========== 标题 ==========
+    /**
+     * 创建标题区域（主标题 + 副标题 + 呼吸动画）
+     * @param {number} width
+     * @param {number} height
+     */
     createTitle(width, height) {
         // 主标题
         const title = this.add.text(width / 2, height * 0.25, 'Project Seer', {
@@ -109,6 +125,11 @@ class MainMenuScene extends Phaser.Scene {
     }
 
     // ========== 菜单按钮 ==========
+    /**
+     * 创建菜单按钮组（新游戏 + 继续游戏）
+     * @param {number} width
+     * @param {number} height
+     */
     createMenuButtons(width, height) {
         const buttonY = height * 0.55;
         const buttonSpacing = 70;
@@ -127,6 +148,15 @@ class MainMenuScene extends Phaser.Scene {
         });
     }
 
+    /**
+     * 创建单个菜单按钮（含禁用状态、hover/点击交互）
+     * @param {number} x
+     * @param {number} y
+     * @param {string} text - 按钮文字
+     * @param {boolean} enabled - 是否可用
+     * @param {Function} callback - 点击回调
+     * @returns {Phaser.GameObjects.Container}
+     */
     createMenuButton(x, y, text, enabled, callback) {
         const buttonWidth = 200;
         const buttonHeight = 50;
@@ -200,12 +230,14 @@ class MainMenuScene extends Phaser.Scene {
     }
 
     // ========== 游戏流程 ==========
+    /** 开始新游戏流程 */
     startNewGame() {
         console.log('Starting new game...');
         this.showWelcomeDialog();
     }
 
     // ========== 新游戏对话框流程 ==========
+    /** 显示欢迎对话框（含名字输入） */
     showWelcomeDialog() {
         const { width, height } = this.cameras.main;
 
@@ -280,6 +312,7 @@ class MainMenuScene extends Phaser.Scene {
         this.dialogContainer.add(nextBtn);
     }
 
+    /** 显示初始精灵选择对话框 */
     showStarterElfDialog() {
         // 清除当前对话框内容
         this.dialogContainer.removeAll(true);
@@ -334,6 +367,16 @@ class MainMenuScene extends Phaser.Scene {
         this.dialogContainer.add(confirmBtn);
     }
 
+    /**
+     * 创建初始精灵选择卡片
+     * @param {number} x
+     * @param {number} y
+     * @param {number} width - 卡片宽
+     * @param {number} height - 卡片高
+     * @param {Object} starter - 精灵配置
+     * @param {number} index - 卡片索引
+     * @returns {Phaser.GameObjects.Container}
+     */
     createStarterCard(x, y, width, height, starter, index) {
         const container = this.add.container(x, y);
 
@@ -423,6 +466,7 @@ class MainMenuScene extends Phaser.Scene {
         return container;
     }
 
+    /** 更新初始精灵选中状态的视觉高亮 */
     updateStarterSelection() {
         this.starterCards.forEach(({ container, starter, outline }) => {
             const w = container._width;
@@ -450,6 +494,11 @@ class MainMenuScene extends Phaser.Scene {
         });
     }
 
+    /**
+     * 将颜色加亮
+     * @param {number} color - 0xRRGGBB 整数
+     * @returns {number}
+     */
     lightenColor(color) {
         const r = Math.min(255, ((color >> 16) & 0xff) + 60);
         const g = Math.min(255, ((color >> 8) & 0xff) + 60);
@@ -457,11 +506,17 @@ class MainMenuScene extends Phaser.Scene {
         return (r << 16) | (g << 8) | b;
     }
 
+    /**
+     * 获取属性颜色的 CSS 字符串
+     * @param {string} type - 属性名
+     * @returns {string}
+     */
     getTypeColor(type) {
         const color = DataLoader.getTypeColor(type);
         return `#${color.toString(16).padStart(6, '0')}`;
     }
 
+    /** 确认新游戏：创建存档并跳转飞船场景 */
     confirmNewGame() {
         // 创建新存档（使用选中的初始精灵）
         PlayerData.createNew(this.playerName, this.selectedStarterId);
@@ -476,10 +531,23 @@ class MainMenuScene extends Phaser.Scene {
         SceneRouter.start(this, 'SpaceshipScene');
     }
 
+    /**
+     * 获取属性中文名
+     * @param {string} type
+     * @returns {string}
+     */
     getTypeDisplayName(type) {
         return DataLoader.getTypeName(type);
     }
 
+    /**
+     * 创建小按钮（用于对话框内）
+     * @param {number} x
+     * @param {number} y
+     * @param {string} text
+     * @param {Function} callback
+     * @returns {Phaser.GameObjects.Container}
+     */
     createSmallButton(x, y, text, callback) {
         const container = this.add.container(x, y);
 
@@ -520,6 +588,14 @@ class MainMenuScene extends Phaser.Scene {
         return container;
     }
 
+    /**
+     * 创建对话框按钮（蓝色渐变样式）
+     * @param {number} x
+     * @param {number} y
+     * @param {string} text
+     * @param {Function} callback
+     * @returns {Phaser.GameObjects.Container}
+     */
     createDialogButton(x, y, text, callback) {
         const container = this.add.container(x, y);
 
@@ -563,6 +639,7 @@ class MainMenuScene extends Phaser.Scene {
         return container;
     }
 
+    /** 继续游戏：加载存档并根据 mapId 跳转对应场景 */
     continueGame() {
         console.log('Continuing game...');
 

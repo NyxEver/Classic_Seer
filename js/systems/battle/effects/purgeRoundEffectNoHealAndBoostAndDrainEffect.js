@@ -1,3 +1,4 @@
+/** 清除回合效果处理器（禁回复/增益/吸取） */
 const PurgeRoundEffectNoHealAndBoostAndDrainEffectHandler = {
     type: 'purgeRoundEffectNoHealAndBoostAndDrain',
 

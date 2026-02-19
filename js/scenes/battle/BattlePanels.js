@@ -1,3 +1,20 @@
+/**
+ * BattlePanels - 战斗底部控制面板门面
+ *
+ * 职责：
+ * - 统一创建 / 销毁底部面板（技能、道具、胶囊、换宠、操作按钮）
+ * - 向下层子视图委托 mount/unmount/update
+ * - 管理面板状态同步与可见性刷新
+ * - 提供行动意图提交入口
+ *
+ * 以 BattleScene 的 this 执行所有方法。
+ */
+
+/**
+ * 获取子视图对象（优先从 AppContext，回退到 window）
+ * @param {string} viewName - 视图名称
+ * @returns {Object|null}
+ */
 function getBattlePanelsView(viewName) {
     if (typeof AppContext !== 'undefined' && typeof AppContext.get === 'function') {
         const view = AppContext.get(viewName, null);
@@ -11,6 +28,10 @@ function getBattlePanelsView(viewName) {
     return null;
 }
 
+/**
+ * 确保场景的面板状态字段已初始化
+ * @param {Phaser.Scene} scene - 战斗场景实例
+ */
 function ensureBattlePanelsState(scene) {
     if (typeof scene.isItemPanelOpen !== 'boolean') {
         scene.isItemPanelOpen = false;
@@ -23,6 +44,14 @@ function ensureBattlePanelsState(scene) {
     }
 }
 
+/**
+ * 调用子视图方法（以 scene 作为 this）
+ * @param {Phaser.Scene} scene - 战斗场景实例
+ * @param {string} viewName - 视图名称
+ * @param {string} methodName - 方法名
+ * @param {Array} [args=[]] - 参数数组
+ * @returns {*}
+ */
 function callBattlePanelsViewMethod(scene, viewName, methodName, args = []) {
     const view = getBattlePanelsView(viewName);
     if (!view || typeof view[methodName] !== 'function') {
@@ -31,6 +60,11 @@ function callBattlePanelsViewMethod(scene, viewName, methodName, args = []) {
     return view[methodName].apply(scene, args);
 }
 
+/**
+ * 挂载所有子视图
+ * @param {Phaser.Scene} scene
+ * @param {Object} [options={}]
+ */
 function mountBattlePanelsViews(scene, options = {}) {
     const viewNames = [
         'BattleActionButtonsView',
@@ -48,6 +82,10 @@ function mountBattlePanelsViews(scene, options = {}) {
     });
 }
 
+/**
+ * 卸载所有子视图
+ * @param {Phaser.Scene} scene
+ */
 function unmountBattlePanelsViews(scene) {
     const viewNames = [
         'BattleActionButtonsView',
@@ -66,6 +104,9 @@ function unmountBattlePanelsViews(scene) {
 }
 
 const BattlePanels = {
+    /**
+     * 创建底部控制面板（重建所有子视图、重置状态）
+     */
     createBottomControlPanel() {
         const panelY = 430;
         const panelH = 170;
@@ -113,6 +154,7 @@ const BattlePanels = {
         }
     },
 
+    /** 刷新右侧操作按钮状态并同步面板可见性 */
     refreshActionButtons() {
         ensureBattlePanelsState(this);
         const panelY = this.bottomPanelY || 430;
@@ -120,6 +162,10 @@ const BattlePanels = {
         this.refreshPanelVisibility();
     },
 
+    /**
+     * 刷新面板可见性（技能面板 / 道具面板 / tooltip / 透明度）
+     * 根据 isItemPanelOpen、forceSwitchMode、battleEnded 决定各容器状态
+     */
     refreshPanelVisibility() {
         ensureBattlePanelsState(this);
 
@@ -166,6 +212,12 @@ const BattlePanels = {
         }
     },
 
+    /**
+     * 提交行动意图（强制换宠模式下仅允许 SWITCH）
+     * @param {string} intent - 行动类型
+     * @param {Object} [payload={}] - 行动负载
+     * @returns {boolean} 是否提交成功
+     */
     submitPanelIntent(intent, payload = {}) {
         if (this.forceSwitchMode && intent !== BattleManager.ACTION.SWITCH && intent !== 'switch') {
             return false;
@@ -177,6 +229,10 @@ const BattlePanels = {
     }
 };
 
+/**
+ * 子视图方法映射表：门面方法名 → [视图名, 实际方法名]
+ * 由下方 forEach 动态绑定到 BattlePanels 对象
+ */
 const BATTLE_PANEL_VIEW_METHODS = {
     createMiddleSkillPanel: ['BattleSkillPanelView', 'createMiddleSkillPanel'],
     createSkillButton: ['BattleSkillPanelView', 'createSkillButton'],

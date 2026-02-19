@@ -1,4 +1,20 @@
+/**
+ * BattleSkillPanelView - 战斗技能面板
+ *
+ * 职责：
+ * - 展示玩家当前精灵的 4 个技能按钮（含属性图标、PP 显示）
+ * - 实时同步 PP 状态并切换按钮禁用/可用样式
+ * - 支持 SkillTooltip 悬浮提示绑定
+ * - 提供面板重建（换宠后调用）
+ *
+ * 以 BattleScene 的 this 执行所有方法。
+ */
+
 const BattleSkillPanelView = {
+    /**
+     * 面板挂载：如果已存在则重建，否则首次创建
+     * @param {Object} [options={}] - { panelY: number }
+     */
     mount(options = {}) {
         const panelY = Number.isFinite(options.panelY) ? options.panelY : (this.bottomPanelY || 430);
         if (this.skillContainer && !this.skillContainer.scene) {
@@ -11,10 +27,12 @@ const BattleSkillPanelView = {
         BattleSkillPanelView.createMiddleSkillPanel.call(this, panelY);
     },
 
+    /** 面板更新：同步所有技能按钮的 PP 显示 */
     update() {
         BattleSkillPanelView.updateSkillPP.call(this);
     },
 
+    /** 面板卸载：隐藏 tooltip 并销毁技能容器 */
     unmount() {
         if (typeof SkillTooltipView !== 'undefined' && SkillTooltipView && typeof SkillTooltipView.hide === 'function') {
             SkillTooltipView.hide(this);
@@ -26,6 +44,10 @@ const BattleSkillPanelView = {
         this.skillButtons = [];
     },
 
+    /**
+     * 创建技能面板（2×2 网格布局）
+     * @param {number} panelY - 面板顶部 Y 坐标
+     */
     createMiddleSkillPanel(panelY) {
         const x = 310;
         const y = panelY + 10;
@@ -70,6 +92,16 @@ const BattleSkillPanelView = {
         }
     },
 
+    /**
+     * 创建单个技能按钮（含属性图标、PP 文本、hover/tooltip 绑定）
+     * @param {number} x - 按钮 X
+     * @param {number} y - 按钮 Y
+     * @param {number} w - 按钮宽
+     * @param {number} h - 按钮高
+     * @param {Object} skill - 技能详情数据
+     * @param {number} index - 技能槽位索引
+     * @returns {Phaser.GameObjects.Container} 按钮容器
+     */
     createSkillButton(x, y, w, h, skill, index) {
         const container = this.add.container(x, y);
 
@@ -154,6 +186,14 @@ const BattleSkillPanelView = {
         return container;
     },
 
+    /**
+     * 创建空技能槽位（未学满 4 技能时使用）
+     * @param {number} x - 槽位 X
+     * @param {number} y - 槽位 Y
+     * @param {number} w - 槽位宽
+     * @param {number} h - 槽位高
+     * @returns {Phaser.GameObjects.Container}
+     */
     createEmptySkillSlot(x, y, w, h) {
         const container = this.add.container(x, y);
         const bg = this.add.graphics();
@@ -173,6 +213,7 @@ const BattleSkillPanelView = {
         return container;
     },
 
+    /** 同步所有技能按钮的 PP 显示（从精灵实例读取最新值） */
     updateSkillPP() {
         const skills = this.playerElf.getSkillDetails();
         for (let i = 0; i < skills.length && i < this.skillButtons.length; i++) {
@@ -185,6 +226,11 @@ const BattleSkillPanelView = {
         }
     },
 
+    /**
+     * 同步单个技能按钮的视觉状态（PP 文本、颜色、禁用样式）
+     * @param {Phaser.GameObjects.Container} btn - 技能按钮容器
+     * @returns {boolean} 按钮是否处于禁用状态
+     */
     syncSkillButtonState(btn) {
         if (!btn || !btn._skill || !btn._bg || !btn._ppText) {
             return false;
@@ -224,6 +270,7 @@ const BattleSkillPanelView = {
         return disabled;
     },
 
+    /** 显示/切换技能面板（如果道具面板打开则关闭道具面板以恢复技能面板可见） */
     showSkillPanel() {
         if (this.isItemPanelOpen) {
             this.closeItemPanel();
@@ -232,6 +279,7 @@ const BattleSkillPanelView = {
         this.refreshActionButtons();
     },
 
+    /** 重建技能面板（换宠后调用，销毁旧按钮并重新创建） */
     rebuildSkillPanel() {
         if (typeof SkillTooltipView !== 'undefined' && SkillTooltipView && typeof SkillTooltipView.hide === 'function') {
             SkillTooltipView.hide(this);

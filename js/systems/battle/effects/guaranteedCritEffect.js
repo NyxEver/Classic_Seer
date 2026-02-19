@@ -1,3 +1,4 @@
+/** 必定暴击效果处理器 */
 const GuaranteedCritEffectHandler = {
     type: 'guaranteedCrit',
 

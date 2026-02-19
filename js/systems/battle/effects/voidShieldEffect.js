@@ -1,3 +1,4 @@
+/** 虚空护盾效果处理器（完全吸收伤害） */
 const VoidShieldEffectHandler = {
     type: 'voidShield',
 

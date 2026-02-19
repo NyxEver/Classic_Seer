@@ -1,8 +1,20 @@
+/**
+ * SkillLearnScene - 技能学习场景
+ *
+ * 职责：
+ * - 展示新技能与当前技能槽位，让玩家选择替换或跳过
+ * - 支持链式处理：多个待学技能递归处理，完成后检查进化
+ * - 与 SkillLearnModalView 混入共享 UI 渲染方法
+ */
 class SkillLearnScene extends Phaser.Scene {
     constructor() {
         super({ key: 'SkillLearnScene' });
     }
 
+    /**
+     * 场景初始化：接收精灵、新技能ID、返回场景和链式数据
+     * @param {Object} [data={}]
+     */
     init(data = {}) {
         this.elf = data.elf || null;
         this.newSkillId = Number.isFinite(data.newSkillId) ? data.newSkillId : null;
@@ -23,6 +35,7 @@ class SkillLearnScene extends Phaser.Scene {
         this.skillArea = null;
     }
 
+    /** 场景创建：初始化模态窗口、渲染技能选择 UI */
     create() {
         this.cameras.main.setBackgroundColor('rgba(0,0,0,0)');
         const camera = this.cameras.main;
@@ -59,6 +72,7 @@ class SkillLearnScene extends Phaser.Scene {
         this.refreshReplaceButtonState();
     }
 
+    /** 确认替换：将新技能写入选中槽位并保存 */
     confirmReplacement() {
         if (this.isTransitioning || !Number.isInteger(this.selectedSlotIndex)) {
             return;
@@ -85,6 +99,7 @@ class SkillLearnScene extends Phaser.Scene {
         this.returnToPrevious();
     }
 
+    /** 跳过学习：移除待学技能并返回 */
     skipLearning() {
         if (this.isTransitioning) {
             return;
@@ -101,6 +116,10 @@ class SkillLearnScene extends Phaser.Scene {
         this.returnToPrevious();
     }
 
+    /**
+     * 返回上一场景：
+     * 链式优先级：继续 pending skill → 进化场景 → 返回来源场景
+     */
     returnToPrevious() {
         if (this.isTransitioning) {
             return;
@@ -168,6 +187,12 @@ class SkillLearnScene extends Phaser.Scene {
         this.closeAndReturn(chainReturnScene, chainReturnData);
     }
 
+    /**
+     * 启动模态场景并停止自身
+     * @param {string} targetScene - 目标场景 key
+     * @param {Object} data - 传递数据
+     * @returns {boolean}
+     */
     launchModalAndStopSelf(targetScene, data) {
         const launched = SceneRouter.launch(this, targetScene, data, { bgmStrategy: 'inherit' });
         if (!launched) {
@@ -180,6 +205,11 @@ class SkillLearnScene extends Phaser.Scene {
         return true;
     }
 
+    /**
+     * 关闭当前场景并返回目标场景
+     * @param {string} targetSceneKey
+     * @param {Object} targetData
+     */
     closeAndReturn(targetSceneKey, targetData) {
         const targetScene = this.resolveSafeReturnScene(targetSceneKey);
         const data = targetData && typeof targetData === 'object' ? targetData : {};
@@ -203,6 +233,10 @@ class SkillLearnScene extends Phaser.Scene {
         }
     }
 
+    /**
+     * 停止配置中指定的场景（避免残留场景堆叠）
+     * @param {string} targetScene - 即将启动的目标场景，不会停止
+     */
     stopConfiguredScenes(targetScene) {
         this.closeSceneKeys.forEach((sceneKey) => {
             if (!sceneKey || sceneKey === targetScene || sceneKey === this.scene.key) {
@@ -221,6 +255,10 @@ class SkillLearnScene extends Phaser.Scene {
         }
     }
 
+    /**
+     * 获取剩余待学技能（过滤无效 ID）
+     * @returns {number[]}
+     */
     getRemainingPendingSkills() {
         if (!this.elf || typeof this.elf.getPendingSkills !== 'function') {
             return [];
@@ -250,6 +288,11 @@ class SkillLearnScene extends Phaser.Scene {
         return remaining;
     }
 
+    /**
+     * 解析安全返回场景（避免返回临时场景）
+     * @param {string} sceneKey
+     * @returns {string}
+     */
     resolveSafeReturnScene(sceneKey) {
         const transientSceneKeys = { SkillLearnScene: true, EvolutionScene: true };
         if (!sceneKey || transientSceneKeys[sceneKey] || !this.scene.get(sceneKey)) {

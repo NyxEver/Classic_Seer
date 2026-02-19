@@ -1,5 +1,8 @@
 /**
- * BattleEffectRuntimeTick - turn-end tick extension for BattleEffectRuntime.
+ * BattleEffectRuntimeTick - 回合结束 tick 扩展
+ *
+ * 为 BattleEffectRuntime 添加 tickTurnEnd 方法，
+ * 负责处理 DOT、寄生、复合 Buff 倒计时与过期清理。
  */
 
 if (typeof BattleEffectRuntime !== 'undefined' && BattleEffectRuntime) {

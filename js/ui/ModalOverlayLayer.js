@@ -3,6 +3,12 @@
  * 统一管理全屏遮罩、输入拦截与幂等 mount/unmount。
  */
 const ModalOverlayLayer = {
+    /**
+     * 挂载全屏遮罩（幂等：已存在则复用）
+     * @param {Phaser.Scene} scene
+     * @param {Object} [options={}] - { color, alpha, depth }
+     * @returns {{ overlay, depth }|null}
+     */
     mount(scene, options = {}) {
         if (!scene || !scene.add || !scene.cameras || !scene.cameras.main) {
             console.error('[ModalOverlayLayer] 无效场景，无法挂载遮罩');
@@ -51,6 +57,10 @@ const ModalOverlayLayer = {
         return state;
     },
 
+    /**
+     * 卸载遮罩（销毁并清除状态）
+     * @param {Phaser.Scene} scene
+     */
     unmount(scene) {
         if (!scene) {
             return;

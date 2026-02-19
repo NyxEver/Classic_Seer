@@ -4,6 +4,12 @@
  * 其中“精灵背包”按钮统一打开 ElfManageScene（语义名：onElfManage）。
  */
 const WorldBottomBar = {
+    /**
+     * 创建底栏（地图 / 背包 / 精灵背包按钮）
+     * @param {Phaser.Scene} scene
+     * @param {Object} [options={}] - { depth, disableMap, onMap, onBag, onElfManage }
+     * @returns {{ root, buttons }}
+     */
     create(scene, options = {}) {
         this.destroy(scene);
 
@@ -79,6 +85,10 @@ const WorldBottomBar = {
         return state;
     },
 
+    /**
+     * 销毁底栏
+     * @param {Phaser.Scene} scene
+     */
     destroy(scene) {
         if (!scene || !scene.__seerWorldBottomBarState) {
             return;
@@ -92,6 +102,15 @@ const WorldBottomBar = {
         delete scene.__seerWorldBottomBarState;
     },
 
+    /**
+     * 创建底栏背景板
+     * @param {Phaser.Scene} scene
+     * @param {number} x
+     * @param {number} y
+     * @param {number} width
+     * @param {number} height
+     * @returns {Phaser.GameObjects.Container}
+     */
     createDockBackdrop(scene, x, y, width, height) {
         const container = scene.add.container(0, 0);
 
@@ -103,6 +122,12 @@ const WorldBottomBar = {
         return container;
     },
 
+    /**
+     * 创建单个底栏按钮（图标 + 悬停标签 + 交互动画）
+     * @param {Phaser.Scene} scene
+     * @param {Object} options - { x, y, label, iconKey, fallbackIcon, iconScaleMultiplier, disabled, onClick }
+     * @returns {{ container: Phaser.GameObjects.Container }}
+     */
     createButton(scene, options) {
         const container = scene.add.container(options.x, options.y);
         const disabled = !!options.disabled;

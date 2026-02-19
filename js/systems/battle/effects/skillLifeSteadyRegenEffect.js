@@ -1,3 +1,4 @@
+/** 技能持续回复效果处理器 */
 const SkillLifeSteadyRegenEffectHandler = {
     type: 'skillLifeSteadyRegen',
 

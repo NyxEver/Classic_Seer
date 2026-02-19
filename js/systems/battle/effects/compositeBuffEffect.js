@@ -1,3 +1,4 @@
+/** 复合增益效果处理器（免伤/回血/先手/伤害倍率） */
 const CompositeBuffEffectHandler = {
     type: 'compositeBuff',
 

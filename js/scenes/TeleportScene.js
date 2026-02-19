@@ -10,11 +10,16 @@ class TeleportScene extends Phaser.Scene {
         this.returnData = {};
     }
 
+    /**
+     * 场景初始化
+     * @param {Object} data - { returnScene, returnData }
+     */
     init(data) {
         this.returnScene = data.returnScene || 'SpaceshipScene';
         this.returnData = data.returnData || {};
     }
 
+    /** 场景创建：渲染背景、星系地图、返回按钮与底部栏 */
     create() {
         const { width, height } = this.cameras.main;
 
@@ -38,6 +43,11 @@ class TeleportScene extends Phaser.Scene {
     }
 
     // ========== 背景 ==========
+    /**
+     * 创建深空背景（星星 + 星云）
+     * @param {number} width
+     * @param {number} height
+     */
     createBackground(width, height) {
         const graphics = this.add.graphics();
 
@@ -61,6 +71,12 @@ class TeleportScene extends Phaser.Scene {
         this.createNebula(width * 0.2, height * 0.7, 0x2a3a5a);
     }
 
+    /**
+     * 绘制星云装饰
+     * @param {number} x
+     * @param {number} y
+     * @param {number} color - 0xRRGGBB
+     */
     createNebula(x, y, color) {
         const graphics = this.add.graphics();
 
@@ -76,6 +92,11 @@ class TeleportScene extends Phaser.Scene {
     }
 
     // ========== 星系地图 ==========
+    /**
+     * 创建星系地图（标题 + 多颗星球）
+     * @param {number} width
+     * @param {number} height
+     */
     createGalaxyMap(width, height) {
         // 标题
         this.add.text(width / 2, 40, '帕诺星系', {
@@ -101,6 +122,10 @@ class TeleportScene extends Phaser.Scene {
         });
     }
 
+    /**
+     * 创建单颗星球（图标/后备圆形、名称、锁定标记、交互）
+     * @param {Object} planet - 星球配置
+     */
     createPlanet(planet) {
         const container = this.add.container(planet.x, planet.y);
 
@@ -202,6 +227,10 @@ class TeleportScene extends Phaser.Scene {
         }
     }
 
+    /**
+     * 显示星球锁定提示
+     * @param {string} planetName
+     */
     showLockedMessage(planetName) {
         const { width, height } = this.cameras.main;
 
@@ -223,6 +252,7 @@ class TeleportScene extends Phaser.Scene {
     }
 
     // ========== 返回按钮 ==========
+    /** 创建返回按钮 */
     createBackButton() {
         const btn = this.add.container(80, 550);
 
@@ -264,6 +294,7 @@ class TeleportScene extends Phaser.Scene {
         });
     }
 
+    /** 创建底部功能栏（背包、精灵管理） */
     createBottomBar() {
         WorldSceneModalMixin.apply(this, 'TeleportScene', () => this.getTeleportReturnPayload());
         this.worldBottomBar = WorldBottomBar.create(this, {
@@ -273,6 +304,10 @@ class TeleportScene extends Phaser.Scene {
         });
     }
 
+    /**
+     * 获取传送场景返回数据
+     * @returns {{ returnScene: string, returnData: Object }}
+     */
     getTeleportReturnPayload() {
         return {
             returnScene: this.returnScene,
@@ -280,6 +315,10 @@ class TeleportScene extends Phaser.Scene {
         };
     }
 
+    /**
+     * 解析安全返回场景（避免返回自身或不存在的场景）
+     * @returns {string}
+     */
     resolveReturnScene() {
         const candidate = this.returnScene;
         if (!candidate || candidate === 'TeleportScene') {
@@ -294,6 +333,7 @@ class TeleportScene extends Phaser.Scene {
         return candidate;
     }
 
+    /** 返回来源场景 */
     returnToSourceScene() {
         const targetScene = this.resolveReturnScene();
         const data = targetScene === 'SpaceshipScene' ? {} : (this.returnData || {});

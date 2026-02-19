@@ -1,3 +1,4 @@
+/** 均衡体力效果处理器（双方HP平分） */
 const EqualizeHpEffectHandler = {
     type: 'equalizeHp',
 

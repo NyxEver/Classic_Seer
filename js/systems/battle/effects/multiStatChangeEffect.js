@@ -1,3 +1,4 @@
+/** 多属性能力变化效果处理器 */
 const MultiStatChangeEffectHandler = {
     type: 'multiStatChange',
 

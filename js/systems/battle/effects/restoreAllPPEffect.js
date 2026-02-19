@@ -1,3 +1,4 @@
+/** 恢复全部PP效果处理器 */
 const RestoreAllPPEffectHandler = {
     type: 'restoreAllPP',
 

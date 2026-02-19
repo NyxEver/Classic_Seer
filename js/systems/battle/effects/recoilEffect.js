@@ -1,3 +1,4 @@
+/** 反作用力效果处理器（自伤） */
 const RecoilEffectHandler = {
     type: 'recoil',
 

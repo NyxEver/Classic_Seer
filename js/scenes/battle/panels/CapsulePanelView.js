@@ -1,12 +1,30 @@
+/**
+ * BattleCapsulePanelView - 战斗胶囊选择面板
+ *
+ * 职责：
+ * - 展示玩家背包中的所有精灵胶囊（带名称、数量和悬停高亮）
+ * - 点击胶囊后提交 CATCH 行动意图
+ * - 与 ItemPanel / SwitchPanel 互斥显示
+ *
+ * 以 BattleScene 的 this 执行所有方法。
+ */
+
 const BattleCapsulePanelView = {
-    mount() {},
+    /** 面板挂载时无操作（由 showCapsulePanel 按需创建） */
+    mount() { },
 
-    update() {},
+    /** 面板更新时无操作 */
+    update() { },
 
+    /** 面板卸载时关闭胶囊面板 */
     unmount() {
         BattleCapsulePanelView.closeCapsulePanel.call(this);
     },
 
+    /**
+     * 打开胶囊选择面板（居中弹窗、带蒙版遮罩）
+     * 只在 wild 战斗且有胶囊时可用
+     */
     showCapsulePanel() {
         if (!this.menuEnabled || this.battleEnded || this.forceSwitchMode) {
             return;
@@ -125,6 +143,7 @@ const BattleCapsulePanelView = {
         cancelHit.on('pointerdown', () => this.closeCapsulePanel());
     },
 
+    /** 关闭胶囊面板 */
     closeCapsulePanel() {
         if (this.capsulePanelContainer) {
             this.capsulePanelContainer.destroy();
@@ -132,6 +151,11 @@ const BattleCapsulePanelView = {
         }
     },
 
+    /**
+     * 执行捕捉：提交 CATCH 行动意图并关闭面板
+     * @param {number|Object} capsuleOrItemId - 胶囊道具 ID 或含 id 属性的对象
+     * @returns {boolean} 是否成功提交
+     */
     doCatch(capsuleOrItemId) {
         const itemId = typeof capsuleOrItemId === 'number'
             ? capsuleOrItemId

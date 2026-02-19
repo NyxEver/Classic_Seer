@@ -1,9 +1,19 @@
 /**
- * BattlePostFlow - BattleScene post-turn and lifecycle facade methods.
+ * BattlePostFlow - 战斗后处理流程门面
  *
- * These methods run with BattleScene as `this`.
+ * 职责：
+ * - 统一管理战斗结束后的各种流程（胜利弹窗、技能学习、进化、返回地图）
+ * - 管理战斗 BGM 的播放、淡出与清理
+ * - 通过 postFlowLocked 防止流程重复触发
+ *
+ * 以 BattleScene 的 this 执行所有方法。
  */
 
+/**
+ * 获取依赖对象（优先从 AppContext，回退到 window）
+ * @param {string} name - 依赖名称
+ * @returns {Object|null}
+ */
 function getBattlePostFlowDependency(name) {
     if (typeof AppContext !== 'undefined' && typeof AppContext.get === 'function') {
         const dep = AppContext.get(name, null);
@@ -17,6 +27,11 @@ function getBattlePostFlowDependency(name) {
     return null;
 }
 
+/**
+ * 安全获取场景返回数据的副本
+ * @param {Phaser.Scene} scene
+ * @returns {Object}
+ */
 function getSafeReturnData(scene) {
     if (!scene || !scene.returnData || typeof scene.returnData !== 'object') {
         return {};
@@ -24,6 +39,13 @@ function getSafeReturnData(scene) {
     return { ...scene.returnData };
 }
 
+/**
+ * 启动战斗后续场景（淡出 BGM 后通过 SceneRouter 跳转）
+ * @param {Phaser.Scene} scene - 当前场景
+ * @param {string} targetScene - 目标场景 key
+ * @param {Object} data - 传递数据
+ * @returns {boolean} 是否成功启动
+ */
 function startBattleFollowupScene(scene, targetScene, data) {
     const sceneRouter = getBattlePostFlowDependency('SceneRouter');
     if (!sceneRouter) {
@@ -42,6 +64,12 @@ function startBattleFollowupScene(scene, targetScene, data) {
 }
 
 const BattlePostFlow = {
+    /**
+     * 战斗结束后的统一流程入口（每个 flow 只允许触发一次）
+     * @param {string} flow - 流程类型：capture_success / escape_success / battle_end / post_battle / evolution_check / return_to_map
+     * @param {Object} [payload={}] - 流程负载
+     * @returns {boolean} 是否处理成功
+     */
     finalizeBattleOnce(flow, payload = {}) {
         switch (flow) {
             case 'capture_success': {
@@ -138,10 +166,16 @@ const BattlePostFlow = {
         }
     },
 
+    /**
+     * 处理战斗结束结果（委托给 finalizeBattleOnce）
+     * @param {Object} result - 战斗结果对象
+     * @returns {boolean}
+     */
     handleBattleEnd(result) {
         return this.finalizeBattleOnce('battle_end', { result });
     },
 
+    /** 战斗后处理：先处理待学技能，再检查进化 */
     processPostBattle() {
         const result = this.pendingResult;
         if (!result) {
@@ -158,6 +192,12 @@ const BattlePostFlow = {
         }
     },
 
+    /**
+     * 递归处理待学技能队列
+     * @param {Array} pendingSkills - 待学技能 ID 数组
+     * @param {number} index - 当前索引
+     * @param {Function} onComplete - 全部处理完成回调
+     */
     processNextPendingSkill(pendingSkills, index, onComplete) {
         if (index >= pendingSkills.length) {
             onComplete();
@@ -194,6 +234,7 @@ const BattlePostFlow = {
         }
     },
 
+    /** 检查并处理进化流程 */
     processEvolution() {
         const result = this.pendingResult;
         if (!result) {
@@ -233,6 +274,7 @@ const BattlePostFlow = {
         }
     },
 
+    /** 返回地图场景（防重复触发） */
     returnToMap() {
         if (this.returnTriggered) {
             return;
@@ -252,6 +294,7 @@ const BattlePostFlow = {
         });
     },
 
+    /** 播放战斗 BGM */
     playBattleBgm() {
         const bgmManager = getBattlePostFlowDependency('BgmManager');
         if (!bgmManager) {
@@ -264,6 +307,12 @@ const BattlePostFlow = {
         this.battleBgm = bgmManager.currentSound;
     },
 
+    /**
+     * 淡出战斗 BGM
+     * @param {Function|null} [onComplete=null] - 淡出完成回调
+     * @param {number} [fadeMs=450] - 淡出持续时间
+     * @param {boolean} [force=false] - 是否强制淡出
+     */
     fadeOutBattleBgm(onComplete = null, fadeMs = 450, force = false) {
         const bgmManager = getBattlePostFlowDependency('BgmManager');
         if (!bgmManager) {
@@ -290,6 +339,7 @@ const BattlePostFlow = {
         }, this);
     },
 
+    /** 立即清理战斗 BGM（场景销毁时调用） */
     cleanupBattleBgm() {
         const bgmManager = getBattlePostFlowDependency('BgmManager');
         if (bgmManager && bgmManager.currentSound) {

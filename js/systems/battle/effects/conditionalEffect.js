@@ -1,3 +1,4 @@
+/** 条件效果处理器（根据条件触发子效果） */
 const ConditionalEffectHandler = {
     type: 'conditional',
 

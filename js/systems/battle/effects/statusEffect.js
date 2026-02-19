@@ -1,3 +1,4 @@
+/** 异常状态效果处理器（中毒/烧伤等） */
 const StatusEffectHandler = {
     type: 'status',
 

@@ -8,10 +8,15 @@ class SettingsScene extends Phaser.Scene {
         super({ key: 'SettingsScene' });
     }
 
+    /**
+     * 场景初始化
+     * @param {Object} data - { returnScene: string }
+     */
     init(data) {
         this.returnScene = data.returnScene || 'SpaceshipScene';
     }
 
+    /** 场景创建：渲染背景与设置面板 */
     create() {
         const { width, height } = this.cameras.main;
 
@@ -24,12 +29,22 @@ class SettingsScene extends Phaser.Scene {
         console.log('SettingsScene created');
     }
 
+    /**
+     * 创建背景渐变
+     * @param {number} width
+     * @param {number} height
+     */
     createBackground(width, height) {
         const graphics = this.add.graphics();
         graphics.fillGradientStyle(0x1a2a3a, 0x1a2a3a, 0x0a1a2a, 0x0a1a2a, 1);
         graphics.fillRect(0, 0, width, height);
     }
 
+    /**
+     * 创建设置面板（标题、音量控制、功能按钮、返回按钮）
+     * @param {number} width
+     * @param {number} height
+     */
     createSettingsPanel(width, height) {
         const panelW = 500;
         const panelH = 450;
@@ -74,6 +89,11 @@ class SettingsScene extends Phaser.Scene {
         container.add(backBtn);
     }
 
+    /**
+     * 创建音量控制区域（BGM + 音效）
+     * @param {Phaser.GameObjects.Container} container
+     * @param {number} startY
+     */
     createVolumeControls(container, startY) {
         // 背景音乐控制
         const bgmLabel = this.add.text(-180, startY, '🎵 背景音乐', {
@@ -115,6 +135,14 @@ class SettingsScene extends Phaser.Scene {
         container.add(sfxNote);
     }
 
+    /**
+     * 创建滑动条控件（当前为禁用状态）
+     * @param {number} x
+     * @param {number} y
+     * @param {number} initialValue - 初始值 (0-1)
+     * @param {Function} onChange - 值变化回调
+     * @returns {Phaser.GameObjects.Container}
+     */
     createSlider(x, y, initialValue, onChange) {
         const container = this.add.container(x, y);
 
@@ -147,6 +175,11 @@ class SettingsScene extends Phaser.Scene {
         return container;
     }
 
+    /**
+     * 创建功能按钮区域（开发者模式、返回主菜单、删除存档）
+     * @param {Phaser.GameObjects.Container} container
+     * @param {number} startY
+     */
     createActionButtons(container, startY) {
         // 开发者模式开关
         this.devModeEnabled = typeof DevMode !== 'undefined' && DevMode.enabled;
@@ -190,6 +223,15 @@ class SettingsScene extends Phaser.Scene {
         container.add(deleteBtn);
     }
 
+    /**
+     * 创建通用按钮
+     * @param {number} x
+     * @param {number} y
+     * @param {string} text
+     * @param {Function} callback
+     * @param {boolean} [isDanger=false] - 是否为危险操作样式
+     * @returns {Phaser.GameObjects.Container}
+     */
     createButton(x, y, text, callback, isDanger = false) {
         const container = this.add.container(x, y);
         const btnW = 200;
@@ -252,6 +294,15 @@ class SettingsScene extends Phaser.Scene {
         return container;
     }
 
+    /**
+     * 创建开关按钮
+     * @param {number} x
+     * @param {number} y
+     * @param {string} text
+     * @param {boolean} initialState - 初始状态
+     * @param {Function} onToggle - 状态切换回调
+     * @returns {Phaser.GameObjects.Container}
+     */
     createToggleButton(x, y, text, initialState, onToggle) {
         const container = this.add.container(x, y);
         const btnW = 200;
@@ -311,6 +362,13 @@ class SettingsScene extends Phaser.Scene {
         return container;
     }
 
+    /**
+     * 显示确认对话框（带遮罩层、取消/确认按钮）
+     * @param {string} title - 标题
+     * @param {string} message - 提示信息
+     * @param {Function} onConfirm - 确认回调
+     * @param {boolean} [isDanger=false] - 是否为危险操作
+     */
     showConfirmDialog(title, message, onConfirm, isDanger = false) {
         const { width, height } = this.cameras.main;
 
@@ -362,6 +420,15 @@ class SettingsScene extends Phaser.Scene {
         dialogContainer.add(confirmBtn);
     }
 
+    /**
+     * 创建对话框内部按钮
+     * @param {number} x
+     * @param {number} y
+     * @param {string} text
+     * @param {Function} callback
+     * @param {boolean} [isDanger=false]
+     * @returns {Phaser.GameObjects.Container}
+     */
     createDialogBtn(x, y, text, callback, isDanger = false) {
         const container = this.add.container(x, y);
         const btnW = 100;

@@ -1,3 +1,4 @@
+/** 防护效果处理器（格挡攻击） */
 const ProtectEffectHandler = {
     type: 'protect',
 

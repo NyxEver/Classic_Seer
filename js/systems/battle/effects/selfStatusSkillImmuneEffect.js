@@ -1,3 +1,4 @@
+/** 自身属性技能免疫效果处理器 */
 const SelfStatusSkillImmuneEffectHandler = {
     type: 'selfStatusSkillImmune',
 

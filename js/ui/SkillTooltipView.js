@@ -3,6 +3,12 @@
  * 统一提供 show/move/hide/unmount，支持鼠标跟随与边界防溢出。
  */
 const SkillTooltipView = {
+    /**
+     * 挂载 Tooltip（创建容器、背景、文本节点）
+     * @param {Phaser.Scene} scene
+     * @param {Object} [options={}] - { depth: number }
+     * @returns {Object|null} 内部状态对象
+     */
     mount(scene, options = {}) {
         if (!scene || !scene.add || !scene.cameras || !scene.cameras.main) {
             return null;
@@ -63,6 +69,13 @@ const SkillTooltipView = {
      * 统一绑定 Tooltip 指针事件。
      * 场景层只传入目标与技能数据，不再各自重复实现 pointerover/move/out。
      */
+    /**
+     * 统一绑定 Tooltip 指针事件
+     * @param {Phaser.Scene} scene
+     * @param {Phaser.GameObjects.GameObject} target - 目标对象
+     * @param {Object} skill - 技能数据
+     * @param {Object} [hooks={}] - { bindKey, onOver, onMove, onOut }
+     */
     bind(scene, target, skill, hooks = {}) {
         if (!scene || !target || !skill || typeof target.on !== 'function') {
             return;
@@ -103,6 +116,12 @@ const SkillTooltipView = {
         }
     },
 
+    /**
+     * 显示 Tooltip
+     * @param {Phaser.Scene} scene
+     * @param {Phaser.Input.Pointer} pointer
+     * @param {Object} skill
+     */
     show(scene, pointer, skill) {
         if (!scene || !skill) {
             return;
@@ -118,6 +137,11 @@ const SkillTooltipView = {
         this.move(scene, pointer);
     },
 
+    /**
+     * 移动 Tooltip 位置（边界防溢出）
+     * @param {Phaser.Scene} scene
+     * @param {Phaser.Input.Pointer} pointer
+     */
     move(scene, pointer) {
         if (!scene || !scene.cameras || !scene.cameras.main) {
             return;
@@ -152,6 +176,10 @@ const SkillTooltipView = {
         state.root.setPosition(x, y);
     },
 
+    /**
+     * 隐藏 Tooltip
+     * @param {Phaser.Scene} scene
+     */
     hide(scene) {
         if (!scene) {
             return;
@@ -163,6 +191,10 @@ const SkillTooltipView = {
         state.root.setVisible(false);
     },
 
+    /**
+     * 卸载 Tooltip（销毁容器并清除状态）
+     * @param {Phaser.Scene} scene
+     */
     unmount(scene) {
         if (!scene) {
             return;
@@ -179,6 +211,11 @@ const SkillTooltipView = {
         delete scene[stateKey];
     },
 
+    /**
+     * 更新 Tooltip 内容（名称、分类、描述）
+     * @param {Object} state - 内部状态
+     * @param {Object} skill - 技能数据
+     */
     updateContent(state, skill) {
         const tooltipWidth = 268;
         const padding = 10;
@@ -211,6 +248,11 @@ const SkillTooltipView = {
         state.bg.strokeRoundedRect(0, 0, tooltipWidth, tooltipHeight, 8);
     },
 
+    /**
+     * 获取技能分类中文标签
+     * @param {string} category
+     * @returns {string}
+     */
     getCategoryLabel(category) {
         if (category === 'physical') {
             return '物理攻击';

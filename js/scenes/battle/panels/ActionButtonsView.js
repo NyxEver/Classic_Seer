@@ -1,14 +1,34 @@
+/**
+ * BattleActionButtonsView - 战斗右侧操作按钮组
+ *
+ * 职责：
+ * - 渲染 2×2 操作按钮：战斗、道具、精灵、逃跑
+ * - 根据菜单状态、强制换宠、道具面板状态动态禁用按钮
+ * - 提供 hover 高亮与点击交互
+ *
+ * 以 BattleScene 的 this 执行所有方法。
+ */
+
 const BattleActionButtonsView = {
+    /**
+     * 面板挂载：创建操作按钮组
+     * @param {Object} [options={}] - { panelY: number }
+     */
     mount(options = {}) {
         const panelY = Number.isFinite(options.panelY) ? options.panelY : (this.bottomPanelY || 430);
         BattleActionButtonsView.createRightActionButtons.call(this, panelY);
     },
 
+    /**
+     * 面板更新：重建操作按钮以反映最新状态
+     * @param {Object} [options={}] - { panelY: number }
+     */
     update(options = {}) {
         const panelY = Number.isFinite(options.panelY) ? options.panelY : (this.bottomPanelY || 430);
         BattleActionButtonsView.createRightActionButtons.call(this, panelY);
     },
 
+    /** 面板卸载：销毁按钮容器 */
     unmount() {
         if (this.actionContainer) {
             this.actionContainer.destroy();
@@ -17,6 +37,11 @@ const BattleActionButtonsView = {
         this.actionButtons = [];
     },
 
+    /**
+     * 创建右侧 2×2 操作按钮组
+     * 按钮顺序：战斗 | 道具 / 精灵 | 逃跑
+     * @param {number} panelY - 面板顶部 Y 坐标
+     */
     createRightActionButtons(panelY) {
         const btnW = 120;
         const btnH = 45;
@@ -66,6 +91,15 @@ const BattleActionButtonsView = {
         }
     },
 
+    /**
+     * 创建单个操作按钮（含禁用状态、hover 交互）
+     * @param {number} x - 按钮 X
+     * @param {number} y - 按钮 Y
+     * @param {number} w - 按钮宽
+     * @param {number} h - 按钮高
+     * @param {Object} config - { label, action, disabled }
+     * @returns {Phaser.GameObjects.Container}
+     */
     createActionButton(x, y, w, h, config) {
         const container = this.add.container(x, y);
         const disabled = config.disabled;

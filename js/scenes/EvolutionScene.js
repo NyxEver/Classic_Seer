@@ -1,8 +1,20 @@
+/**
+ * EvolutionScene - 精灵进化场景
+ *
+ * 职责：
+ * - 展示进化动画（旧精灵淡出 → 光效 → 新精灵淡入）
+ * - 显示进化前后属性对比（右侧面板）
+ * - 动画完成后启用确认按钮，执行进化回调并返回来源场景
+ */
 class EvolutionScene extends Phaser.Scene {
     constructor() {
         super({ key: 'EvolutionScene' });
     }
 
+    /**
+     * 场景初始化：接收精灵、进化目标 ID、返回场景与回调
+     * @param {Object} [data={}]
+     */
     init(data = {}) {
         this.elf = data.elf || null;
         this.newElfId = Number.isFinite(data.newElfId) ? data.newElfId : null;
@@ -26,6 +38,7 @@ class EvolutionScene extends Phaser.Scene {
         this.infoText = null;
     }
 
+    /** 场景创建：初始化模态窗口、渲染进化界面并播放动画 */
     create() {
         this.cameras.main.setBackgroundColor('rgba(0,0,0,0)');
         const camera = this.cameras.main;
@@ -58,6 +71,7 @@ class EvolutionScene extends Phaser.Scene {
         this.playEvolutionAnimation();
     }
 
+    /** 创建模态窗口外框 */
     createFrame() {
         const frame = this.add.graphics();
         frame.fillStyle(0x122f4a, 0.97);
@@ -69,6 +83,7 @@ class EvolutionScene extends Phaser.Scene {
         this.root.add(frame);
     }
 
+    /** 创建标题栏 */
     createHeader() {
         const title = this.add.text(this.modalW / 2, 42, '进化结算', {
             fontSize: '30px',
@@ -80,6 +95,7 @@ class EvolutionScene extends Phaser.Scene {
         this.root.add(title);
     }
 
+    /** 创建左侧面板（进化动画区 + 信息文本） */
     createLeftPanel() {
         this.leftX = 24;
         this.leftY = 86;
@@ -123,6 +139,7 @@ class EvolutionScene extends Phaser.Scene {
         this.updateInfoText(false);
     }
 
+    /** 创建右侧面板（属性提升对比表） */
     createRightPanel() {
         const rightX = 468;
         const rightY = 86;
@@ -183,6 +200,7 @@ class EvolutionScene extends Phaser.Scene {
         });
     }
 
+    /** 创建确认按钮（动画完成前禁用） */
     createConfirmButton() {
         const x = this.modalW / 2;
         const y = this.modalH - 36;
@@ -210,6 +228,10 @@ class EvolutionScene extends Phaser.Scene {
         this.setConfirmButtonEnabled(false);
     }
 
+    /**
+     * 设置确认按钮启用/禁用状态
+     * @param {boolean} enabled
+     */
     setConfirmButtonEnabled(enabled) {
         if (!this.confirmButtonState) {
             return;
@@ -230,6 +252,14 @@ class EvolutionScene extends Phaser.Scene {
         }
     }
 
+    /**
+     * 创建进化肌理（渲染精灵图像，无图片时显示文字后备）
+     * @param {number} x
+     * @param {number} y
+     * @param {Object} elfData - 精灵数据
+     * @param {number} fallbackColor - 后备颜色
+     * @returns {Phaser.GameObjects.Container}
+     */
     createEvolutionPortrait(x, y, elfData, fallbackColor) {
         const container = this.add.container(x, y);
         const portraitContainer = this.add.container(0, 0);
@@ -258,6 +288,7 @@ class EvolutionScene extends Phaser.Scene {
         return container;
     }
 
+    /** 播放进化动画（旧精灵淡出 → 光效 → 新精灵淡入） */
     playEvolutionAnimation() {
         const beforeName = this.beforeElfData.name;
         const afterName = this.afterElfData.name;
@@ -318,6 +349,10 @@ class EvolutionScene extends Phaser.Scene {
         });
     }
 
+    /**
+     * 更新信息文本（进化中 / 进化完成）
+     * @param {boolean} completed
+     */
     updateInfoText(completed) {
         if (!this.infoText) {
             return;
@@ -338,6 +373,10 @@ class EvolutionScene extends Phaser.Scene {
         ]);
     }
 
+    /**
+     * 构建进化前后属性对比行数据
+     * @returns {Array.<{label, before, after, delta}>}
+     */
     buildPreviewRows() {
         const beforeStats = {
             level: this.elf.level,
@@ -365,6 +404,10 @@ class EvolutionScene extends Phaser.Scene {
         }));
     }
 
+    /**
+     * 构建进化后预览属性（临时创建 Elf 实例计算）
+     * @returns {{ level, hp, atk, def, spAtk, spDef, spd }}
+     */
     buildEvolvedPreviewStats() {
         const instanceData = {
             elfId: this.afterElfData.id,
@@ -394,10 +437,16 @@ class EvolutionScene extends Phaser.Scene {
         };
     }
 
+    /**
+     * 格式化属性变化值
+     * @param {number} delta
+     * @returns {string}
+     */
     formatDelta(delta) {
         return `${delta >= 0 ? '+' : ''}${delta}`;
     }
 
+    /** 确认进化：执行回调并返回来源场景 */
     completeEvolution() {
         if (this.isTransitioning || !this.animationCompleted) {
             return;
@@ -411,6 +460,11 @@ class EvolutionScene extends Phaser.Scene {
         this.closeAndReturn(this.returnScene, this.returnData);
     }
 
+    /**
+     * 关闭当前场景并返回目标场景
+     * @param {string} targetSceneKey
+     * @param {Object} targetData
+     */
     closeAndReturn(targetSceneKey, targetData) {
         const targetScene = this.resolveSafeReturnScene(targetSceneKey);
         const data = targetData && typeof targetData === 'object' ? targetData : {};
@@ -434,6 +488,10 @@ class EvolutionScene extends Phaser.Scene {
         }
     }
 
+    /**
+     * 停止配置中指定的场景（避免残留场景堆叠）
+     * @param {string} targetScene
+     */
     stopConfiguredScenes(targetScene) {
         this.closeSceneKeys.forEach((sceneKey) => {
             if (!sceneKey || sceneKey === targetScene || sceneKey === this.scene.key) {
@@ -452,6 +510,11 @@ class EvolutionScene extends Phaser.Scene {
         }
     }
 
+    /**
+     * 解析安全返回场景（避免返回临时场景）
+     * @param {string} sceneKey
+     * @returns {string}
+     */
     resolveSafeReturnScene(sceneKey) {
         const transientSceneKeys = {
             SkillLearnScene: true,

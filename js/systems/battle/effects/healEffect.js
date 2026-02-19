@@ -1,3 +1,4 @@
+/** 回复体力效果处理器 */
 const HealEffectHandler = {
     type: 'heal',
 

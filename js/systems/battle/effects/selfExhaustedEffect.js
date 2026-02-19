@@ -1,3 +1,4 @@
+/** 自身力竭效果处理器 */
 const SelfExhaustedEffectHandler = {
     type: 'selfExhausted',
 

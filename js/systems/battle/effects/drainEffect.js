@@ -1,3 +1,4 @@
+/** 吸取效果处理器（造成伤害并回复） */
 const DrainEffectHandler = {
     type: 'drain',
 

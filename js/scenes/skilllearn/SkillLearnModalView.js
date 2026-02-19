@@ -1,4 +1,13 @@
+/**
+ * SkillLearnModalView - 技能学习模态窗口 UI 混入
+ *
+ * 职责：
+ * - 提供技能替换界面的 UI 渲染方法（框架、标题、技能卡片、操作按钮）
+ * - 被 SkillLearnScene 通过 Object.assign 混入，共享 this 上下文
+ * - 管理技能卡片的选中高亮、Tooltip 绑定与替换/取消按钮状态
+ */
 const SkillLearnModalView = {
+    /** 创建模态窗口外框 */
     createFrame() {
         const frame = this.add.graphics();
         frame.fillStyle(0x123152, 0.97);
@@ -10,6 +19,7 @@ const SkillLearnModalView = {
         this.root.add(frame);
     },
 
+    /** 创建标题栏（主标题 + 副标题） */
     createHeader() {
         const title = this.add.text(this.modalW / 2, 40, '技能替换', {
             fontSize: '30px',
@@ -27,6 +37,7 @@ const SkillLearnModalView = {
         this.root.add(this.subTitleText);
     },
 
+    /** 创建技能展示区域（新技能 + 4 个现有槽位） */
     createSkillArea() {
         const areaX = 28;
         const areaY = 94;
@@ -45,6 +56,7 @@ const SkillLearnModalView = {
         this.renderSkillCards();
     },
 
+    /** 渲染所有技能卡片（新技能卡 + 现有 4 槽位卡） */
     renderSkillCards() {
         this.skillArea.removeAll(true);
         this.currentSkillCards = [];
@@ -108,6 +120,11 @@ const SkillLearnModalView = {
         }
     },
 
+    /**
+     * 创建单张技能卡片（背景、名称、威力/命中、PP、Tooltip）
+     * @param {Object} config - { x, y, w, h, skill, title, interactive, selected, cardType, slotIndex }
+     * @returns {{ container, bg, hit, slotIndex }}
+     */
     createSkillCard(config) {
         const { x, y, w, h, skill, title, interactive, selected, cardType, slotIndex } = config;
         const container = this.add.container(0, 0);
@@ -211,6 +228,13 @@ const SkillLearnModalView = {
         return { container, bg, hit, slotIndex };
     },
 
+    /**
+     * 获取卡片配色方案
+     * @param {string} cardType - 'new' | 'existing'
+     * @param {boolean} selected - 是否选中
+     * @param {boolean} [hovered=false] - 是否悬停
+     * @returns {{ fill: number, border: number, borderWidth: number, title: string }}
+     */
     getCardPalette(cardType, selected, hovered = false) {
         if (selected) {
             return { fill: 0x5a3a2a, border: 0xffa64b, borderWidth: 3, title: '#ffd6b0' };
@@ -226,6 +250,7 @@ const SkillLearnModalView = {
         };
     },
 
+    /** 创建底部操作按钮（替换 + 取消） */
     createActionButtons() {
         const y = this.modalH - 54;
         const centerX = this.modalW / 2;
@@ -248,6 +273,16 @@ const SkillLearnModalView = {
         this.root.add(cancelButton.container);
     },
 
+    /**
+     * 创建底部按钮
+     * @param {number} x
+     * @param {number} y
+     * @param {number} w
+     * @param {number} h
+     * @param {string} text
+     * @param {Object} config - { enabledColor, disabledColor, borderColor, onClick, alwaysEnabled }
+     * @returns {Object} 按钮状态对象
+     */
     createFooterButton(x, y, w, h, text, config) {
         const container = this.add.container(x, y);
         const bg = this.add.graphics();
@@ -281,6 +316,11 @@ const SkillLearnModalView = {
         return state;
     },
 
+    /**
+     * 绘制底部按钮样式（启用/禁用）
+     * @param {Object} state - 按钮状态对象
+     * @param {boolean} enabled
+     */
     paintFooterButton(state, enabled) {
         state.bg.clear();
         state.bg.fillStyle(enabled ? state.enabledColor : state.disabledColor, 1);
@@ -296,6 +336,7 @@ const SkillLearnModalView = {
         }
     },
 
+    /** 刷新副标题文字（显示精灵名与新技能名） */
     refreshHeaderText() {
         if (!this.subTitleText) {
             return;
@@ -303,6 +344,7 @@ const SkillLearnModalView = {
         this.subTitleText.setText(`${this.elf.getDisplayName()} 想学习 ${this.newSkillData.name}`);
     },
 
+    /** 刷新替换按钮的启用/禁用状态 */
     refreshReplaceButtonState() {
         if (!this.replaceButtonState) {
             return;
@@ -311,6 +353,10 @@ const SkillLearnModalView = {
         this.paintFooterButton(this.replaceButtonState, enabled);
     },
 
+    /**
+     * 选中技能槽位
+     * @param {number} index - 槽位索引 (0-3)
+     */
     selectSlot(index) {
         if (this.isTransitioning) {
             return;

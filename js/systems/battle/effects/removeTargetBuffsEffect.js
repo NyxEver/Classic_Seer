@@ -1,3 +1,4 @@
+/** 清除目标增益效果处理器 */
 const RemoveTargetBuffsEffectHandler = {
     type: 'removeTargetBuffs',
 

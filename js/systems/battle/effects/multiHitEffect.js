@@ -1,3 +1,4 @@
+/** 多段攻击效果处理器 */
 const MultiHitEffectHandler = {
     type: 'multiHit',
 

@@ -8,6 +8,7 @@ class SpaceshipScene extends Phaser.Scene {
         super({ key: 'SpaceshipScene' });
     }
 
+    /** 场景创建：渲染背景、房间入口、顶部栏与底部栏 */
     create() {
         const { width, height } = this.cameras.main;
 
@@ -31,6 +32,11 @@ class SpaceshipScene extends Phaser.Scene {
     }
 
     // ========== 背景 ==========
+    /**
+     * 创建飞船内部背景（金属蓝灰 + 科技线条 + 舷窗）
+     * @param {number} width
+     * @param {number} height
+     */
     createBackground(width, height) {
         const graphics = this.add.graphics();
 
@@ -50,6 +56,11 @@ class SpaceshipScene extends Phaser.Scene {
         this.createPorthole(width - 100, 150);
     }
 
+    /**
+     * 绘制舷窗装饰（外框 + 太空背景 + 星星）
+     * @param {number} x
+     * @param {number} y
+     */
     createPorthole(x, y) {
         const graphics = this.add.graphics();
 
@@ -69,6 +80,10 @@ class SpaceshipScene extends Phaser.Scene {
     }
 
     // ========== 顶部信息栏 ==========
+    /**
+     * 创建顶部信息栏（标题 + 赛尔豆）
+     * @param {number} width
+     */
     createTopBar(width) {
         const graphics = this.add.graphics();
         graphics.fillStyle(0x1a2a3a, 0.9);
@@ -91,6 +106,11 @@ class SpaceshipScene extends Phaser.Scene {
     }
 
     // ========== 房间入口 ==========
+    /**
+     * 创建房间入口按钮组（2×3 布局）
+     * @param {number} width
+     * @param {number} height
+     */
     createRoomButtons(width, height) {
         // 房间配置：名称、是否可用、目标场景
         const rooms = [
@@ -121,6 +141,15 @@ class SpaceshipScene extends Phaser.Scene {
         });
     }
 
+    /**
+     * 创建单个房间按钮（含启用/禁用、hover/点击交互）
+     * @param {number} x
+     * @param {number} y
+     * @param {number} w
+     * @param {number} h
+     * @param {Object} room - 房间配置
+     * @returns {Phaser.GameObjects.Container}
+     */
     createRoomButton(x, y, w, h, room) {
         const container = this.add.container(x, y);
 
@@ -208,6 +237,7 @@ class SpaceshipScene extends Phaser.Scene {
         return container;
     }
 
+    /** 显示“开发中”浮动提示 */
     showDevMessage() {
         // 显示"开发中"提示
         const { width, height } = this.cameras.main;
@@ -229,6 +259,7 @@ class SpaceshipScene extends Phaser.Scene {
     }
 
     // ========== 底部功能栏 ==========
+    /** 创建底部功能栏（背包、精灵管理） */
     createBottomBar() {
         WorldSceneModalMixin.apply(this, 'SpaceshipScene');
         this.worldBottomBar = WorldBottomBar.create(this, {

@@ -1,3 +1,4 @@
+/** 固定持续伤害（DOT）效果处理器 */
 const DotFixedDamageEffectHandler = {
     type: 'dotFixedDamage',
 

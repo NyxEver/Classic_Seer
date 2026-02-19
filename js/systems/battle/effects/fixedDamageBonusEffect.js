@@ -1,3 +1,4 @@
+/** 固定伤害加成效果处理器 */
 const FixedDamageBonusEffectHandler = {
     type: 'fixedDamageBonus',
 
