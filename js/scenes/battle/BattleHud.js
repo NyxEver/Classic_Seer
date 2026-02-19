@@ -1,7 +1,9 @@
 /**
- * BattleHud - BattleScene HUD and interaction facade methods.
+ * BattleHud - 战斗场景 HUD 门面模块
  *
- * These methods run with BattleScene as `this`.
+ * 职责：管理顶部状态条（HP、等级、立绘、状态图标、能力增减）和左侧日志面板框架。
+ * 日志/浮动数字功能委托给 BattleLogView，弹窗/计时器/菜单委托给 BattleDialogView。
+ * 这些方法在运行时以 BattleScene 作为 `this` 调用（mixin 模式）。
  */
 
 const BATTLE_STAGE_LABELS = {
@@ -152,7 +154,14 @@ function getHudStageEntries(scene, side) {
         .filter((entry) => entry.value !== 0);
 }
 
+// ---------------------------------------------------------------------------
+// BattleHud 门面对象
+// ---------------------------------------------------------------------------
+
 const BattleHud = {
+    /**
+     * 创建顶部状态条（双方 HP 条 + 计时器文本 + 状态图标行）。
+     */
     createTopBar() {
         this.createStatusBar(this.playerElf, 20, 10, true);
         this.createStatusBar(this.enemyElf, this.W - 20, 10, false);
@@ -170,6 +179,9 @@ const BattleHud = {
         this.createStatusIconRows();
     },
 
+    /**
+     * 创建双方状态图标行容器并刷新图标。
+     */
     createStatusIconRows() {
         if (this.playerStatusIconRow) {
             this.playerStatusIconRow.destroy();
@@ -198,6 +210,9 @@ const BattleHud = {
         this.refreshStatusIcons();
     },
 
+    /**
+     * 刷新双方状态图标（异常状态 + 能力增减 badge）。
+     */
     refreshStatusIcons() {
         if (!this.playerStatusIconRow || !this.enemyStatusIconRow) {
             return;
@@ -307,6 +322,13 @@ const BattleHud = {
         renderRow(this.enemyStatusIconRow, 'enemy', enemyRight);
     },
 
+    /**
+     * 创建一侧完整的状态条（立绘框 + 名称 + 等级 + HP 条）。
+     * @param {Elf} elf - 精灵实例
+     * @param {number} x - 基准 X（仅用于 anchorY 的回退）
+     * @param {number} y - 基准 Y
+     * @param {boolean} isPlayer - 是否为玩家侧
+     */
     createStatusBar(elf, x, y, isPlayer) {
         const side = isPlayer ? 'player' : 'enemy';
         const sideLayout = getBattleHudSideLayout(this, side);
@@ -437,6 +459,10 @@ const BattleHud = {
         }
     },
 
+    /**
+     * 更新一侧的 HP 条显示。
+     * @param {'player'|'enemy'} side - 战斗方
+     */
     updateStatusHp(side) {
         const elf = side === 'player' ? this.playerElf : this.enemyElf;
         const info = side === 'player' ? this.playerStatus : this.enemyStatus;
@@ -470,6 +496,10 @@ const BattleHud = {
         info.hpText.setText(`${hp} / ${maxHp}`);
     },
 
+    /**
+     * 创建左侧日志面板框架（背景 + 布局参数 + 行容器）。
+     * @param {number} panelY - 面板顶部 Y 坐标
+     */
     createLeftInfoPanel(panelY) {
         const x = 15;
         const y = panelY + 10;
@@ -494,473 +524,90 @@ const BattleHud = {
         this.logLineLayer.setDepth(35);
     },
 
+    // --- 以下方法委托给 BattleLogView ---
+
+    /** @see BattleLogView.addLog */
     addLog(msg) {
-        if (!msg) {
-            return;
-        }
-
-        if (typeof msg === 'object' && msg.type === 'skill_log') {
-            this.messageQueue.push(msg);
-        }
+        return BattleLogView.addLog.call(this, msg);
     },
-
-    queueTurnSkillLogs(result) {
-        const events = Array.isArray(result && result.events) ? result.events : [];
-        events
-            .filter((event) => event && (event.type === BattleManager.EVENT.SKILL_CAST || event.type === 'skill_cast'))
-            .forEach((event) => {
-                const actorSide = event.actor === 'enemy' ? 'enemy' : 'player';
-                this.addLog({
-                    type: 'skill_log',
-                    actor: actorSide,
-                    actorName: this.getBattleSideDisplayName(actorSide),
-                    skillName: event.skillName || this.getSkillNameById(event.skillId),
-                    statusText: this.getBattleSideStatusText(actorSide)
-                });
-            });
-    },
-
+    /** @see BattleLogView.getSkillNameById */
     getSkillNameById(skillId) {
-        if (typeof DataLoader !== 'undefined' && DataLoader && typeof DataLoader.getSkill === 'function') {
-            const skill = DataLoader.getSkill(skillId);
-            if (skill && skill.name) {
-                return skill.name;
-            }
-        }
-        return '未知技能';
+        return BattleLogView.getSkillNameById.call(this, skillId);
     },
-
+    /** @see BattleLogView.getBattleSideDisplayName */
     getBattleSideDisplayName(side) {
-        const elf = side === 'player' ? this.playerElf : this.enemyElf;
-        if (!elf || typeof elf.getDisplayName !== 'function') {
-            return side === 'player' ? '我方精灵' : '敌方精灵';
-        }
-        return elf.getDisplayName();
+        return BattleLogView.getBattleSideDisplayName.call(this, side);
     },
-
+    /** @see BattleLogView.getBattleSideStatusText */
     getBattleSideStatusText(side) {
-        const statusEffect = getHudStatusEffect();
-        const elf = side === 'player' ? this.playerElf : this.enemyElf;
-        if (!statusEffect || !elf || typeof statusEffect.getDisplayStatuses !== 'function') {
-            return '正常';
-        }
-
-        const statuses = statusEffect.getDisplayStatuses(elf);
-        if (!Array.isArray(statuses) || statuses.length === 0) {
-            return '正常';
-        }
-
-        return statuses
-            .map((statusType) => {
-                if (typeof statusEffect.getStatusName === 'function') {
-                    return statusEffect.getStatusName(statusType);
-                }
-                return statusType;
-            })
-            .join('、');
+        return BattleLogView.getBattleSideStatusText.call(this, side);
     },
-
+    /** @see BattleLogView.queueTurnSkillLogs */
+    queueTurnSkillLogs(result) {
+        return BattleLogView.queueTurnSkillLogs.call(this, result);
+    },
+    /** @see BattleLogView.clipLogTextToWidth */
     clipLogTextToWidth(text, style, maxWidth) {
-        if (!text || maxWidth <= 0) {
-            return '';
-        }
-
-        const probe = this.add.text(0, 0, text, style).setVisible(false);
-        if (probe.width <= maxWidth) {
-            probe.destroy();
-            return text;
-        }
-
-        let sliced = text;
-        while (sliced.length > 0) {
-            sliced = sliced.slice(0, -1);
-            probe.setText(`${sliced}...`);
-            if (probe.width <= maxWidth) {
-                probe.destroy();
-                return `${sliced}...`;
-            }
-        }
-
-        probe.destroy();
-        return '';
+        return BattleLogView.clipLogTextToWidth.call(this, text, style, maxWidth);
     },
-
+    /** @see BattleLogView.appendLogEntry */
     appendLogEntry(entry) {
-        if (!this.logPanelLayout || !this.logLineLayer || !entry) {
-            return;
-        }
-
-        this.logEntries.push(entry);
-        while (this.logEntries.length > this.logPanelLayout.maxLines) {
-            this.logEntries.shift();
-        }
-
-        this.logLineLayer.removeAll(true);
-        this.logEntries.forEach((logEntry, index) => {
-            const lineContainer = this.add.container(
-                this.logPanelLayout.x,
-                this.logPanelLayout.y + index * this.logPanelLayout.lineHeight
-            );
-
-            const actorName = logEntry.actorName || '未知精灵';
-            const skillName = logEntry.skillName || '未知技能';
-            const statusText = logEntry.statusText || '正常';
-            const actorColor = logEntry.actor === 'enemy' ? '#c792ff' : '#ffffff';
-            const segments = [
-                { text: `【${actorName}】`, color: actorColor },
-                { text: '使用了', color: '#ffffff' },
-                { text: skillName, color: '#ffd95a' },
-                { text: '，', color: '#ffffff' },
-                { text: '【状态】：', color: '#55dd88' },
-                { text: statusText, color: '#55dd88' }
-            ];
-
-            let cursorX = 0;
-            segments.forEach((segment) => {
-                if (!segment.text) {
-                    return;
-                }
-                const style = {
-                    fontSize: '12px',
-                    fontFamily: 'Arial',
-                    color: segment.color,
-                    fontStyle: 'bold'
-                };
-
-                const maxWidth = this.logPanelLayout.width - cursorX;
-                const clippedText = this.clipLogTextToWidth(segment.text, style, maxWidth);
-                if (!clippedText) {
-                    return;
-                }
-
-                const text = this.add.text(cursorX, 0, clippedText, style).setOrigin(0, 0);
-                lineContainer.add(text);
-                cursorX += text.width;
-            });
-
-            this.logLineLayer.add(lineContainer);
-        });
+        return BattleLogView.appendLogEntry.call(this, entry);
     },
-
+    /** @see BattleLogView.showLogs */
     showLogs(onComplete) {
-        if (this.messageQueue.length === 0) {
-            if (onComplete) {
-                onComplete();
-            }
-            return;
-        }
-
-        const entry = this.messageQueue.shift();
-        this.appendLogEntry(entry);
-
-        const actorName = entry && entry.actorName ? entry.actorName : '';
-        const skillName = entry && entry.skillName ? entry.skillName : '';
-        const statusText = entry && entry.statusText ? entry.statusText : '';
-        const rawLength = actorName.length + skillName.length + statusText.length + 10;
-        const delay = Math.max(650, 360 + rawLength * 55);
-
-        this.time.delayedCall(delay, () => {
-            this.showLogs(onComplete);
-        });
+        return BattleLogView.showLogs.call(this, onComplete);
     },
-
-    showTurnFloatTexts(result) {
-        const events = Array.isArray(result && result.events) ? result.events : [];
-        const hpEvents = events.filter((event) => {
-            return event
-                && event.type === BattleManager.EVENT.HP_CHANGE
-                && Number.isFinite(event.delta)
-                && event.delta !== 0;
-        });
-
-        if (hpEvents.length === 0) {
-            return;
-        }
-
-        if (!Array.isArray(this.turnFloatQueue)) {
-            this.turnFloatQueue = [];
-        }
-        hpEvents.forEach((event) => {
-            this.turnFloatQueue.push(event);
-        });
-
-        if (this.turnFloatPlaying) {
-            return;
-        }
-
-        this.turnFloatPlaying = true;
-        this.playNextTurnFloatText();
-    },
-
+    /** @see BattleLogView.resolveFloatStyle */
     resolveFloatStyle(event) {
-        const isDamage = event.delta < 0;
-        const reason = event.reason || null;
-
-        if (isDamage) {
-            if (reason === 'damage') {
-                return {
-                    textColor: '#ff6b5c',
-                    strokeColor: '#ffe27a'
-                };
-            }
-            return {
-                textColor: '#ffffff',
-                strokeColor: '#7248b0'
-            };
-        }
-
-        if (reason === 'item_use') {
-            return {
-                textColor: '#89ff9f',
-                strokeColor: '#ffffff'
-            };
-        }
-
-        return {
-            textColor: '#ffffff',
-            strokeColor: '#7248b0'
-        };
+        return BattleLogView.resolveFloatStyle.call(this, event);
     },
-
+    /** @see BattleLogView.getFloatAnchorBySide */
     getFloatAnchorBySide(side) {
-        const info = side === 'enemy' ? this.enemyStatus : this.playerStatus;
-        if (!info || !info.container) {
-            return null;
-        }
-
-        return {
-            x: info.container.x + info.hpBarX + info.hpBarW / 2,
-            y: info.container.y + info.hpBarY + info.hpBarH + 24
-        };
+        return BattleLogView.getFloatAnchorBySide.call(this, side);
     },
-
+    /** @see BattleLogView.createFloatBubble */
     createFloatBubble(x, y, textValue, style) {
-        const text = this.add.text(x, y, textValue, {
-            fontSize: '50px',
-            fontFamily: 'Arial',
-            color: style.textColor,
-            stroke: style.strokeColor,
-            strokeThickness: 4,
-            fontStyle: 'bold'
-        }).setOrigin(0.5);
-        text.setDepth(68);
-        return text;
+        return BattleLogView.createFloatBubble.call(this, x, y, textValue, style);
     },
-
+    /** @see BattleLogView.playNextTurnFloatText */
     playNextTurnFloatText() {
-        if (!Array.isArray(this.turnFloatQueue) || this.turnFloatQueue.length === 0) {
-            this.turnFloatPlaying = false;
-            return;
-        }
-
-        const event = this.turnFloatQueue.shift();
-        const amount = Math.abs(Math.floor(event.delta || 0));
-        if (amount <= 0) {
-            this.time.delayedCall(80, () => this.playNextTurnFloatText());
-            return;
-        }
-
-        const side = event.target === 'enemy' ? 'enemy' : 'player';
-        const anchor = this.getFloatAnchorBySide(side);
-        if (!anchor) {
-            this.time.delayedCall(80, () => this.playNextTurnFloatText());
-            return;
-        }
-
-        const style = this.resolveFloatStyle(event);
-        const textValue = event.delta < 0 ? `-${amount}` : `+${amount}`;
-        const bubble = this.createFloatBubble(anchor.x, anchor.y, textValue, style);
-        const duration = 3500;
-
-        this.tweens.add({
-            targets: bubble,
-            alpha: 0,
-            duration,
-            ease: 'Cubic.easeOut',
-            onComplete: () => {
-                bubble.destroy();
-            }
-        });
-
-        this.time.delayedCall(220, () => this.playNextTurnFloatText());
+        return BattleLogView.playNextTurnFloatText.call(this);
+    },
+    /** @see BattleLogView.showTurnFloatTexts */
+    showTurnFloatTexts(result) {
+        return BattleLogView.showTurnFloatTexts.call(this, result);
     },
 
+    // --- 以下方法委托给 BattleDialogView ---
+
+    /** @see BattleDialogView.createCenterPopupDialog */
     createCenterPopupDialog() {
-        this.popupContainer = this.add.container(this.W / 2, this.H / 2);
-        this.popupContainer.setVisible(false);
-        this.popupContainer.setDepth(100);
-
-        const w = 400;
-        const h = 200;
-
-        const mask = this.add.rectangle(0, 0, this.W, this.H, 0x000000, 0.6).setOrigin(0.5);
-        this.popupContainer.add(mask);
-
-        const bg = this.add.graphics();
-        bg.fillStyle(0x1a2a4a, 1);
-        bg.fillRoundedRect(-w / 2, -h / 2, w, h, 12);
-        bg.lineStyle(3, 0x4a8aca);
-        bg.strokeRoundedRect(-w / 2, -h / 2, w, h, 12);
-        this.popupContainer.add(bg);
-
-        this.popupText = this.add.text(0, -30, '', {
-            fontSize: '20px',
-            fontFamily: 'Arial',
-            color: '#ffffff',
-            align: 'center',
-            wordWrap: { width: w - 40 }
-        }).setOrigin(0.5);
-        this.popupContainer.add(this.popupText);
-
-        const btnW = 120;
-        const btnH = 40;
-        const btnBg = this.add.graphics();
-        btnBg.fillStyle(0x3a7aba, 1);
-        btnBg.fillRoundedRect(-btnW / 2, 40, btnW, btnH, 6);
-        btnBg.lineStyle(2, 0x5aaaee);
-        btnBg.strokeRoundedRect(-btnW / 2, 40, btnW, btnH, 6);
-        this.popupContainer.add(btnBg);
-
-        const btnText = this.add.text(0, 60, '确认', {
-            fontSize: '16px',
-            fontFamily: 'Arial',
-            color: '#ffffff',
-            fontStyle: 'bold'
-        }).setOrigin(0.5);
-        this.popupContainer.add(btnText);
-
-        const btnHit = this.add.rectangle(0, 60, btnW, btnH).setInteractive({ useHandCursor: true });
-        this.popupContainer.add(btnHit);
-
-        this.popupConfirmBg = btnBg;
-        this.popupConfirmText = btnText;
-        this.popupConfirmHit = btnHit;
-        this.popupConsumed = false;
-
-        btnHit.on('pointerdown', () => {
-            if (this.popupConsumed) {
-                return;
-            }
-
-            this.popupConsumed = true;
-            if (this.popupConfirmHit) {
-                this.popupConfirmHit.disableInteractive();
-            }
-            if (this.popupConfirmBg) {
-                this.popupConfirmBg.setAlpha(0.65);
-            }
-            if (this.popupConfirmText) {
-                this.popupConfirmText.setAlpha(0.65);
-            }
-
-            this.popupContainer.setVisible(false);
-            if (this.popupCallback) {
-                const callback = this.popupCallback;
-                this.popupCallback = null;
-                callback();
-            } else {
-                if (typeof this.finalizeBattleOnce === 'function') {
-                    this.finalizeBattleOnce('return_to_map', { reason: 'popup_default_confirm' });
-                } else if (typeof this.returnToMap === 'function') {
-                    this.returnToMap();
-                }
-            }
-        });
+        return BattleDialogView.createCenterPopupDialog.call(this);
     },
-
-    showPopup(title, message, callback = null) {
-        this.popupText.setText(`${title}\n\n${message}`);
-        this.popupCallback = callback;
-        this.popupConsumed = false;
-        if (this.popupConfirmHit) {
-            this.popupConfirmHit.setInteractive({ useHandCursor: true });
-        }
-        if (this.popupConfirmBg) {
-            this.popupConfirmBg.setAlpha(1);
-        }
-        if (this.popupConfirmText) {
-            this.popupConfirmText.setAlpha(1);
-        }
-        this.popupContainer.setVisible(true);
+    /** @see BattleDialogView.showPopup */
+    showPopup(title, message, callback) {
+        return BattleDialogView.showPopup.call(this, title, message, callback);
     },
-
+    /** @see BattleDialogView.startTurnTimer */
     startTurnTimer() {
-        this.turnTimeLeft = 10;
-        this.updateTimerDisplay();
-
-        if (this.turnTimer) {
-            this.turnTimer.remove();
-        }
-
-        this.turnTimer = this.time.addEvent({
-            delay: 1000,
-            callback: () => {
-                this.turnTimeLeft--;
-                this.updateTimerDisplay();
-
-                if (this.turnTimeLeft <= 0 && this.menuEnabled && !this.battleEnded) {
-                    this.addLog('时间到！自动使用技能！');
-                    const skills = this.playerElf.getSkillDetails();
-                    if (skills.length > 0 && skills[0].currentPP > 0) {
-                        this.doSkill(skills[0].id);
-                    } else {
-                        for (const skill of skills) {
-                            if (skill.currentPP > 0) {
-                                this.doSkill(skill.id);
-                                return;
-                            }
-                        }
-                    }
-                }
-            },
-            loop: true
-        });
+        return BattleDialogView.startTurnTimer.call(this);
     },
-
+    /** @see BattleDialogView.stopTurnTimer */
     stopTurnTimer() {
-        if (this.turnTimer) {
-            this.turnTimer.remove();
-            this.turnTimer = null;
-        }
-        this.timerText.setText('');
+        return BattleDialogView.stopTurnTimer.call(this);
     },
-
+    /** @see BattleDialogView.updateTimerDisplay */
     updateTimerDisplay() {
-        if (this.menuEnabled && !this.battleEnded) {
-            this.timerText.setText(`⏱ ${this.turnTimeLeft}s`);
-            this.timerText.setVisible(true);
-        } else {
-            this.timerText.setVisible(false);
-        }
+        return BattleDialogView.updateTimerDisplay.call(this);
     },
-
+    /** @see BattleDialogView.enableMenu */
     enableMenu() {
-        this.menuEnabled = true;
-        if (typeof this.refreshActionButtons === 'function') {
-            this.refreshActionButtons();
-            return;
-        }
-        if (this.skillContainer) {
-            this.skillContainer.setAlpha(1);
-        }
-        if (this.actionContainer) {
-            this.actionContainer.setAlpha(1);
-        }
+        return BattleDialogView.enableMenu.call(this);
     },
-
+    /** @see BattleDialogView.disableMenu */
     disableMenu() {
-        this.menuEnabled = false;
-        this.stopTurnTimer();
-        if (typeof this.refreshActionButtons === 'function') {
-            this.refreshActionButtons();
-            return;
-        }
-        if (this.skillContainer) {
-            this.skillContainer.setAlpha(0.4);
-        }
-        if (this.actionContainer) {
-            this.actionContainer.setAlpha(0.4);
-        }
+        return BattleDialogView.disableMenu.call(this);
     }
 };
 

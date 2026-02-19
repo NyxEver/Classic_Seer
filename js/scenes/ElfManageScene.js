@@ -252,7 +252,7 @@ class ElfManageScene extends Phaser.Scene {
                 icon: 'B',
                 iconKey: 'elf_manage_btn_storage',
                 enabled: false,
-                onClick: () => {}
+                onClick: () => { }
             },
             {
                 label: '图鉴',
@@ -407,264 +407,29 @@ class ElfManageScene extends Phaser.Scene {
         });
     }
 
+    /** 渲染右侧详情面板，委托给 ElfDetailPanel。 */
     renderRightDetail() {
-        // 切换精灵会重建右侧技能卡，先隐藏 Tooltip 防止残留在旧卡片坐标。
-        if (typeof SkillTooltipView !== 'undefined' && SkillTooltipView && typeof SkillTooltipView.hide === 'function') {
-            SkillTooltipView.hide(this);
-        }
-        this.rightContent.removeAll(true);
-        const index = this.selectedElfIndex;
-        if (index < 0 || index >= PlayerData.elves.length) {
-            const empty = this.add.text(this.rightW / 2, this.modalH / 2, '请选择一只精灵', {
-                fontSize: '20px', color: '#8ea9c6'
-            }).setOrigin(0.5);
-            this.rightContent.add(empty);
-            return;
-        }
-
-        const elfData = PlayerData.elves[index];
-        const baseData = DataLoader.getElf(elfData.elfId);
-        if (!baseData) return;
-        const elf = new Elf(baseData, elfData);
-
-        const padding = 16;
-        const topY = 12;
-        const topH = 196;
-        const statY = topY + topH + 12;
-        const statH = 108;
-        const skillY = statY + statH + 12;
-        const skillH = this.modalH - skillY - 12;
-
-        this.drawPanelBlock(this.rightContent, padding, topY, this.rightW - padding * 2, topH, 0x1b3248);
-        this.drawPanelBlock(this.rightContent, padding, statY, this.rightW - padding * 2, statH, 0x1a2d42);
-        this.drawPanelBlock(this.rightContent, padding, skillY, this.rightW - padding * 2, skillH, 0x17293d);
-
-        this.renderTopInfo(elfData, baseData, elf, padding + 12, 20, this.rightW - padding * 2 - 24);
-        this.renderStats(elf, padding + 12, statY + 10, this.rightW - padding * 2 - 24);
-        this.renderSkills(elfData, padding + 12, skillY + 10, this.rightW - padding * 2 - 24, skillH - 20);
+        ElfDetailPanel.renderRightDetail(this);
     }
 
-    renderTopInfo(elfData, baseData, elf, x, y, w) {
-        // 大图
-        if (!this.addElfPortrait(this.rightContent, x + 95, y + 90, baseData.id, 150, 150)) {
-            const fallback = this.add.circle(x + 95, y + 90, 55, 0x4a7aaa);
-            this.rightContent.add(fallback);
-        }
-
-        const tx = x + 195;
-        let ty = y + 8;
-        const expNeed = elf.getExpToNextLevel();
-        const lineNo = this.add.text(tx, ty, `编号: ${baseData.id.toString().padStart(3, '0')}`, {
-            fontSize: '14px', color: '#d6ecff'
-        });
-        this.rightContent.add(lineNo);
-        ty += 28;
-
-        // 名字 + 属性图标
-        const lineName = this.add.text(tx, ty, `名字: ${elfData.nickname || baseData.name}`, {
-            fontSize: '14px', color: '#d6ecff'
-        });
-        this.rightContent.add(lineName);
-        const nameTypeKey = AssetMappings.getTypeIconKey(baseData.type);
-        const iconX = tx + lineName.width + 10;
-        const iconY = lineName.y + lineName.height / 2;
-        if (nameTypeKey && this.textures.exists(nameTypeKey)) {
-            const typeIcon = this.add.image(iconX, iconY, nameTypeKey).setOrigin(0, 0.5);
-            const scale = Math.min(18 / typeIcon.width, 18 / typeIcon.height);
-            typeIcon.setScale(scale);
-            this.rightContent.add(typeIcon);
-        } else {
-            const fallback = this.add.circle(iconX + 8, iconY, 7, DataLoader.getTypeColor(baseData.type), 1).setOrigin(0, 0.5);
-            fallback.setStrokeStyle(1, 0xffffff, 0.7);
-            this.rightContent.add(fallback);
-        }
-        ty += 28;
-
-        const restRows = [
-            `等级: Lv.${elfData.level}`,
-            `升级所需经验值: ${expNeed > 0 ? expNeed : '已满级'}`,
-            '性格: ',
-            `获得时间: ${this.formatObtainedTime(elfData)}`
-        ];
-        restRows.forEach((text) => {
-            const line = this.add.text(tx, ty, text, {
-                fontSize: '14px', color: '#d6ecff'
-            });
-            this.rightContent.add(line);
-            ty += 28;
-        });
-    }
-
-    renderStats(elf, x, y, w) {
-        const stats = [
-            { name: '攻击', value: elf.getAtk() },
-            { name: '防御', value: elf.getDef() },
-            { name: '特攻', value: elf.getSpAtk() },
-            { name: '特防', value: elf.getSpDef() },
-            { name: '速度', value: elf.getSpd() },
-            { name: '体力', value: elf.getMaxHp() }
-        ];
-        const colW = Math.floor(w / 2);
-        const rowH = 34;
-
-        stats.forEach((item, i) => {
-            const col = i % 2;
-            const row = Math.floor(i / 2);
-            const sx = x + col * colW;
-            const sy = y + row * rowH;
-            const dot = this.add.circle(sx + 8, sy + 12, 4, 0x88c8ff);
-            const label = this.add.text(sx + 18, sy + 3, `${item.name}:`, {
-                fontSize: '14px', color: '#aac8e8'
-            });
-            const value = this.add.text(sx + colW - 14, sy + 3, `${item.value}`, {
-                fontSize: '14px', color: '#ffffff'
-            }).setOrigin(1, 0);
-            this.rightContent.add(dot);
-            this.rightContent.add(label);
-            this.rightContent.add(value);
-        });
-    }
-
-    renderSkills(elfData, x, y, w, h) {
-        const skillIds = elfData.skills || [];
-        const cols = 2;
-        const rows = 2;
-        const gap = 8;
-        const cardW = Math.floor((w - gap) / cols);
-        const cardH = Math.floor((h - gap) / rows);
-
-        for (let i = 0; i < cols * rows; i++) {
-            const col = i % cols;
-            const row = Math.floor(i / cols);
-            const sx = x + col * (cardW + gap);
-            const sy = y + row * (cardH + gap);
-            const skillId = skillIds[i];
-            const skill = skillId ? DataLoader.getSkill(skillId) : null;
-
-            const bg = this.add.graphics();
-            bg.fillStyle(skill ? 0x24415d : 0x1c2f43, 1);
-            bg.fillRoundedRect(sx, sy, cardW, cardH, 6);
-            bg.lineStyle(1, skill ? 0x76a9d4 : 0x35516b);
-            bg.strokeRoundedRect(sx, sy, cardW, cardH, 6);
-            this.rightContent.add(bg);
-
-            if (!skill) {
-                const empty = this.add.text(sx + cardW / 2, sy + cardH / 2, '--', {
-                    fontSize: '14px', color: '#6c87a2'
-                }).setOrigin(0.5);
-                this.rightContent.add(empty);
-                continue;
-            }
-
-            const ppNow = elfData.skillPP[skill.id] || 0;
-            const name = this.add.text(sx + 8, sy + 6, skill.name, {
-                fontSize: '13px', color: '#ffffff', fontStyle: 'bold'
-            });
-            this.rightContent.add(name);
-
-            if (typeof TypeIconView !== 'undefined' && TypeIconView && typeof TypeIconView.renderSkill === 'function') {
-                TypeIconView.renderSkill(this, this.rightContent, sx + cardW - 10, sy + 10, skill, {
-                    iconSize: 16,
-                    originX: 1,
-                    originY: 0
-                });
-            } else {
-                const fallback = this.add.circle(sx + cardW - 10, sy + 10, 7, 0x8899aa, 1).setOrigin(1, 0);
-                fallback.setStrokeStyle(1, 0xffffff, 0.7);
-                this.rightContent.add(fallback);
-            }
-
-            const power = this.add.text(sx + 8, sy + cardH - 18, `威力 ${skill.power || '-'}`, {
-                fontSize: '12px', color: '#bcd8ef'
-            });
-            const pp = this.add.text(sx + cardW - 8, sy + cardH - 18, `PP ${ppNow}/${skill.pp}`, {
-                fontSize: '12px', color: '#d2f0a8'
-            }).setOrigin(1, 0);
-            this.rightContent.add(power);
-            this.rightContent.add(pp);
-
-            const hit = this.add.rectangle(sx + cardW / 2, sy + cardH / 2, cardW, cardH, 0x000000, 0.001).setInteractive();
-            if (typeof SkillTooltipView !== 'undefined' && SkillTooltipView && typeof SkillTooltipView.bind === 'function') {
-                SkillTooltipView.bind(this, hit, skill, { bindKey: '__seerSkillTooltipBound' });
-            }
-            this.rightContent.add(hit);
-        }
-    }
-
+    /** @see ElfDetailPanel.drawPanelBlock */
     drawPanelBlock(container, x, y, w, h, color) {
-        const g = this.add.graphics();
-        g.fillStyle(color, 0.95);
-        g.fillRoundedRect(x, y, w, h, 8);
-        g.lineStyle(1, 0x35506b, 1);
-        g.strokeRoundedRect(x, y, w, h, 8);
-        container.add(g);
+        ElfDetailPanel.drawPanelBlock(this, container, x, y, w, h, color);
     }
 
+    /** @see ElfDetailPanel.addElfPortrait */
     addElfPortrait(container, x, y, elfId, maxWidth, maxHeight) {
-        let stillKey = null;
-        if (typeof AssetMappings !== 'undefined' && typeof AssetMappings.getExternalStillKey === 'function') {
-            stillKey = AssetMappings.getExternalStillKey(elfId);
-        }
-
-        if (stillKey && this.textures.exists(stillKey)) {
-            const image = this.add.image(x, y, stillKey).setOrigin(0.5);
-            const scale = Math.min(maxWidth / image.width, maxHeight / image.height);
-            image.setScale(scale);
-            container.add(image);
-            return true;
-        }
-
-        if (typeof AssetMappings !== 'undefined' && typeof AssetMappings.getBattleClipKeys === 'function') {
-            const battleStillKeys = AssetMappings.getBattleClipKeys(elfId, 'still');
-            for (const atlasKey of battleStillKeys) {
-                if (!this.textures.exists(atlasKey)) continue;
-
-                const texture = this.textures.get(atlasKey);
-                if (!texture) continue;
-
-                let frameNames = [];
-                const atlasJson = this.cache && this.cache.json ? this.cache.json.get(atlasKey) : null;
-                if (atlasJson && atlasJson.frames && typeof atlasJson.frames === 'object') {
-                    frameNames = Object.keys(atlasJson.frames);
-                } else {
-                    frameNames = texture.getFrameNames().filter((name) => name !== '__BASE');
-                }
-                if (!frameNames.length) continue;
-
-                const sprite = this.add.sprite(x, y, atlasKey, frameNames[0]).setOrigin(0.5);
-                const scale = Math.min(maxWidth / sprite.width, maxHeight / sprite.height);
-                sprite.setScale(scale);
-                container.add(sprite);
-                return true;
-            }
-        }
-
-        if (!this._missingPortraitWarned) {
-            this._missingPortraitWarned = new Set();
-        }
-        if (!this._missingPortraitWarned.has(elfId)) {
-            console.warn(`[ElfManageScene] 精灵图片缺失: elfId=${elfId}, stillKey=${stillKey || 'null'}`);
-            this._missingPortraitWarned.add(elfId);
-        }
-        return false;
+        return ElfDetailPanel.addElfPortrait(this, container, x, y, elfId, maxWidth, maxHeight);
     }
 
+    /** @see ElfDetailPanel.getHpBarColor */
     getHpBarColor(pct) {
-        if (pct <= 0.2) return 0xdd4b4b;
-        if (pct <= 0.5) return 0xe0b34a;
-        return 0x53c56b;
+        return ElfDetailPanel.getHpBarColor(pct);
     }
 
+    /** @see ElfDetailPanel.formatObtainedTime */
     formatObtainedTime(elfData) {
-        if (!elfData.obtainedAt) return '未知';
-        const date = new Date(elfData.obtainedAt);
-        if (Number.isNaN(date.getTime())) return '未知';
-        const y = date.getFullYear();
-        const m = String(date.getMonth() + 1).padStart(2, '0');
-        const d = String(date.getDate()).padStart(2, '0');
-        const hh = String(date.getHours()).padStart(2, '0');
-        const mm = String(date.getMinutes()).padStart(2, '0');
-        return `${y}-${m}-${d} ${hh}:${mm}`;
+        return ElfDetailPanel.formatObtainedTime(elfData);
     }
 
     closePanel() {
