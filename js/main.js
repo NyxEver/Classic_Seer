@@ -63,6 +63,7 @@ const gameConfig = {
         TeleportScene,
         KloseScene,
         HelkaScene,
+        SpaceStationScene,
         ItemBagScene,
         ElfManageScene,
         BattleScene,

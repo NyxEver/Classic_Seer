@@ -653,6 +653,7 @@ class MainMenuScene extends Phaser.Scene {
                 'spaceship': 'SpaceshipScene',
                 'captain': 'CaptainRoomScene',
                 'elf_lab': 'ElfLabScene',
+                'space_station': 'SpaceStationScene',
                 'teleport': 'TeleportScene',
                 'klose': 'KloseScene',
                 'helka': 'HelkaScene'
