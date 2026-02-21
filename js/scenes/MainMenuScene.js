@@ -654,18 +654,30 @@ class MainMenuScene extends Phaser.Scene {
                 'captain': 'CaptainRoomScene',
                 'elf_lab': 'ElfLabScene',
                 'teleport': 'TeleportScene',
-                'klose': 'KloseScene'
+                'klose': 'KloseScene',
+                'helka': 'HelkaScene'
             };
 
-            let sceneKey = sceneMap[targetMapId] || 'SpaceshipScene';
+            let sceneKey = sceneMap[targetMapId] || null;
             let sceneData = {};
 
-            if (/^klose_\d+$/.test(targetMapId)) {
+            if (/^klose_[1-3]$/.test(targetMapId)) {
                 const subScene = parseInt(targetMapId.split('_')[1], 10);
                 sceneKey = 'KloseScene';
                 sceneData = {
                     subScene: Number.isFinite(subScene) ? subScene : 1
                 };
+            } else if (/^helka_[1-3]$/.test(targetMapId)) {
+                const subScene = parseInt(targetMapId.split('_')[1], 10);
+                sceneKey = 'HelkaScene';
+                sceneData = {
+                    subScene: Number.isFinite(subScene) ? subScene : 1
+                };
+            }
+
+            if (!sceneKey) {
+                sceneKey = 'SpaceshipScene';
+                sceneData = {};
             }
 
             SceneRouter.start(this, sceneKey, sceneData);

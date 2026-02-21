@@ -28,6 +28,7 @@ const AssetMappings = {
     seerDynamicAtlases: worldAssets.seerDynamicAtlases || {},
     seerDynamicClips: worldAssets.seerDynamicClips || {},
     kloseScenes: worldAssets.kloseScenes || {},
+    helkaScenes: worldAssets.helkaScenes || {},
 
     bgm: audioAssets.bgm || {},
     bgmPaths: audioAssets.bgmPaths || {},

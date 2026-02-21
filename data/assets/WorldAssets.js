@@ -263,6 +263,103 @@ const WorldAssets = {
                 }
             ]
         }
+    },
+
+    /**
+     * 赫尔卡星场景配置（设计坐标基准：1920x1120）
+     * 说明：HelkaScene 会在运行时按画布尺寸进行等比坐标换算。
+     */
+    helkaScenes: {
+        1: {
+            background: 'bg_helka_1',
+            designWidth: 1920,
+            designHeight: 1120,
+            entryPoint: { x: 1490, y: 885 },
+            wildElfPool: [],
+            /**
+             * 可行走区（蓝色方块）
+             * 坐标基于设计图 1920x1120。
+             */
+            walkableRects: [
+                { x: 190, y: 180, width: 260, height: 260 },
+                { x: 430, y: 300, width: 620, height: 170 },
+                { x: 980, y: 350, width: 380, height: 190 },
+                { x: 1020, y: 520, width: 290, height: 220 },
+                { x: 760, y: 730, width: 860, height: 240 },
+                { x: 120, y: 820, width: 700, height: 300 }
+            ],
+            hotspots: [
+                {
+                    type: 'scene',
+                    arrow: 'right',
+                    targetScene: 2,
+                    x: 260,
+                    y: 190,
+                    width: 220,
+                    height: 250,
+                    label: '赫尔卡遗迹'
+                }
+            ]
+        },
+        2: {
+            background: 'bg_helka_2',
+            designWidth: 1920,
+            designHeight: 1120,
+            entryPoint: { x: 210, y: 980 },
+            wildElfPool: [],
+            walkableRects: [
+                { x: 180, y: 40, width: 620, height: 120 },
+                { x: 180, y: 120, width: 300, height: 880 },
+                { x: 500, y: 40, width: 260, height: 120 },
+                { x: 450, y: 200, width: 420, height: 190 },
+                { x: 540, y: 360, width: 500, height: 230 },
+                { x: 840, y: 500, width: 680, height: 170 },
+                { x: 1420, y: 40, width: 390, height: 660 },
+                { x: 880, y: 620, width: 1030, height: 180 },
+                { x: 1180, y: 760, width: 740, height: 320 }
+            ],
+            hotspots: [
+                {
+                    type: 'scene',
+                    arrow: 'right',
+                    targetScene: 3,
+                    x: 1570,
+                    y: 120,
+                    width: 220,
+                    height: 230,
+                    label: '赫尔卡荒地'
+                },
+                {
+                    type: 'scene',
+                    arrow: 'left',
+                    targetScene: 1,
+                    x: 70,
+                    y: 820,
+                    width: 320,
+                    height: 250,
+                    label: '赫尔卡星'
+                }
+            ]
+        },
+        3: {
+            background: 'bg_helka_3',
+            designWidth: 1920,
+            designHeight: 1120,
+            entryPoint: { x: 505, y: 960 },
+            wildElfPool: [],
+            hotspots: [
+                {
+                    type: 'scene',
+                    arrow: 'left',
+                    targetScene: 2,
+                    x: 300,
+                    y: 810,
+                    width: 410,
+                    height: 300,
+                    label: '赫尔卡遗迹'
+                }
+            ]
+        }
     }
 };
 

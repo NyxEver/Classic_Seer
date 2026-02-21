@@ -106,7 +106,7 @@ class KloseScene extends Phaser.Scene {
     }
 
     createPlayer() {
-        const playerName = PlayerData.playerName || '赛尔';
+        const playerName = PlayerData.name || PlayerData.playerName || '赛尔';
         this.playerDirection = 'front';
 
         if (typeof KlosePlayerAnimator !== 'undefined') {

@@ -107,14 +107,30 @@ class TeleportScene extends Phaser.Scene {
             strokeThickness: 2
         }).setOrigin(0.5);
 
-        // 星球配置
+        // 星球配置（排序锁定：Klose -> Helka）
         const planets = [
-            { name: '克洛斯星', enabled: true, scene: 'KloseScene', x: width * 0.5, y: height * 0.4, color: 0x44aa44, size: 60, icon: 'klose_icon' },
-            { name: '赫尔卡星', enabled: false, scene: null, x: width * 0.25, y: height * 0.3, color: 0x884422, size: 35 },
-            { name: '海洋星', enabled: false, scene: null, x: width * 0.75, y: height * 0.35, color: 0x2266aa, size: 40 },
-            { name: '火山星', enabled: false, scene: null, x: width * 0.2, y: height * 0.6, color: 0xaa4422, size: 38 },
-            { name: '云霄星', enabled: false, scene: null, x: width * 0.8, y: height * 0.55, color: 0x88aacc, size: 32 },
-            { name: '斯诺星', enabled: false, scene: null, x: width * 0.35, y: height * 0.7, color: 0xaaccee, size: 30 }
+            {
+                name: '克洛斯星',
+                enabled: true,
+                scene: 'KloseScene',
+                sceneData: { subScene: 1 },
+                x: width * 0.38,
+                y: height * 0.45,
+                color: 0x44aa44,
+                size: 60,
+                icon: 'klose_icon'
+            },
+            {
+                name: '赫尔卡星',
+                enabled: true,
+                scene: 'HelkaScene',
+                sceneData: { subScene: 1 },
+                x: width * 0.66,
+                y: height * 0.42,
+                color: 0x884422,
+                size: 58,
+                icon: 'helka_icon'
+            }
         ];
 
         planets.forEach(planet => {
@@ -216,7 +232,7 @@ class TeleportScene extends Phaser.Scene {
 
             container.on('pointerup', () => {
                 console.log(`前往 ${planet.name}`);
-                SceneRouter.start(this, planet.scene);
+                SceneRouter.start(this, planet.scene, planet.sceneData || {});
             });
         } else {
             // 锁定星球
