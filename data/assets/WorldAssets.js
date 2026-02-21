@@ -210,8 +210,8 @@ const WorldAssets = {
             entryPoint: { x: 920, y: 350 },
             wildElfPool: [16],
             spawnAreas: [
-                { type: 'rect', x: 400, y: 150, width: 180, height: 120 },
-                { type: 'rect', x: 300, y: 380, width: 300, height: 150 }
+                { type: 'ellipse', x: 620, y: 180, radiusX: 120, radiusY: 70 },
+                { type: 'ellipse', x: 480, y: 430, radiusX: 250, radiusY: 120 }
             ],
             spawnCountRange: [3, 4],
             spawnMinDistance: 70,
@@ -245,7 +245,7 @@ const WorldAssets = {
             entryPoint: { x: 880, y: 100 },
             wildElfPool: [47],
             spawnAreas: [
-                { type: 'rect', x: 50, y: 100, width: 350, height: 400 }
+                { type: 'rect', x: 430, y: 120, width: 520, height: 420 }
             ],
             spawnCountRange: [1, 1],
             wildMoveRadius: { x: 60, y: 40 },
