@@ -1,6 +1,6 @@
 /**
  * CaptainRoomScene - 船长室场景
- * Step1 版本：背景与船长入口重构，旧任务面板移除
+ * Step2 版本：点击船长打开任务弹窗场景
  */
 
 class CaptainRoomScene extends Phaser.Scene {
@@ -8,8 +8,6 @@ class CaptainRoomScene extends Phaser.Scene {
         super({ key: 'CaptainRoomScene' });
 
         this.captainBaseScale = 1;
-        this.captainHintContainer = null;
-        this.captainHintTimer = null;
     }
 
     create() {
@@ -21,10 +19,6 @@ class CaptainRoomScene extends Phaser.Scene {
 
         PlayerData.currentMapId = 'captain';
         PlayerData.saveToStorage();
-
-        this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
-            this.clearCaptainHint();
-        });
 
         console.log('[CaptainRoomScene] created');
     }
@@ -101,58 +95,26 @@ class CaptainRoomScene extends Phaser.Scene {
         });
 
         captainIcon.on('pointerup', () => {
-            this.showCaptainQuestEntryHint(width, height);
+            this.openCaptainQuestModal();
         });
     }
 
-    showCaptainQuestEntryHint(width, height) {
-        this.clearCaptainHint();
+    openCaptainQuestModal() {
+        if (this.scene.isActive('CaptainQuestModalScene')) {
+            this.scene.bringToTop('CaptainQuestModalScene');
+            return;
+        }
 
-        const panelWidth = 420;
-        const panelHeight = 130;
-        const panelX = Math.round(width * 0.58);
-        const panelY = Math.round(height * 0.2);
-
-        const container = this.add.container(panelX, panelY);
-        container.setDepth(120);
-
-        const bg = this.add.graphics();
-        bg.fillStyle(0x0f1f33, 0.92);
-        bg.lineStyle(2, 0x7cb8ff, 0.95);
-        bg.fillRoundedRect(-panelWidth / 2, -panelHeight / 2, panelWidth, panelHeight, 14);
-        bg.strokeRoundedRect(-panelWidth / 2, -panelHeight / 2, panelWidth, panelHeight, 14);
-
-        const title = this.add.text(0, -28, '船长任务弹窗入口', {
-            fontSize: '24px',
-            color: '#ffffff',
-            fontStyle: 'bold'
-        }).setOrigin(0.5);
-
-        const desc = this.add.text(0, 18, 'Step1 仅保留点击船长触发弹窗交互\nStep2 将接入完整任务列表与对话弹窗。', {
-            fontSize: '16px',
-            color: '#d8e8ff',
-            align: 'center',
-            lineSpacing: 8
-        }).setOrigin(0.5);
-
-        container.add([bg, title, desc]);
-
-        this.captainHintContainer = container;
-        this.captainHintTimer = this.time.delayedCall(1800, () => {
-            this.clearCaptainHint();
+        const launched = SceneRouter.launch(this, 'CaptainQuestModalScene', {
+            returnScene: 'CaptainRoomScene',
+            returnData: {}
+        }, {
+            bgmStrategy: 'inherit'
         });
-    }
 
-    clearCaptainHint() {
-        if (this.captainHintTimer) {
-            this.captainHintTimer.remove(false);
-            this.captainHintTimer = null;
+        if (launched) {
+            this.scene.bringToTop('CaptainQuestModalScene');
         }
-
-        if (this.captainHintContainer && this.captainHintContainer.scene) {
-            this.captainHintContainer.destroy(true);
-        }
-        this.captainHintContainer = null;
     }
 
     createBottomBar() {
