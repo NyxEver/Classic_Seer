@@ -10,7 +10,9 @@ const AudioAssets = {
      */
     bgm: {
         BattleScene: 'seer_battle_1',
-        KloseScene: 'klose_planet'
+        KloseScene: 'klose_planet',
+        CaptainRoomScene: 'ship_bgm',
+        ElfLabScene: 'ship_bgm'
     },
 
     /**
@@ -20,7 +22,8 @@ const AudioAssets = {
      */
     bgmPaths: {
         seer_battle_1: 'assets/audio/bgm/seer_battle_1.mp3',
-        klose_planet: 'assets/audio/bgm/stars/Klose_BGM.mp3'
+        klose_planet: 'assets/audio/bgm/stars/Klose_BGM.mp3',
+        ship_bgm: 'assets/audio/bgm/ship_bgm.mp3'
     },
 
     /**
@@ -30,7 +33,8 @@ const AudioAssets = {
      */
     bgmDataKeys: {
         seer_battle_1: 'seer_battle_1',
-        klose_planet: 'Klose_BGM'
+        klose_planet: 'Klose_BGM',
+        ship_bgm: 'ship_bgm'
     }
 };
 

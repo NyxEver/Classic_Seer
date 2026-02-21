@@ -58,6 +58,7 @@ const gameConfig = {
         MainMenuScene,
         SpaceshipScene,
         CaptainRoomScene,
+        ElfLabScene,
         TeleportScene,
         KloseScene,
         ItemBagScene,

@@ -116,7 +116,7 @@ class SpaceshipScene extends Phaser.Scene {
         const rooms = [
             { name: '船长室', enabled: true, scene: 'CaptainRoomScene', icon: '🎖️' },
             { name: '机械室', enabled: false, scene: null, icon: '🛠️' },
-            { name: '实验室', enabled: false, scene: null, icon: '🔬' },
+            { name: '实验室', enabled: true, scene: 'ElfLabScene', icon: '🔬' },
             { name: '传送舱', enabled: true, scene: 'TeleportScene', icon: '🚀' },
             { name: '能源中心', enabled: false, scene: null, icon: '⚡' },
             { name: '设置', enabled: true, scene: 'SettingsScene', icon: '⚙️', data: { returnScene: 'SpaceshipScene' } }

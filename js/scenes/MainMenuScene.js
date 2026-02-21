@@ -652,6 +652,7 @@ class MainMenuScene extends Phaser.Scene {
             const sceneMap = {
                 'spaceship': 'SpaceshipScene',
                 'captain': 'CaptainRoomScene',
+                'elf_lab': 'ElfLabScene',
                 'teleport': 'TeleportScene',
                 'klose': 'KloseScene'
             };

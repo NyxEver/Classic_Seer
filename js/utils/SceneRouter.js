@@ -182,7 +182,7 @@ const SceneRouter = {
             return;
         }
 
-        const currentSceneKey = currentScene.scene.key;
+        const currentSceneKey = this.getSceneKey(currentScene);
         const currentBgmKey = assetMappings.getBgmKey(currentSceneKey);
         const targetBgmKey = assetMappings.getBgmKey(targetSceneKey);
 
@@ -191,9 +191,27 @@ const SceneRouter = {
             return;
         }
 
-        if (currentBgmKey && !targetBgmKey) {
+        if ((currentBgmKey || bgmManager.currentSound) && !targetBgmKey) {
             bgmManager.stopCurrent(300, null, currentScene);
         }
+    },
+
+    /**
+     * 获取场景 key（兼容 scene 插件与 sys.settings）
+     * @param {Phaser.Scene} currentScene
+     * @returns {string|null}
+     */
+    getSceneKey(currentScene) {
+        if (!currentScene) {
+            return null;
+        }
+        if (currentScene.scene && typeof currentScene.scene.key === 'string' && currentScene.scene.key) {
+            return currentScene.scene.key;
+        }
+        if (currentScene.sys && currentScene.sys.settings && typeof currentScene.sys.settings.key === 'string') {
+            return currentScene.sys.settings.key;
+        }
+        return null;
     },
 
     /**

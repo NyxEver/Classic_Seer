@@ -32,6 +32,9 @@ class BootScene extends Phaser.Scene {
             console.error(`[BootScene] 资源加载失败: key=${file.key}, path=${file.src || 'unknown'}`);
         });
 
+        // Step1：飞船场景重构资源（船长室背景/实验室背景/NPC 图集）
+        this.preloadStep1ShipAssets();
+
         // 加载战斗精灵动画图集
         if (typeof AssetMappings !== 'undefined' && typeof AssetMappings.getAllBattleAtlases === 'function') {
             const atlases = AssetMappings.getAllBattleAtlases();
@@ -175,6 +178,27 @@ class BootScene extends Phaser.Scene {
             }
             console.log(`[BootScene] 预加载 ${loadedCount} 个 BGM`);
         }
+    }
+
+    preloadStep1ShipAssets() {
+        this.load.image('bg_captain_room', 'assets/images/backgrounds/CaptainRoom.png');
+        this.load.image('bg_elf_lab', 'assets/images/backgrounds/elf_lab.png');
+        this.load.image('npc_captain_main', 'assets/images/npc/Captain/Captain.png');
+        this.load.image('npc_captain_ui_icon', 'assets/images/npc/Captain/Captain_ui_icon.png');
+
+        this.load.atlas(
+            'npc_elf_doctor_first_atlas',
+            'assets/images/npc/elf_doctor_first/elf_doctor_first.png',
+            'assets/images/npc/elf_doctor_first/elf_doctor_first.json'
+        );
+
+        this.load.atlas(
+            'npc_elf_doctor_second_atlas',
+            'assets/images/npc/elf_doctor_second/elf_doctor.png',
+            'assets/images/npc/elf_doctor_second/elf_doctor.json'
+        );
+
+        console.log('[BootScene] 预加载 Step1 飞船重构资源');
     }
 
     /**
