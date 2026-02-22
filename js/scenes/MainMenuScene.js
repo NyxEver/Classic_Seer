@@ -22,7 +22,8 @@ class MainMenuScene extends Phaser.Scene {
         this.createMenuButtons(width, height);
 
         // 版本号
-        this.add.text(width - 10, height - 10, 'v0.8.0', {
+        const gameVersion = String(window.GAME_VERSION || '0.1.0');
+        this.add.text(width - 10, height - 10, `v${gameVersion}`, {
             fontSize: '14px',
             color: '#666666'
         }).setOrigin(1, 1);
@@ -522,6 +523,7 @@ class MainMenuScene extends Phaser.Scene {
         PlayerData.createNew(this.playerName, this.selectedStarterId);
         PlayerData.currentMapId = 'captain';
         PlayerData.saveToStorage();
+        this.syncBgmVolumeFromPlayerData();
 
         // 清理对话框
         if (this.dialogOverlay) this.dialogOverlay.destroy();
@@ -645,6 +647,8 @@ class MainMenuScene extends Phaser.Scene {
 
         // 加载存档
         if (PlayerData.loadFromSave()) {
+            this.syncBgmVolumeFromPlayerData();
+
             // 根据存档的位置进入相应场景
             const targetMapId = PlayerData.currentMapId || 'captain';
 
@@ -683,5 +687,13 @@ class MainMenuScene extends Phaser.Scene {
         } else {
             console.error('Failed to load save data');
         }
+    }
+
+    syncBgmVolumeFromPlayerData() {
+        if (typeof BgmManager === 'undefined' || !BgmManager || typeof BgmManager.setVolume !== 'function') {
+            return;
+        }
+        const nextVolume = Number(PlayerData.bgmVolume);
+        BgmManager.setVolume(Number.isFinite(nextVolume) ? nextVolume : 1);
     }
 }

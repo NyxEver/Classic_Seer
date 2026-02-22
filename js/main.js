@@ -67,7 +67,7 @@ const gameConfig = {
         ElfManageScene,
         ElfStorageScene,
         BattleScene,
-        SettingsScene,
+        SettingsModalScene,
         PokedexScene,
         EvolutionScene,
         SkillLearnScene

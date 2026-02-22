@@ -34,6 +34,9 @@ const PlayerData = {
     // 精灵仓库
     elfStorage: [],
 
+    // BGM 音量（0~1）
+    bgmVolume: 1,
+
     /**
      * 生成随机个体值 (IV)
      * 全局单值：0-31
@@ -60,6 +63,13 @@ const PlayerData = {
         }
 
         return 15;
+    },
+
+    normalizeBgmVolume(volumeValue) {
+        if (!Number.isFinite(volumeValue)) {
+            return 1;
+        }
+        return Phaser.Math.Clamp(Number(volumeValue), 0, 1);
     },
 
     /**
@@ -168,6 +178,7 @@ const PlayerData = {
         this.seenElves = [];
         this.caughtElves = [];
         this.elfStorage = [];
+        this.bgmVolume = 1;
 
         // 创建初始精灵（1 级）
         const starterElf = this.createElfInstance(starterElfId, 5, null);  // 改为5级方便测试进化
@@ -219,6 +230,7 @@ const PlayerData = {
             this.seenElves = saveData.seenElves || [];
             this.caughtElves = saveData.caughtElves || [];
             this.elfStorage = Array.isArray(saveData.elfStorage) ? saveData.elfStorage : [];
+            this.bgmVolume = this.normalizeBgmVolume(saveData.bgmVolume);
 
             const normalizeInstance = (elfData) => {
                 if (!elfData || typeof elfData !== 'object') {
@@ -292,7 +304,8 @@ const PlayerData = {
             lastSaveTime: this.lastSaveTime,
             seenElves: this.seenElves,
             caughtElves: this.caughtElves,
-            elfStorage: this.elfStorage
+            elfStorage: this.elfStorage,
+            bgmVolume: this.bgmVolume
         };
     },
 

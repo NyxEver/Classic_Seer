@@ -79,9 +79,20 @@ const WorldSceneModalMixin = {
          * 从底栏设置按钮打开设置场景
          */
         scene.openSettingsFromBottomBar = function () {
-            SceneRouter.start(this, 'SettingsScene', {
+            if (this.scene.isActive('SettingsModalScene')) {
+                this.scene.bringToTop('SettingsModalScene');
+                return;
+            }
+
+            const launched = SceneRouter.launch(this, 'SettingsModalScene', {
                 returnScene: returnSceneKey
+            }, {
+                bgmStrategy: 'inherit'
             });
+
+            if (launched) {
+                this.scene.bringToTop('SettingsModalScene');
+            }
         };
     }
 };

@@ -268,6 +268,8 @@ class BootScene extends Phaser.Scene {
                 questManager.initEventBridge();
             }
 
+            this.syncBgmVolumeOnBoot();
+
             this.statusText.setText('数据加载完成！');
 
             // 短暂延迟后进入主菜单
@@ -331,6 +333,30 @@ class BootScene extends Phaser.Scene {
         } catch (error) {
             console.warn('[BootScene] 数据完整性校验异常（已忽略）:', error);
         }
+    }
+
+    syncBgmVolumeOnBoot() {
+        const bgmManager = getBootDependency('BgmManager');
+        if (!bgmManager || typeof bgmManager.setVolume !== 'function') {
+            return;
+        }
+
+        let volume = 1;
+        const saveSystem = getBootDependency('SaveSystem');
+        if (saveSystem && typeof saveSystem.hasSave === 'function' && saveSystem.hasSave() && typeof saveSystem.load === 'function') {
+            const saveData = saveSystem.load();
+            const savedVolume = saveData ? Number(saveData.bgmVolume) : NaN;
+            if (Number.isFinite(savedVolume)) {
+                volume = Phaser.Math.Clamp(savedVolume, 0, 1);
+            }
+        }
+
+        const playerData = getBootDependency('PlayerData');
+        if (playerData) {
+            playerData.bgmVolume = volume;
+        }
+
+        bgmManager.setVolume(volume);
     }
 
     /**

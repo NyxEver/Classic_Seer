@@ -15,6 +15,10 @@
     <!-- Phaser 3 Game Engine -->
     <script src="js/lib/phaser.js"></script>
 
+    <script>
+        window.GAME_VERSION = '0.1.0';
+    </script>
+
     <!-- Core -->
     <script src="js/core/AppContext.js"></script>
 
@@ -54,6 +58,7 @@
     <script src="js/ui/elfstorage/StorageGridPanel.js"></script>
     <script src="js/ui/elfstorage/StorageDetailPanel.js"></script>
     <script src="js/ui/elfstorage/StorageSwapPopup.js"></script>
+    <script src="js/ui/settings/SettingsModalUi.js"></script>
 
     <!-- Systems -->
     <script src="js/systems/GameEvents.js"></script>
@@ -61,6 +66,7 @@
     <script src="js/systems/DataIntegrityChecker.js"></script>
     <script src="js/systems/BgmManager.js"></script>
     <script src="js/systems/SaveSystem.js"></script>
+    <script src="js/systems/SaveTransfer.js"></script>
     <script src="js/systems/PlayerData.js"></script>
     <script src="js/systems/elf/ElfStats.js"></script>
     <script src="js/systems/elf/ElfProgression.js"></script>
@@ -149,7 +155,7 @@
     <script src="js/scenes/battle/BattleAnimator.js"></script>
     <script src="js/scenes/battle/BattlePostFlow.js"></script>
     <script src="js/scenes/BattleScene.js"></script>
-    <script src="js/scenes/SettingsScene.js"></script>
+    <script src="js/scenes/SettingsModalScene.js"></script>
     <script src="js/scenes/PokedexScene.js"></script>
     <script src="js/scenes/EvolutionScene.js"></script>
     <script src="js/scenes/skilllearn/SkillLearnModalView.js"></script>
