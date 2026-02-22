@@ -417,7 +417,11 @@ class EvolutionScene extends Phaser.Scene {
             currentHp: this.elf.currentHp,
             skills: Array.isArray(this.elf.skills) ? [...this.elf.skills] : [],
             skillPP: this.elf.skillPP ? { ...this.elf.skillPP } : {},
-            iv: this.elf.iv ? { ...this.elf.iv } : { hp: 0, atk: 0, spAtk: 0, def: 0, spDef: 0, spd: 0 },
+            iv: Number.isFinite(this.elf.iv)
+                ? Phaser.Math.Clamp(Math.round(this.elf.iv), 0, 31)
+                : (PlayerData && typeof PlayerData.normalizeIvValue === 'function'
+                    ? PlayerData.normalizeIvValue(this.elf.iv)
+                    : 15),
             ev: this.elf.ev ? { ...this.elf.ev } : { hp: 0, atk: 0, spAtk: 0, def: 0, spDef: 0, spd: 0 },
             pendingSkills: Array.isArray(this.elf.pendingSkills) ? [...this.elf.pendingSkills] : [],
             status: this.elf.status && typeof this.elf.status === 'object'

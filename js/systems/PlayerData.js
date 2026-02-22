@@ -31,20 +31,35 @@ const PlayerData = {
     // 图鉴系统：捕捉过的精灵
     caughtElves: [],
 
+    // 精灵仓库
+    elfStorage: [],
+
     /**
      * 生成随机个体值 (IV)
-     * 每项属性 0-31 随机
-     * @returns {Object} - IV 对象
+     * 全局单值：0-31
+     * @returns {number}
      */
     generateRandomIV() {
-        return {
-            hp: Math.floor(Math.random() * 32),
-            atk: Math.floor(Math.random() * 32),
-            spAtk: Math.floor(Math.random() * 32),
-            def: Math.floor(Math.random() * 32),
-            spDef: Math.floor(Math.random() * 32),
-            spd: Math.floor(Math.random() * 32)
-        };
+        return Math.floor(Math.random() * 32);
+    },
+
+    normalizeIvValue(ivValue) {
+        if (Number.isFinite(ivValue)) {
+            return Phaser.Math.Clamp(Math.round(ivValue), 0, 31);
+        }
+
+        if (ivValue && typeof ivValue === 'object') {
+            const keys = ['hp', 'atk', 'spAtk', 'def', 'spDef', 'spd'];
+            const values = keys
+                .map((key) => Number(ivValue[key]))
+                .filter((value) => Number.isFinite(value));
+            if (values.length) {
+                const avg = values.reduce((sum, value) => sum + value, 0) / values.length;
+                return Phaser.Math.Clamp(Math.round(avg), 0, 31);
+            }
+        }
+
+        return 15;
     },
 
     /**
@@ -122,13 +137,13 @@ const PlayerData = {
      * 公式：floor((基础值 * 2 + IV + floor(EV / 4)) * 等级 / 100 + 10 + 等级)
      * @param {Object} elfData - 精灵基础数据
      * @param {number} level - 等级
-     * @param {Object} iv - 个体值
+     * @param {number|Object} iv - 个体值
      * @param {Object} ev - 努力值
      * @returns {number} - 最大 HP
      */
     calculateMaxHp(elfData, level, iv, ev) {
         const baseHp = elfData.baseStats.hp;
-        const ivHp = iv.hp;
+        const ivHp = this.normalizeIvValue(iv);
         const evHp = ev.hp;
         return Math.floor((baseHp * 2 + ivHp + Math.floor(evHp / 4)) * level / 100 + 10 + level);
     },
@@ -152,6 +167,7 @@ const PlayerData = {
         this.lastSaveTime = Date.now();
         this.seenElves = [];
         this.caughtElves = [];
+        this.elfStorage = [];
 
         // 创建初始精灵（1 级）
         const starterElf = this.createElfInstance(starterElfId, 5, null);  // 改为5级方便测试进化
@@ -198,20 +214,45 @@ const PlayerData = {
             this.lastSaveTime = saveData.lastSaveTime || null;
             this.seenElves = saveData.seenElves || [];
             this.caughtElves = saveData.caughtElves || [];
+            this.elfStorage = Array.isArray(saveData.elfStorage) ? saveData.elfStorage : [];
+
+            const normalizeInstance = (elfData) => {
+                if (!elfData || typeof elfData !== 'object') {
+                    return;
+                }
+
+                elfData.iv = this.normalizeIvValue(elfData.iv);
+
+                if (!elfData.ev || typeof elfData.ev !== 'object') {
+                    elfData.ev = this.createInitialEV();
+                }
+
+                if (!Array.isArray(elfData.skills)) {
+                    elfData.skills = [];
+                }
+
+                if (!elfData.skillPP || typeof elfData.skillPP !== 'object') {
+                    elfData.skillPP = {};
+                }
+
+                if (!Number.isFinite(elfData.obtainedAt)) {
+                    elfData.obtainedAt = Date.now();
+                }
+
+                if (typeof StatusEffect !== 'undefined' && StatusEffect && typeof StatusEffect.clearAllOnInstanceData === 'function') {
+                    if (!elfData.status || typeof elfData.status !== 'object') {
+                        StatusEffect.clearAllOnInstanceData(elfData);
+                    }
+                } else if (!elfData.status || typeof elfData.status !== 'object') {
+                    elfData.status = { weakening: {}, control: null };
+                }
+            };
 
             if (Array.isArray(this.elves)) {
-                this.elves.forEach((elfData) => {
-                    if (!elfData || typeof elfData !== 'object') {
-                        return;
-                    }
-                    if (typeof StatusEffect !== 'undefined' && StatusEffect && typeof StatusEffect.clearAllOnInstanceData === 'function') {
-                        if (!elfData.status || typeof elfData.status !== 'object') {
-                            StatusEffect.clearAllOnInstanceData(elfData);
-                        }
-                    } else if (!elfData.status || typeof elfData.status !== 'object') {
-                        elfData.status = { weakening: {}, control: null };
-                    }
-                });
+                this.elves.forEach(normalizeInstance);
+            }
+            if (Array.isArray(this.elfStorage)) {
+                this.elfStorage.forEach(normalizeInstance);
             }
 
             console.log('[PlayerData] 存档加载成功');
@@ -246,7 +287,8 @@ const PlayerData = {
             questProgress: this.questProgress,
             lastSaveTime: this.lastSaveTime,
             seenElves: this.seenElves,
-            caughtElves: this.caughtElves
+            caughtElves: this.caughtElves,
+            elfStorage: this.elfStorage
         };
     },
 

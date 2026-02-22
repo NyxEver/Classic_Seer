@@ -66,6 +66,7 @@ const gameConfig = {
         SpaceStationScene,
         ItemBagScene,
         ElfManageScene,
+        ElfStorageScene,
         BattleScene,
         SettingsScene,
         PokedexScene,

@@ -296,6 +296,7 @@ class BootScene extends Phaser.Scene {
             { key: 'dock_btn_elf', path: 'assets/images/ui/buttons/dock_column/elf.png' },
             { key: 'elf_manage_btn_first', path: 'assets/images/ui/buttons/ElfManageScene/first.png' },
             { key: 'elf_manage_btn_cure', path: 'assets/images/ui/buttons/ElfManageScene/cure.png' },
+            { key: 'elf_manage_btn_in_storage', path: 'assets/images/ui/buttons/ElfManageScene/in_elf_storage.png' },
             { key: 'elf_manage_btn_storage', path: 'assets/images/ui/buttons/ElfManageScene/elf_storage.png' },
             { key: 'elf_manage_btn_handbook', path: 'assets/images/ui/buttons/ElfManageScene/elf_handbook.png' },
             { key: 'elf_manage_btn_exp', path: 'assets/images/ui/buttons/ElfManageScene/exp.png' }

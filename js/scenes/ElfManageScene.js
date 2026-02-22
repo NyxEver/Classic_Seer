@@ -231,6 +231,11 @@ class ElfManageScene extends Phaser.Scene {
         const y = this.modalH - 78;
         const selectedIsStarter = this.selectedElfIndex === 0;
         const canHealAll = this.canHealAnyElf();
+        const storageReady = typeof ElfStorage !== 'undefined' && ElfStorage;
+        const canMoveToStorage = storageReady
+            && this.selectedElfIndex >= 0
+            && PlayerData.elves.length > 1
+            && !ElfStorage.isFull();
 
         const actions = [
             {
@@ -248,11 +253,18 @@ class ElfManageScene extends Phaser.Scene {
                 onClick: () => this.healAllElves()
             },
             {
+                label: '放入仓库',
+                icon: 'I',
+                iconKey: 'elf_manage_btn_in_storage',
+                enabled: canMoveToStorage,
+                onClick: () => this.moveSelectedElfToStorage()
+            },
+            {
                 label: '仓库',
                 icon: 'B',
                 iconKey: 'elf_manage_btn_storage',
-                enabled: false,
-                onClick: () => { }
+                enabled: storageReady,
+                onClick: () => this.openStorageScene()
             },
             {
                 label: '图鉴',
@@ -349,6 +361,37 @@ class ElfManageScene extends Phaser.Scene {
             bgmStrategy: 'inherit'
         });
         this.scene.bringToTop('PokedexScene');
+    }
+
+    moveSelectedElfToStorage() {
+        if (typeof ElfStorage === 'undefined' || !ElfStorage) {
+            return;
+        }
+
+        const result = ElfStorage.moveBagElfToStorage(this.selectedElfIndex);
+        if (!result || !result.success) {
+            return;
+        }
+
+        this.selectedElfIndex = Number.isInteger(result.nextSelectedIndex) ? result.nextSelectedIndex : 0;
+        this.refreshView();
+    }
+
+    openStorageScene() {
+        if (this.scene.isActive('ElfStorageScene')) {
+            return;
+        }
+
+        if (typeof SkillTooltipView !== 'undefined' && SkillTooltipView && typeof SkillTooltipView.hide === 'function') {
+            SkillTooltipView.hide(this);
+        }
+
+        SceneRouter.start(this, 'ElfStorageScene', {
+            returnScene: this.returnScene || 'SpaceshipScene',
+            returnData: this.returnData || {}
+        }, {
+            bgmStrategy: 'inherit'
+        });
     }
 
     setStarterElf() {

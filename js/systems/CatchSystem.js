@@ -96,14 +96,26 @@ const CatchSystem = {
     /**
      * 捕捉成功后将精灵加入背包
      * @param {Elf} elf - 被捕捉的精灵
-     * @returns {boolean} - 是否成功添加
+     * @returns {{ success: boolean, target?: string, reason?: string }}
      */
     addCapturedElf(elf) {
         const playerData = getCatchSystemDependency('PlayerData');
         if (!playerData) {
             console.error('[CatchSystem] PlayerData 未加载，无法写入捕捉结果');
-            return false;
+            return { success: false, reason: 'player_data_unavailable' };
         }
+
+        const elfStorage = getCatchSystemDependency('ElfStorage');
+
+        const normalizeIv = (ivValue) => {
+            if (playerData && typeof playerData.normalizeIvValue === 'function') {
+                return playerData.normalizeIvValue(ivValue);
+            }
+            if (Number.isFinite(ivValue)) {
+                return Phaser.Math.Clamp(Math.round(ivValue), 0, 31);
+            }
+            return 15;
+        };
 
         // 创建精灵实例数据
         // 注意：Elf 类使用 elf.id (来自 elfData) 而不是 elf.elfId
@@ -116,16 +128,43 @@ const CatchSystem = {
             currentHp: elf.currentHp,
             skills: elf.skills ? [...elf.skills] : [],
             skillPP: elf.skillPP ? { ...elf.skillPP } : {},
-            iv: elf.iv ? { ...elf.iv } : playerData.generateRandomIV(),
+            iv: normalizeIv(elf.iv),
             ev: elf.ev ? { ...elf.ev } : playerData.createInitialEV(),
             status: (typeof StatusEffect !== 'undefined' && StatusEffect && typeof StatusEffect.cloneState === 'function')
                 ? StatusEffect.cloneState(elf.status)
                 : { weakening: {}, control: null }
         };
 
-        // 添加到玩家精灵列表
-        playerData.elves.push(elfInstanceData);
-        console.log(`[CatchSystem] 成功捕捉 ${elf.name}，已加入背包`);
+        const bagCapacity = 6;
+        let target = 'bag';
+        let storageResult = null;
+
+        if (Array.isArray(playerData.elves) && playerData.elves.length < bagCapacity) {
+            playerData.elves.push(elfInstanceData);
+        } else {
+            if (!elfStorage || typeof elfStorage.add !== 'function') {
+                return { success: false, reason: 'storage_system_unavailable' };
+            }
+
+            storageResult = elfStorage.add(elfInstanceData);
+            if (!storageResult || !storageResult.success) {
+                if (storageResult && storageResult.reason === 'storage_full') {
+                    return { success: false, reason: 'bag_storage_full' };
+                }
+                return {
+                    success: false,
+                    reason: storageResult && storageResult.reason ? storageResult.reason : 'storage_add_failed'
+                };
+            }
+
+            target = 'storage';
+        }
+
+        if (target === 'storage') {
+            console.log(`[CatchSystem] 成功捕捉 ${elf.name}，已自动放入仓库`);
+        } else {
+            console.log(`[CatchSystem] 成功捕捉 ${elf.name}，已加入背包`);
+        }
         console.log(`[CatchSystem] 精灵数据:`, elfInstanceData);
 
         // 通过事件总线通知任务系统
@@ -147,7 +186,11 @@ const CatchSystem = {
         // 保存存档
         playerData.saveToStorage();
 
-        return true;
+        return {
+            success: true,
+            target,
+            storageIndex: storageResult && Number.isInteger(storageResult.index) ? storageResult.index : null
+        };
     }
 };
 

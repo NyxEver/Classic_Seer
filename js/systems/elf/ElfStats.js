@@ -17,7 +17,10 @@ const ElfStats = {
      */
     calculateStat(elf, stat, isHp = false) {
         const base = elf.baseStats[stat];
-        const iv = elf.iv[stat];
+        const ivSource = elf.iv;
+        const iv = Number.isFinite(ivSource)
+            ? ivSource
+            : (ivSource && Number.isFinite(ivSource[stat]) ? ivSource[stat] : 15);
         const ev = elf.ev[stat];
 
         return Math.floor(

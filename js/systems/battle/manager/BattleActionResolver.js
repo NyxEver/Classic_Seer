@@ -278,6 +278,22 @@ const BattleActionResolver = {
         });
 
         const catchResult = catchSystem.attemptCatch(manager.enemyElf, capsule);
+
+        if (catchResult.success) {
+            const capturedResult = catchSystem.addCapturedElf(manager.enemyElf);
+            if (!capturedResult || !capturedResult.success) {
+                catchResult.success = false;
+                catchResult.reason = capturedResult && capturedResult.reason ? capturedResult.reason : 'capture_store_failed';
+                if (catchResult.reason === 'bag_storage_full') {
+                    manager.log('背包与仓库已满，捕捉失败！');
+                } else {
+                    manager.log('捕捉成功但入库失败，已按捕捉失败处理。');
+                }
+            } else {
+                catchResult.target = capturedResult.target || 'bag';
+            }
+        }
+
         manager.appendTurnEvent(result, BattleManager.EVENT.CATCH_RESULT, {
             actor: 'player',
             itemId: capsuleItemId,
@@ -286,8 +302,11 @@ const BattleActionResolver = {
         });
 
         if (catchResult.success) {
-            catchSystem.addCapturedElf(manager.enemyElf);
-            manager.log(`成功捕捉了 ${manager.enemyElf.getDisplayName()}！`);
+            if (catchResult.target === 'storage') {
+                manager.log(`成功捕捉了 ${manager.enemyElf.getDisplayName()}，已自动放入仓库！`);
+            } else {
+                manager.log(`成功捕捉了 ${manager.enemyElf.getDisplayName()}！`);
+            }
             manager.markBattleEnd(result, {
                 winner: 'player',
                 reason: 'catch_success',

@@ -63,6 +63,12 @@ const ElfBag = {
      * @returns {boolean}
      */
     addFromCapture(elf, nickname = null) {
+        const normalizedIv = Number.isFinite(elf.iv)
+            ? Phaser.Math.Clamp(Math.round(elf.iv), 0, 31)
+            : (PlayerData && typeof PlayerData.normalizeIvValue === 'function'
+                ? PlayerData.normalizeIvValue(elf.iv)
+                : 15);
+
         const instanceData = {
             elfId: elf.id,
             nickname: nickname,
@@ -71,7 +77,7 @@ const ElfBag = {
             currentHp: elf.currentHp,
             skills: elf.skills.slice(),
             skillPP: { ...elf.skillPP },
-            iv: { ...elf.iv },
+            iv: normalizedIv,
             ev: { ...elf.ev }
         };
 

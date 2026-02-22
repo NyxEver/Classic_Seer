@@ -142,11 +142,20 @@ class BattleScene extends Phaser.Scene {
 
         if (catchResult) {
             if (catchResult.success) {
+                const capturedToStorage = catchResult.target === 'storage' || catchResult.storedIn === 'storage';
                 this.finalizeBattleOnce('capture_success', {
                     title: '🎉 捕捉成功！',
-                    message: `成功捕捉了 ${this.enemyElf.getDisplayName()}！`
+                    message: capturedToStorage
+                        ? `成功捕捉了 ${this.enemyElf.getDisplayName()}，已自动放入仓库！`
+                        : `成功捕捉了 ${this.enemyElf.getDisplayName()}！`
                 });
                 return;
+            }
+
+            if (catchResult.reason === 'bag_storage_full' && typeof this.showPopup === 'function') {
+                await new Promise((resolve) => {
+                    this.showPopup('捕捉失败', '背包与仓库已满，捕捉失败', resolve);
+                });
             }
         }
 
