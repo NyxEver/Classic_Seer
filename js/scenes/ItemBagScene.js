@@ -5,12 +5,12 @@
 class ItemBagScene extends Phaser.Scene {
     constructor() {
         super({ key: 'ItemBagScene' });
-        this.returnScene = 'SpaceshipScene';
+        this.returnScene = 'CaptainRoomScene';
         this.returnData = {};
     }
 
     init(data) {
-        this.returnScene = data.returnScene || 'SpaceshipScene';
+        this.returnScene = data.returnScene || 'CaptainRoomScene';
         this.returnData = data.returnData || {};
     }
 

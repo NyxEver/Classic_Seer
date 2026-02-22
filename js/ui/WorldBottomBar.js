@@ -1,13 +1,13 @@
 /**
  * WorldBottomBar - 非战斗场景通用底栏
- * 按钮顺序固定：地图 -> 背包 -> 精灵背包。
+ * 按钮顺序固定：地图 -> 背包 -> 精灵背包 -> 设置。
  * 其中“精灵背包”按钮统一打开 ElfManageScene（语义名：onElfManage）。
  */
 const WorldBottomBar = {
     /**
-     * 创建底栏（地图 / 背包 / 精灵背包按钮）
+     * 创建底栏（地图 / 背包 / 精灵背包 / 设置按钮）
      * @param {Phaser.Scene} scene
-     * @param {Object} [options={}] - { depth, disableMap, onMap, onBag, onElfManage }
+     * @param {Object} [options={}] - { depth, disableMap, onMap, onBag, onElfManage, onSettings }
      * @returns {{ root, buttons }}
      */
     create(scene, options = {}) {
@@ -17,7 +17,7 @@ const WorldBottomBar = {
         const height = scene.cameras.main.height;
         const depth = Number.isFinite(options.depth) ? options.depth : 3200;
 
-        const dockWidth = Math.min(320, width - 190);
+        const dockWidth = Math.min(420, width - 120);
         const dockHeight = 66;
         const dockX = width / 2;
         const dockY = height - 34;
@@ -54,11 +54,19 @@ const WorldBottomBar = {
                 fallbackIcon: 'E',
                 disabled: false,
                 onClick: onElfManage
+            },
+            {
+                type: 'settings',
+                label: '设置',
+                iconKey: 'dock_btn_set',
+                fallbackIcon: 'S',
+                disabled: false,
+                onClick: options.onSettings
             }
         ];
 
-        const buttonGap = 80;
-        const startX = dockX - buttonGap;
+        const buttonGap = 78;
+        const startX = dockX - ((buttonDefs.length - 1) * buttonGap) / 2;
 
         buttonDefs.forEach((def, index) => {
             const btn = this.createButton(scene, {

@@ -13,7 +13,7 @@ class SettingsScene extends Phaser.Scene {
      * @param {Object} data - { returnScene: string }
      */
     init(data) {
-        this.returnScene = data.returnScene || 'SpaceshipScene';
+        this.returnScene = data.returnScene || 'CaptainRoomScene';
     }
 
     /** 场景创建：渲染背景与设置面板 */

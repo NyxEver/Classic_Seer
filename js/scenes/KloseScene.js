@@ -161,9 +161,10 @@ class KloseScene extends Phaser.Scene {
     createBottomBar() {
         WorldSceneModalMixin.apply(this, 'KloseScene', () => this.getKloseReturnData());
         this.worldBottomBar = WorldBottomBar.create(this, {
-            onMap: () => this.openSpaceshipFromBottomBar(),
+            onMap: () => this.openMapModalFromBottomBar(),
             onBag: () => this.openItemBagModal(),
-            onElfManage: () => this.openElfManageModal()
+            onElfManage: () => this.openElfManageModal(),
+            onSettings: () => this.openSettingsFromBottomBar()
         });
     }
 

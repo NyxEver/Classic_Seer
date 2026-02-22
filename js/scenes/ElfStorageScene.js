@@ -4,7 +4,7 @@
 class ElfStorageScene extends Phaser.Scene {
     constructor() {
         super({ key: 'ElfStorageScene' });
-        this.returnScene = 'SpaceshipScene';
+        this.returnScene = 'CaptainRoomScene';
         this.returnData = {};
         this.selectedType = null;
         this.currentPage = 0;
@@ -13,7 +13,7 @@ class ElfStorageScene extends Phaser.Scene {
     }
 
     init(data = {}) {
-        this.returnScene = data.returnScene || 'SpaceshipScene';
+        this.returnScene = data.returnScene || 'CaptainRoomScene';
         this.returnData = data.returnData || {};
         this.selectedType = null;
         this.currentPage = 0;
@@ -278,7 +278,7 @@ class ElfStorageScene extends Phaser.Scene {
         StorageSwapPopup.hide(this);
         ModalOverlayLayer.unmount(this);
 
-        const targetScene = this.returnScene || 'SpaceshipScene';
+        const targetScene = this.returnScene || 'CaptainRoomScene';
         const targetData = this.returnData || {};
         if (this.scene.isActive(targetScene)) {
             this.scene.stop();

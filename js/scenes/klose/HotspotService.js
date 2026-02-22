@@ -77,14 +77,36 @@ class KloseHotspotService {
         let buttonAction;
 
         if (this.scene.currentSubScene === 1) {
-            buttonLabel = '← 返回传送舱';
-            buttonAction = () => SceneRouter.start(this.scene, 'TeleportScene');
+            buttonLabel = '← 打开地图';
+            buttonAction = () => {
+                if (this.scene.scene.isActive('MapModalScene')) {
+                    this.scene.scene.bringToTop('MapModalScene');
+                    return;
+                }
+                SceneRouter.launch(this.scene, 'MapModalScene', {
+                    callerSceneKey: 'KloseScene',
+                    callerSceneData: typeof this.scene.getKloseReturnData === 'function' ? this.scene.getKloseReturnData() : {}
+                }, {
+                    bgmStrategy: 'inherit'
+                });
+            };
         } else if (backHotspot) {
             buttonLabel = '← 返回上一区域';
             buttonAction = () => this.goToSubScene(backHotspot.targetScene);
         } else {
-            buttonLabel = '← 返回传送舱';
-            buttonAction = () => SceneRouter.start(this.scene, 'TeleportScene');
+            buttonLabel = '← 打开地图';
+            buttonAction = () => {
+                if (this.scene.scene.isActive('MapModalScene')) {
+                    this.scene.scene.bringToTop('MapModalScene');
+                    return;
+                }
+                SceneRouter.launch(this.scene, 'MapModalScene', {
+                    callerSceneKey: 'KloseScene',
+                    callerSceneData: typeof this.scene.getKloseReturnData === 'function' ? this.scene.getKloseReturnData() : {}
+                }, {
+                    bgmStrategy: 'inherit'
+                });
+            };
         }
 
         const bg = this.scene.add.graphics();

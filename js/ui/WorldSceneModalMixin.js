@@ -1,8 +1,7 @@
 /**
  * WorldSceneModalMixin - 世界场景弹窗方法混入工具
  *
- * 为非战斗世界场景（KloseScene、SpaceshipScene、CaptainRoomScene、TeleportScene）
- * 统一混入 openItemBagModal()、openElfManageModal()、openSpaceshipFromBottomBar() 三个方法，
+ * 为非战斗世界场景统一混入底栏弹窗方法。
  * 消除各场景中重复的弹窗打开代码。
  *
  * 用法：
@@ -56,10 +55,33 @@ const WorldSceneModalMixin = {
         };
 
         /**
-         * 从底栏地图按钮返回飞船场景
+         * 从底栏地图按钮打开地图弹窗
          */
-        scene.openSpaceshipFromBottomBar = function () {
-            SceneRouter.start(this, 'SpaceshipScene');
+        scene.openMapModalFromBottomBar = function () {
+            if (this.scene.isActive('MapModalScene')) {
+                this.scene.bringToTop('MapModalScene');
+                return;
+            }
+
+            const launched = SceneRouter.launch(this, 'MapModalScene', {
+                callerSceneKey: returnSceneKey,
+                callerSceneData: getReturnData()
+            }, {
+                bgmStrategy: 'inherit'
+            });
+
+            if (launched) {
+                this.scene.bringToTop('MapModalScene');
+            }
+        };
+
+        /**
+         * 从底栏设置按钮打开设置场景
+         */
+        scene.openSettingsFromBottomBar = function () {
+            SceneRouter.start(this, 'SettingsScene', {
+                returnScene: returnSceneKey
+            });
         };
     }
 };

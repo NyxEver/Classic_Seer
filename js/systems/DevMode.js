@@ -250,7 +250,7 @@ const DevMode = {
                 if (fallback && !transientSet.has(fallback) && fallback !== currentKey) {
                     return fallback;
                 }
-                return 'SpaceshipScene';
+                return 'CaptainRoomScene';
             }
 
             return currentKey;
@@ -261,7 +261,7 @@ const DevMode = {
     _sanitizeReturnSceneKey(sceneKey) {
         const transientSet = new Set(this.transientSceneKeys || []);
         if (!sceneKey || transientSet.has(sceneKey)) {
-            return 'SpaceshipScene';
+            return 'CaptainRoomScene';
         }
         return sceneKey;
     },

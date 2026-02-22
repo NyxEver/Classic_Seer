@@ -6,12 +6,12 @@
 class ElfManageScene extends Phaser.Scene {
     constructor() {
         super({ key: 'ElfManageScene' });
-        this.returnScene = 'SpaceshipScene';
+        this.returnScene = 'CaptainRoomScene';
         this.returnData = {};
     }
 
     init(data = {}) {
-        this.returnScene = data.returnScene || 'SpaceshipScene';
+        this.returnScene = data.returnScene || 'CaptainRoomScene';
         this.returnData = data.returnData || {};
     }
 
@@ -346,7 +346,7 @@ class ElfManageScene extends Phaser.Scene {
             return;
         }
 
-        const parentReturnScene = this.returnScene || 'SpaceshipScene';
+        const parentReturnScene = this.returnScene || 'CaptainRoomScene';
         const parentReturnData = this.returnData && typeof this.returnData === 'object'
             ? this.returnData
             : {};
@@ -387,7 +387,7 @@ class ElfManageScene extends Phaser.Scene {
         }
 
         SceneRouter.start(this, 'ElfStorageScene', {
-            returnScene: this.returnScene || 'SpaceshipScene',
+            returnScene: this.returnScene || 'CaptainRoomScene',
             returnData: this.returnData || {}
         }, {
             bgmStrategy: 'inherit'
@@ -481,8 +481,8 @@ class ElfManageScene extends Phaser.Scene {
         }
         ModalOverlayLayer.unmount(this);
 
-        const requestedTarget = this.returnScene || 'SpaceshipScene';
-        const targetScene = this.scene.get(requestedTarget) ? requestedTarget : 'SpaceshipScene';
+        const requestedTarget = this.returnScene || 'CaptainRoomScene';
+        const targetScene = this.scene.get(requestedTarget) ? requestedTarget : 'CaptainRoomScene';
         const targetData = this.returnData && typeof this.returnData === 'object' ? this.returnData : {};
 
         if (this.scene.isActive(targetScene)) {

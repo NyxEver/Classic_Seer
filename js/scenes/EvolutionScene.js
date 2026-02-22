@@ -18,7 +18,7 @@ class EvolutionScene extends Phaser.Scene {
     init(data = {}) {
         this.elf = data.elf || null;
         this.newElfId = Number.isFinite(data.newElfId) ? data.newElfId : null;
-        this.returnScene = data.returnScene || 'SpaceshipScene';
+        this.returnScene = data.returnScene || 'CaptainRoomScene';
         this.returnData = data.returnData || {};
         this.callback = typeof data.callback === 'function' ? data.callback : null;
         this.closeSceneKeys = Array.isArray(data.closeSceneKeys)
@@ -483,8 +483,8 @@ class EvolutionScene extends Phaser.Scene {
         this.stopConfiguredScenes(targetScene);
 
         const started = SceneRouter.start(this, targetScene, data);
-        if (!started && targetScene !== 'SpaceshipScene') {
-            SceneRouter.start(this, 'SpaceshipScene', {});
+        if (!started && targetScene !== 'CaptainRoomScene') {
+            SceneRouter.start(this, 'CaptainRoomScene', {});
             return;
         }
         if (!started) {
@@ -526,7 +526,7 @@ class EvolutionScene extends Phaser.Scene {
         };
 
         if (!sceneKey || transientSceneKeys[sceneKey] || !this.scene.get(sceneKey)) {
-            return 'SpaceshipScene';
+            return 'CaptainRoomScene';
         }
 
         return sceneKey;

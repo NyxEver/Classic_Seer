@@ -56,11 +56,10 @@ const gameConfig = {
     scene: [
         BootScene,
         MainMenuScene,
-        SpaceshipScene,
+        MapModalScene,
         CaptainRoomScene,
         CaptainQuestModalScene,
         ElfLabScene,
-        TeleportScene,
         KloseScene,
         HelkaScene,
         SpaceStationScene,

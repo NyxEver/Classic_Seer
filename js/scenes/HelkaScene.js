@@ -41,7 +41,7 @@ class HelkaScene extends Phaser.Scene {
         this.sceneConfig = AssetMappings.helkaScenes[this.currentSubScene];
         if (!this.sceneConfig) {
             console.error(`[HelkaScene] 未找到子场景 ${this.currentSubScene} 配置`);
-            SceneRouter.start(this, 'TeleportScene');
+            SceneRouter.start(this, 'CaptainRoomScene');
             return;
         }
 
@@ -227,9 +227,10 @@ class HelkaScene extends Phaser.Scene {
     createBottomBar() {
         WorldSceneModalMixin.apply(this, 'HelkaScene', () => this.getHelkaReturnData());
         this.worldBottomBar = WorldBottomBar.create(this, {
-            onMap: () => this.openSpaceshipFromBottomBar(),
+            onMap: () => this.openMapModalFromBottomBar(),
             onBag: () => this.openItemBagModal(),
-            onElfManage: () => this.openElfManageModal()
+            onElfManage: () => this.openElfManageModal(),
+            onSettings: () => this.openSettingsFromBottomBar()
         });
     }
 

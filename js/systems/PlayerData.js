@@ -17,7 +17,7 @@ const PlayerData = {
     items: {},
 
     // 当前所在地图 ID
-    currentMapId: 'spaceship',
+    currentMapId: 'captain',
 
     // 任务进度
     questProgress: {},
@@ -162,7 +162,7 @@ const PlayerData = {
         this.seerBeans = 1000;
         this.elves = [];
         this.items = {};
-        this.currentMapId = 'spaceship';
+        this.currentMapId = 'captain';
         this.questProgress = {};
         this.lastSaveTime = Date.now();
         this.seenElves = [];
@@ -209,7 +209,11 @@ const PlayerData = {
             this.seerBeans = saveData.seerBeans || 0;
             this.elves = saveData.elves || [];
             this.items = saveData.items || {};
-            this.currentMapId = saveData.currentMapId || 'spaceship';
+            this.currentMapId = saveData.currentMapId || 'captain';
+
+            if (this.currentMapId === 'spaceship' || this.currentMapId === 'teleport') {
+                this.currentMapId = 'captain';
+            }
             this.questProgress = saveData.questProgress || {};
             this.lastSaveTime = saveData.lastSaveTime || null;
             this.seenElves = saveData.seenElves || [];

@@ -516,19 +516,19 @@ class MainMenuScene extends Phaser.Scene {
         return `#${color.toString(16).padStart(6, '0')}`;
     }
 
-    /** 确认新游戏：创建存档并跳转飞船场景 */
+    /** 确认新游戏：创建存档并跳转船长室 */
     confirmNewGame() {
         // 创建新存档（使用选中的初始精灵）
         PlayerData.createNew(this.playerName, this.selectedStarterId);
-        PlayerData.currentMapId = 'spaceship';
+        PlayerData.currentMapId = 'captain';
         PlayerData.saveToStorage();
 
         // 清理对话框
         if (this.dialogOverlay) this.dialogOverlay.destroy();
         if (this.dialogContainer) this.dialogContainer.destroy();
 
-        // 切换到飞船场景
-        SceneRouter.start(this, 'SpaceshipScene');
+        // 切换到船长室
+        SceneRouter.start(this, 'CaptainRoomScene');
     }
 
     /**
@@ -646,15 +646,13 @@ class MainMenuScene extends Phaser.Scene {
         // 加载存档
         if (PlayerData.loadFromSave()) {
             // 根据存档的位置进入相应场景
-            const targetMapId = PlayerData.currentMapId || 'spaceship';
+            const targetMapId = PlayerData.currentMapId || 'captain';
 
             // 映射 mapId 到场景 key
             const sceneMap = {
-                'spaceship': 'SpaceshipScene',
                 'captain': 'CaptainRoomScene',
                 'elf_lab': 'ElfLabScene',
                 'space_station': 'SpaceStationScene',
-                'teleport': 'TeleportScene',
                 'klose': 'KloseScene',
                 'helka': 'HelkaScene'
             };
@@ -677,7 +675,7 @@ class MainMenuScene extends Phaser.Scene {
             }
 
             if (!sceneKey) {
-                sceneKey = 'SpaceshipScene';
+                sceneKey = 'CaptainRoomScene';
                 sceneData = {};
             }
 

@@ -18,7 +18,7 @@ class SkillLearnScene extends Phaser.Scene {
     init(data = {}) {
         this.elf = data.elf || null;
         this.newSkillId = Number.isFinite(data.newSkillId) ? data.newSkillId : null;
-        this.returnScene = data.returnScene || 'SpaceshipScene';
+        this.returnScene = data.returnScene || 'CaptainRoomScene';
         this.returnData = data.returnData || {};
         this.callback = typeof data.callback === 'function' ? data.callback : null;
         this.chainData = data.chainData || null;
@@ -224,8 +224,8 @@ class SkillLearnScene extends Phaser.Scene {
         this.stopConfiguredScenes(targetScene);
 
         const started = SceneRouter.start(this, targetScene, data);
-        if (!started && targetScene !== 'SpaceshipScene') {
-            SceneRouter.start(this, 'SpaceshipScene', {});
+        if (!started && targetScene !== 'CaptainRoomScene') {
+            SceneRouter.start(this, 'CaptainRoomScene', {});
             return;
         }
         if (!started) {
@@ -296,7 +296,7 @@ class SkillLearnScene extends Phaser.Scene {
     resolveSafeReturnScene(sceneKey) {
         const transientSceneKeys = { SkillLearnScene: true, EvolutionScene: true };
         if (!sceneKey || transientSceneKeys[sceneKey] || !this.scene.get(sceneKey)) {
-            return 'SpaceshipScene';
+            return 'CaptainRoomScene';
         }
         return sceneKey;
     }
