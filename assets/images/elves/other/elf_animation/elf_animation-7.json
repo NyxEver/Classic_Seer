@@ -1,0 +1,111 @@
+{
+  "frames": {
+    "1 (33).png": {
+      "frame": {
+        "x": 0,
+        "y": 0,
+        "w": 124,
+        "h": 307
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 124,
+        "h": 307
+      },
+      "sourceSize": {
+        "w": 124,
+        "h": 307
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "1 (28).png": {
+      "frame": {
+        "x": 429,
+        "y": 0,
+        "w": 124,
+        "h": 287
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 124,
+        "h": 287
+      },
+      "sourceSize": {
+        "w": 124,
+        "h": 287
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "1 (59).png": {
+      "frame": {
+        "x": 429,
+        "y": 592,
+        "w": 124,
+        "h": 37
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 124,
+        "h": 37
+      },
+      "sourceSize": {
+        "w": 124,
+        "h": 37
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "1 (65).png": {
+      "frame": {
+        "x": 0,
+        "y": 612,
+        "w": 124,
+        "h": 37
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 124,
+        "h": 37
+      },
+      "sourceSize": {
+        "w": 124,
+        "h": 37
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    }
+  },
+  "meta": {
+    "app": "https://www.flintbyte.com/",
+    "version": "1.0.0",
+    "image": "elf_animation-7.png",
+    "format": "RGBA8888",
+    "size": {
+      "w": 1024,
+      "h": 1024
+    },
+    "scale": 1
+  }
+}

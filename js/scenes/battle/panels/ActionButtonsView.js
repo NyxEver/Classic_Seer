@@ -67,15 +67,25 @@ const BattleActionButtonsView = {
 
         const hasMultipleElves = PlayerData.elves.length > 1;
         const itemPanelOpen = this.isItemPanelOpen === true;
+        const switchPanelOpen = !!(this.elfSwitchContainer && this.elfSwitchContainer.scene);
         const forceSwitchMode = this.forceSwitchMode === true;
         const menuEnabled = this.menuEnabled === true;
         const battleEnded = this.battleEnded === true;
         const interactionBlocked = !menuEnabled || battleEnded;
+        const canToggleSwitchPanel = hasMultipleElves || switchPanelOpen;
 
         const buttons = [
-            { label: '战斗', action: () => this.showSkillPanel(), disabled: interactionBlocked || forceSwitchMode || !itemPanelOpen },
+            {
+                label: '战斗',
+                action: () => this.showSkillPanel(),
+                disabled: interactionBlocked || forceSwitchMode || (!itemPanelOpen && !switchPanelOpen)
+            },
             { label: '道具', action: () => this.showItemPanel(), disabled: interactionBlocked || forceSwitchMode || itemPanelOpen },
-            { label: '精灵', action: () => this.showElfSwitchPanel(), disabled: interactionBlocked || !hasMultipleElves },
+            {
+                label: '精灵',
+                action: () => this.showElfSwitchPanel(),
+                disabled: interactionBlocked || forceSwitchMode || !canToggleSwitchPanel
+            },
             { label: '逃跑', action: () => this.doEscape(), disabled: interactionBlocked || forceSwitchMode }
         ];
 

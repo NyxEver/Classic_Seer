@@ -426,6 +426,29 @@ class BattleManager {
     }
 
     /**
+     * 在捕捉动画完成后执行捕捉判定（不包含敌方后续行动）。
+     * @param {Object} result - 回合结果对象
+     * @returns {Promise<Object|null>} 捕捉结果
+     */
+    async resolveDeferredCatch(result) {
+        const resolver = requireBattleManagerModule('BattleActionResolver');
+        const catchResult = await resolver.resolveDeferredCatch(this, result);
+        this.finalizeTurnResult(result);
+        return catchResult;
+    }
+
+    /**
+     * 捕捉失败后执行敌方行动与回合后处理。
+     * @param {Object} result - 回合结果对象
+     * @returns {Promise<void>}
+     */
+    async resolveDeferredCatchFailure(result) {
+        const resolver = requireBattleManagerModule('BattleActionResolver');
+        await resolver.resolveDeferredCatchFailure(this, result);
+        this.finalizeTurnResult(result);
+    }
+
+    /**
      * 执行单方行动（技能释放、PP 扣减、伤害计算、效果触发，委托 BattleActionExecutor）
      * @param {string} actor - 行动方（'player' / 'enemy'）
      * @param {Object} result - 回合结果对象
@@ -634,7 +657,7 @@ class BattleManager {
                 return this.finalizeAndCleanup(result);
             }
 
-            if (!result.outcome.battleEnded) {
+            if (!result.outcome.battleEnded && result.outcome.deferAfterAnimation !== true) {
                 await this.processAfterActions(result);
             }
 

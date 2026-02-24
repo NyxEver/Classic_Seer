@@ -1,0 +1,159 @@
+{
+  "frames": {
+    "1 (4).png": {
+      "frame": {
+        "x": 0,
+        "y": 0,
+        "w": 104,
+        "h": 72
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 104,
+        "h": 72
+      },
+      "sourceSize": {
+        "w": 104,
+        "h": 72
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "1 (3).png": {
+      "frame": {
+        "x": 0,
+        "y": 0,
+        "w": 104,
+        "h": 72
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 104,
+        "h": 72
+      },
+      "sourceSize": {
+        "w": 104,
+        "h": 72
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "1 (12).png": {
+      "frame": {
+        "x": 0,
+        "y": 377,
+        "w": 101,
+        "h": 88
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 101,
+        "h": 88
+      },
+      "sourceSize": {
+        "w": 101,
+        "h": 88
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "1 (11).png": {
+      "frame": {
+        "x": 0,
+        "y": 377,
+        "w": 101,
+        "h": 88
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 101,
+        "h": 88
+      },
+      "sourceSize": {
+        "w": 101,
+        "h": 88
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "1 (69).png": {
+      "frame": {
+        "x": 406,
+        "y": 377,
+        "w": 101,
+        "h": 38
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 101,
+        "h": 38
+      },
+      "sourceSize": {
+        "w": 101,
+        "h": 38
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "1 (70).png": {
+      "frame": {
+        "x": 409,
+        "y": 0,
+        "w": 96,
+        "h": 39
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 96,
+        "h": 39
+      },
+      "sourceSize": {
+        "w": 96,
+        "h": 39
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    }
+  },
+  "meta": {
+    "app": "https://www.flintbyte.com/",
+    "version": "1.0.0",
+    "image": "elf_animation-14.png",
+    "format": "RGBA8888",
+    "size": {
+      "w": 1024,
+      "h": 1024
+    },
+    "scale": 1
+  }
+}

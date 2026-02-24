@@ -19,6 +19,7 @@ const AssetMappings = {
 
     elves: battleAssets.elves || {},
     battleAtlases: battleAssets.battleAtlases || {},
+    elfAnimationAtlases: battleAssets.elfAnimationAtlases || {},
     battleClips: battleAssets.battleClips || {},
 
     externalStill: worldAssets.externalStill || {},
@@ -98,6 +99,25 @@ const AssetMappings = {
         const assets = [];
         for (const [key, value] of Object.entries(this.battleAtlases)) {
             if (!value || !value.texture || !value.atlas) continue;
+            assets.push({
+                key,
+                texturePath: value.texture,
+                atlasPath: value.atlas
+            });
+        }
+        return assets;
+    },
+
+    /**
+     * 获取战斗通用出场/捕捉动画图集资源（elf_animation-*）
+     * @returns {Array<{key: string, texturePath: string, atlasPath: string}>}
+     */
+    getAllElfAnimationAtlases() {
+        const assets = [];
+        for (const [key, value] of Object.entries(this.elfAnimationAtlases)) {
+            if (!value || !value.texture || !value.atlas) {
+                continue;
+            }
             assets.push({
                 key,
                 texturePath: value.texture,

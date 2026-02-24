@@ -19,7 +19,7 @@ const BattleSwitchPanelView = {
 
     /** 面板卸载时关闭换宠面板 */
     unmount() {
-        BattleSwitchPanelView.closeElfSwitchPanel.call(this);
+        BattleSwitchPanelView.closeElfSwitchPanel.call(this, { allowForceClose: true });
     },
 
     /**
@@ -31,49 +31,65 @@ const BattleSwitchPanelView = {
             return;
         }
 
-        if (this.elfSwitchContainer) {
-            if (this.forceSwitchMode === forceSwitch) {
+        const panelOpen = !!(this.elfSwitchContainer && this.elfSwitchContainer.scene);
+        if (panelOpen) {
+            if (this.forceSwitchMode === true) {
                 return;
             }
-            this.closeElfSwitchPanel();
+
+            if (!forceSwitch) {
+                this.closeElfSwitchPanel();
+                this.refreshActionButtons();
+                this.refreshPanelVisibility();
+                return;
+            }
+
+            this.closeElfSwitchPanel({ allowForceClose: true });
         }
 
         this.closeItemPanel();
         this.closeCapsulePanel();
 
         const panelY = 430;
-        this.elfSwitchContainer = this.add.container(0, panelY);
-        this.elfSwitchContainer.setDepth(80);
+        const panelX = 310;
+        const panelW = 380;
+        const panelH = 150;
+        const panelPadding = 10;
+        this.elfSwitchContainer = this.add.container(panelX, panelY + 10);
+        this.elfSwitchContainer.setDepth(70);
 
-        const panelW = 700;
-        const panelH = 165;
-        const panelX = 300;
+        this.forceSwitchMode = forceSwitch;
+        if (forceSwitch) {
+            this.disableMenu();
+            this.stopTurnTimer();
+        }
 
         const bg = this.add.graphics();
         bg.fillStyle(0x1a2a4a, 0.98);
-        bg.fillRoundedRect(panelX, 5, panelW, panelH, 10);
+        bg.fillRoundedRect(0, 0, panelW, panelH, 10);
         bg.lineStyle(2, 0x4a7aaa);
-        bg.strokeRoundedRect(panelX, 5, panelW, panelH, 10);
+        bg.strokeRoundedRect(0, 0, panelW, panelH, 10);
         this.elfSwitchContainer.add(bg);
 
-        const topBarY = 12;
-        const slotSize = 40;
-        const slotGap = 8;
+        const topBarY = panelPadding;
+        const slotSize = 36;
+        const slotGap = 6;
         const elves = PlayerData.elves;
 
         this.elfSlots = [];
         this.selectedSwitchIndex = 0;
 
         for (let i = 0; i < elves.length; i++) {
-            const slot = BattleSwitchPanelView.createElfSlot.call(this, panelX + 15 + i * (slotSize + slotGap), topBarY, slotSize, elves[i], i);
+            const slotX = panelPadding + i * (slotSize + slotGap);
+            const slot = BattleSwitchPanelView.createElfSlot.call(this, slotX, topBarY, slotSize, elves[i], i);
             this.elfSwitchContainer.add(slot);
             this.elfSlots.push(slot);
         }
 
-        this.elfInfoContainer = this.add.container(panelX + 15, topBarY + slotSize + 15);
+        this.elfInfoContainer = this.add.container(panelPadding, topBarY + slotSize + 10);
         this.elfSwitchContainer.add(this.elfInfoContainer);
 
-        this.elfSkillContainer = this.add.container(panelX + 250, topBarY + slotSize + 15);
+        this.elfSkillContainer = this.add.container(188, topBarY + slotSize + 8);
         this.elfSwitchContainer.add(this.elfSkillContainer);
 
         for (let i = 0; i < elves.length; i++) {
@@ -83,16 +99,8 @@ const BattleSwitchPanelView = {
             }
         }
 
-        if (!forceSwitch) {
-            const closeBtn = this.add.text(panelX + panelW - 15, 15, '✕', {
-                fontSize: '20px',
-                color: '#ff6666'
-            }).setOrigin(1, 0).setInteractive({ useHandCursor: true });
-            closeBtn.on('pointerdown', () => this.closeElfSwitchPanel());
-            this.elfSwitchContainer.add(closeBtn);
-        }
-
-        this.forceSwitchMode = forceSwitch;
+        this.refreshActionButtons();
+        this.refreshPanelVisibility();
     },
 
     /**
@@ -160,6 +168,7 @@ const BattleSwitchPanelView = {
         container._index = index;
         container._elfData = elfData;
         container._isCurrent = isCurrent;
+        container._size = size;
 
         return container;
     },
@@ -176,6 +185,7 @@ const BattleSwitchPanelView = {
             if (!bg) {
                 return;
             }
+            const slotSize = Number.isFinite(slot._size) ? slot._size : 40;
             const isCurrent = slot._isCurrent;
             const canFight = slot._elfData.currentHp > 0;
             const isSelected = i === index;
@@ -183,7 +193,7 @@ const BattleSwitchPanelView = {
             bg.clear();
             const bgColor = isCurrent ? 0x4a6a8a : (isSelected ? 0x3a6a9a : (canFight ? 0x2a4a6a : 0x3a3a3a));
             bg.fillStyle(bgColor, 1);
-            bg.fillRoundedRect(0, 0, 40, 40, 6);
+            bg.fillRoundedRect(0, 0, slotSize, slotSize, 6);
             if (isCurrent) {
                 bg.lineStyle(3, 0xffdd44);
             } else if (isSelected) {
@@ -191,7 +201,7 @@ const BattleSwitchPanelView = {
             } else {
                 bg.lineStyle(2, canFight ? 0x4a8aca : 0x555555);
             }
-            bg.strokeRoundedRect(0, 0, 40, 40, 6);
+            bg.strokeRoundedRect(0, 0, slotSize, slotSize, 6);
         });
 
         this.updateElfSwitchInfo(index);
@@ -231,7 +241,7 @@ const BattleSwitchPanelView = {
         });
         this.elfInfoContainer.add(hpLabel);
 
-        const hpBarW = 180;
+        const hpBarW = 165;
         const hpBarH = 12;
         const hpBg = this.add.graphics();
         hpBg.fillStyle(0x222222, 1);
@@ -253,8 +263,8 @@ const BattleSwitchPanelView = {
         }
 
         const btnY = 65;
-        const btnW = 80;
-        const btnH = 30;
+        const btnW = 72;
+        const btnH = 28;
         const btnEnabled = canFight && !isCurrent;
 
         const btnBg = this.add.graphics();
@@ -276,10 +286,10 @@ const BattleSwitchPanelView = {
             btnHit.on('pointerdown', () => this.doSwitch(index));
         }
 
-        const skillW = 210;
-        const skillH = 40;
-        const skillGapX = 5;
-        const skillGapY = 5;
+        const skillW = 88;
+        const skillH = 32;
+        const skillGapX = 4;
+        const skillGapY = 4;
 
         for (let i = 0; i < 4; i++) {
             const col = i % 2;
@@ -331,16 +341,21 @@ const BattleSwitchPanelView = {
         bg.strokeRoundedRect(0, 0, w, h, 4);
         container.add(bg);
 
+        const compact = w <= 100;
+
         const nameText = this.add.text(8, 5, skill.name, {
-            fontSize: '13px',
+            fontSize: compact ? '11px' : '13px',
             fontFamily: 'Arial',
             color: '#ffffff',
             fontStyle: 'bold'
         });
         container.add(nameText);
 
-        const metaText = this.add.text(8, 23, `威力${skill.power}  PP${currentPP}/${skill.pp}`, {
-            fontSize: '11px',
+        const metaLabel = compact
+            ? `PP${currentPP}/${skill.pp}`
+            : `威力${skill.power}  PP${currentPP}/${skill.pp}`;
+        const metaText = this.add.text(8, compact ? 19 : 23, metaLabel, {
+            fontSize: compact ? '10px' : '11px',
             fontFamily: 'Arial',
             color: '#88aacc'
         });
@@ -360,13 +375,24 @@ const BattleSwitchPanelView = {
         return container;
     },
 
-    /** 关闭换宠面板并重置 forceSwitchMode */
-    closeElfSwitchPanel() {
+    /**
+     * 关闭换宠面板并重置 forceSwitchMode
+     * @param {Object} [options={}] - { allowForceClose: boolean }
+     * @returns {boolean} 是否实际关闭
+     */
+    closeElfSwitchPanel(options = {}) {
+        const allowForceClose = options.allowForceClose === true;
+        if (this.forceSwitchMode === true && !allowForceClose) {
+            return false;
+        }
+
         if (this.elfSwitchContainer) {
             this.elfSwitchContainer.destroy();
             this.elfSwitchContainer = null;
         }
         this.forceSwitchMode = false;
+        this.selectedSwitchIndex = 0;
+        return true;
     },
 
     /**
@@ -391,7 +417,7 @@ const BattleSwitchPanelView = {
         const previousManagerElf = this.battleManager ? this.battleManager.playerElf : null;
         const newElf = new Elf(baseData, elfData);
 
-        this.closeElfSwitchPanel();
+        this.closeElfSwitchPanel({ allowForceClose: true });
 
         this.addLog(`${this.playerElf.getDisplayName()}，回来吧！`);
         this.addLog(`去吧，${newElf.getDisplayName()}！`);

@@ -1,0 +1,135 @@
+{
+  "frames": {
+    "1 (1).png": {
+      "frame": {
+        "x": 0,
+        "y": 0,
+        "w": 95,
+        "h": 69
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 95,
+        "h": 69
+      },
+      "sourceSize": {
+        "w": 95,
+        "h": 69
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "1 (2).png": {
+      "frame": {
+        "x": 0,
+        "y": 374,
+        "w": 95,
+        "h": 69
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 95,
+        "h": 69
+      },
+      "sourceSize": {
+        "w": 95,
+        "h": 69
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "1 (16).png": {
+      "frame": {
+        "x": 400,
+        "y": 0,
+        "w": 90,
+        "h": 38
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 90,
+        "h": 38
+      },
+      "sourceSize": {
+        "w": 90,
+        "h": 38
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "1 (13).png": {
+      "frame": {
+        "x": 400,
+        "y": 343,
+        "w": 79,
+        "h": 37
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 79,
+        "h": 37
+      },
+      "sourceSize": {
+        "w": 79,
+        "h": 37
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    },
+    "1 (14).png": {
+      "frame": {
+        "x": 400,
+        "y": 343,
+        "w": 79,
+        "h": 37
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 79,
+        "h": 37
+      },
+      "sourceSize": {
+        "w": 79,
+        "h": 37
+      },
+      "pivot": {
+        "x": 0.5,
+        "y": 0.5
+      }
+    }
+  },
+  "meta": {
+    "app": "https://www.flintbyte.com/",
+    "version": "1.0.0",
+    "image": "elf_animation-15.png",
+    "format": "RGBA8888",
+    "size": {
+      "w": 1024,
+      "h": 1024
+    },
+    "scale": 1
+  }
+}

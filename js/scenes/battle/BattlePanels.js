@@ -184,7 +184,8 @@ const BattlePanels = {
             this.forceSwitchMode = false;
         }
 
-        const showSkillPanel = this.isItemPanelOpen !== true && this.forceSwitchMode !== true;
+        const switchPanelOpen = !!(this.elfSwitchContainer && this.elfSwitchContainer.scene);
+        const showSkillPanel = this.isItemPanelOpen !== true && this.forceSwitchMode !== true && !switchPanelOpen;
         if (showSkillPanel) {
             if (!this.skillContainer) {
                 this.createMiddleSkillPanel(this.bottomPanelY || 430);

@@ -1,7 +1,4 @@
-/**
- * BattleActionResolver - 非技能动作解析器
- * 负责道具/捕捉/逃跑/切换分支与行动编排。
- */
+/** BattleActionResolver - 非技能动作解析器 */
 
 const BattleActionResolver = {
     getActionItemId(manager, action) {
@@ -226,9 +223,101 @@ const BattleActionResolver = {
             }
             return;
         }
-
         manager.log('未知行动类型，回合取消。');
         manager.markActionRejected(result, 'unknown_action_type');
+    },
+
+    getDeferredCatchEvent(manager, result) {
+        const catchEvent = manager.getLastEvent(result, BattleManager.EVENT.CATCH_RESULT);
+        if (!catchEvent || !catchEvent.result) {
+            return null;
+        }
+        return catchEvent.result.pending === true ? catchEvent : null;
+    },
+    async resolveDeferredCatch(manager, result) {
+        const catchEvent = this.getDeferredCatchEvent(manager, result);
+        if (!catchEvent) {
+            return result && result.catchResult ? result.catchResult : null;
+        }
+        const catchSystem = manager.getDependency('CatchSystem');
+        const playerData = manager.getDependency('PlayerData');
+        const dataLoader = manager.getDependency('DataLoader');
+        const catchResult = {
+            ...(catchEvent.result || {}),
+            pending: false,
+            success: false,
+            reason: null,
+            target: null
+        };
+        if (!catchSystem || !playerData || !dataLoader) {
+            catchResult.reason = 'catch_system_unavailable';
+        } else {
+            const capsule = dataLoader.getItem(catchResult.itemId);
+            if (!capsule || capsule.type !== 'capsule') {
+                catchResult.reason = 'invalid_capsule_type';
+            } else {
+                const attempt = catchSystem.attemptCatch(manager.enemyElf, capsule);
+                catchResult.rate = attempt.rate;
+                catchResult.shakes = attempt.shakes;
+
+                if (attempt.success) {
+                    const capturedResult = catchSystem.addCapturedElf(manager.enemyElf);
+                    if (!capturedResult || !capturedResult.success) {
+                        catchResult.success = false;
+                        catchResult.reason = capturedResult && capturedResult.reason
+                            ? capturedResult.reason
+                            : 'capture_store_failed';
+                    } else {
+                        catchResult.success = true;
+                        catchResult.target = capturedResult.target || 'bag';
+                    }
+                } else {
+                    catchResult.success = false;
+                    catchResult.reason = 'catch_failed';
+                }
+            }
+        }
+        catchEvent.success = !!catchResult.success;
+        catchEvent.result = catchResult;
+        result.catchResult = catchResult;
+        result.outcome.deferAfterAnimation = false;
+        if (catchResult.success) {
+            if (catchResult.target === 'storage') {
+                manager.log(`成功捕捉了 ${manager.enemyElf.getDisplayName()}，已自动放入仓库！`);
+            } else {
+                manager.log(`成功捕捉了 ${manager.enemyElf.getDisplayName()}！`);
+            }
+            manager.markBattleEnd(result, {
+                winner: 'player',
+                reason: 'catch_success',
+                captured: true
+            });
+            manager.appendBattleEndEvent(result, 'catch_success');
+            manager.setPhase(BattleManager.PHASE.BATTLE_END);
+            playerData.saveToStorage();
+            return catchResult;
+        }
+        if (catchResult.reason === 'bag_storage_full') {
+            manager.log('背包与仓库已满，捕捉失败！');
+        } else {
+            manager.log('捕捉失败！');
+        }
+        result.outcome.status = 'continue';
+        result.outcome.reason = catchResult.reason || 'catch_failed';
+        manager.setPhase(BattleManager.PHASE.EXECUTE_TURN);
+        return catchResult;
+    },
+    async resolveDeferredCatchFailure(manager, result) {
+        const catchEvent = manager.getLastEvent(result, BattleManager.EVENT.CATCH_RESULT);
+        const catchResult = catchEvent && catchEvent.result ? catchEvent.result : null;
+        if (!catchResult || catchResult.success) {
+            return;
+        }
+        this.prepareEnemyAction(manager, result);
+        await manager.executeAction('enemy', result);
+        if (!result.outcome.battleEnded) {
+            await manager.processAfterActions(result);
+        }
     },
 
     async resolveCatchAction(manager, result) {
@@ -239,12 +328,10 @@ const BattleActionResolver = {
         }
 
         const itemBag = manager.getDependency('ItemBag');
-        const catchSystem = manager.getDependency('CatchSystem');
-        const playerData = manager.getDependency('PlayerData');
         const dataLoader = manager.getDependency('DataLoader');
         const capsuleItemId = this.getActionItemId(manager, manager.playerAction);
 
-        if (!itemBag || !catchSystem || !playerData || !dataLoader) {
+        if (!itemBag || !dataLoader) {
             manager.log('捕捉系统未就绪，无法使用胶囊。');
             manager.markActionRejected(result, 'catch_system_unavailable');
             return;
@@ -269,6 +356,7 @@ const BattleActionResolver = {
             return;
         }
 
+        // 先扣胶囊并写入 item_used，再进入动画后判定。
         itemBag.remove(capsuleItemId, 1);
         manager.log(`使用了 ${capsule.name}！`);
         manager.appendTurnEvent(result, BattleManager.EVENT.ITEM_USED, {
@@ -277,49 +365,27 @@ const BattleActionResolver = {
             itemType: 'capsule'
         });
 
-        const catchResult = catchSystem.attemptCatch(manager.enemyElf, capsule);
-
-        if (catchResult.success) {
-            const capturedResult = catchSystem.addCapturedElf(manager.enemyElf);
-            if (!capturedResult || !capturedResult.success) {
-                catchResult.success = false;
-                catchResult.reason = capturedResult && capturedResult.reason ? capturedResult.reason : 'capture_store_failed';
-                if (catchResult.reason === 'bag_storage_full') {
-                    manager.log('背包与仓库已满，捕捉失败！');
-                } else {
-                    manager.log('捕捉成功但入库失败，已按捕捉失败处理。');
-                }
-            } else {
-                catchResult.target = capturedResult.target || 'bag';
-            }
-        }
+        const pendingCatchResult = {
+            pending: true,
+            success: false,
+            itemId: capsuleItemId,
+            capsuleName: capsule.name,
+            reason: null,
+            target: null
+        };
 
         manager.appendTurnEvent(result, BattleManager.EVENT.CATCH_RESULT, {
             actor: 'player',
             itemId: capsuleItemId,
-            success: !!catchResult.success,
-            result: catchResult
+            success: false,
+            result: pendingCatchResult
         });
 
-        if (catchResult.success) {
-            if (catchResult.target === 'storage') {
-                manager.log(`成功捕捉了 ${manager.enemyElf.getDisplayName()}，已自动放入仓库！`);
-            } else {
-                manager.log(`成功捕捉了 ${manager.enemyElf.getDisplayName()}！`);
-            }
-            manager.markBattleEnd(result, {
-                winner: 'player',
-                reason: 'catch_success',
-                captured: true
-            });
-            manager.appendBattleEndEvent(result, 'catch_success');
-            manager.setPhase(BattleManager.PHASE.BATTLE_END);
-            playerData.saveToStorage();
-            return;
-        }
-
-        this.prepareEnemyAction(manager, result);
-        await manager.executeAction('enemy', result);
+        result.catchResult = pendingCatchResult;
+        result.outcome.deferAfterAnimation = true;
+        result.outcome.reason = 'catch_pending_animation';
+        result.outcome.status = 'continue';
+        manager.setPhase(BattleManager.PHASE.PLAYER_CHOOSE);
     }
 };
 

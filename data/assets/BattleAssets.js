@@ -205,6 +205,86 @@ const BattleAssets = {
     },
 
     /**
+     * 战斗通用出场/捕捉动画图集（elf_animation-*）
+     *
+     * 说明：
+     * - 该清单由 tools/update-elf-animation-atlases.ps1 扫描目录刷新。
+     * - 仅纳入 json+png 成对存在的资源。
+     */
+    elfAnimationAtlases: {
+        // AUTO-GENERATED START: elf_animation_atlases
+        elf_anim_0: {
+            texture: 'assets/images/elves/other/elf_animation/elf_animation-0.png',
+            atlas: 'assets/images/elves/other/elf_animation/elf_animation-0.json'
+        },
+        elf_anim_1: {
+            texture: 'assets/images/elves/other/elf_animation/elf_animation-1.png',
+            atlas: 'assets/images/elves/other/elf_animation/elf_animation-1.json'
+        },
+        elf_anim_2: {
+            texture: 'assets/images/elves/other/elf_animation/elf_animation-2.png',
+            atlas: 'assets/images/elves/other/elf_animation/elf_animation-2.json'
+        },
+        elf_anim_3: {
+            texture: 'assets/images/elves/other/elf_animation/elf_animation-3.png',
+            atlas: 'assets/images/elves/other/elf_animation/elf_animation-3.json'
+        },
+        elf_anim_4: {
+            texture: 'assets/images/elves/other/elf_animation/elf_animation-4.png',
+            atlas: 'assets/images/elves/other/elf_animation/elf_animation-4.json'
+        },
+        elf_anim_5: {
+            texture: 'assets/images/elves/other/elf_animation/elf_animation-5.png',
+            atlas: 'assets/images/elves/other/elf_animation/elf_animation-5.json'
+        },
+        elf_anim_6: {
+            texture: 'assets/images/elves/other/elf_animation/elf_animation-6.png',
+            atlas: 'assets/images/elves/other/elf_animation/elf_animation-6.json'
+        },
+        elf_anim_7: {
+            texture: 'assets/images/elves/other/elf_animation/elf_animation-7.png',
+            atlas: 'assets/images/elves/other/elf_animation/elf_animation-7.json'
+        },
+        elf_anim_8: {
+            texture: 'assets/images/elves/other/elf_animation/elf_animation-8.png',
+            atlas: 'assets/images/elves/other/elf_animation/elf_animation-8.json'
+        },
+        elf_anim_9: {
+            texture: 'assets/images/elves/other/elf_animation/elf_animation-9.png',
+            atlas: 'assets/images/elves/other/elf_animation/elf_animation-9.json'
+        },
+        elf_anim_10: {
+            texture: 'assets/images/elves/other/elf_animation/elf_animation-10.png',
+            atlas: 'assets/images/elves/other/elf_animation/elf_animation-10.json'
+        },
+        elf_anim_11: {
+            texture: 'assets/images/elves/other/elf_animation/elf_animation-11.png',
+            atlas: 'assets/images/elves/other/elf_animation/elf_animation-11.json'
+        },
+        elf_anim_12: {
+            texture: 'assets/images/elves/other/elf_animation/elf_animation-12.png',
+            atlas: 'assets/images/elves/other/elf_animation/elf_animation-12.json'
+        },
+        elf_anim_13: {
+            texture: 'assets/images/elves/other/elf_animation/elf_animation-13.png',
+            atlas: 'assets/images/elves/other/elf_animation/elf_animation-13.json'
+        },
+        elf_anim_14: {
+            texture: 'assets/images/elves/other/elf_animation/elf_animation-14.png',
+            atlas: 'assets/images/elves/other/elf_animation/elf_animation-14.json'
+        },
+        elf_anim_15: {
+            texture: 'assets/images/elves/other/elf_animation/elf_animation-15.png',
+            atlas: 'assets/images/elves/other/elf_animation/elf_animation-15.json'
+        },
+        elf_anim_16: {
+            texture: 'assets/images/elves/other/elf_animation/elf_animation-16.png',
+            atlas: 'assets/images/elves/other/elf_animation/elf_animation-16.json'
+        }
+        // AUTO-GENERATED END: elf_animation_atlases
+    },
+
+    /**
      * 战斗动画分组映射
      * clipType: still / hit
      */

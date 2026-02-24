@@ -1,16 +1,19 @@
 /**
  * BattleAnimator - 战斗视觉动画门面
  *
- * 对外仅暴露 5 个高层方法：
+ * 对外暴露高层方法：
  * - createBackground      创建战斗背景
  * - createMainBattleArea   创建双方精灵角色
  * - createCharacterSprite  创建单个角色精灵容器
+ * - playBattleEntryAnimation 播放双方出场动画
  * - playTurnAnimations     播放完整回合动画序列（含飘字分批派发）
  * - playCatchAnimation     播放捕捉演出
+ * - playCatchFailureEnemyReturnAnimation 捕捉失败后敌方淡入回场
  *
  * 内部实现包含：
  * - atlas 帧序缓存与排序
  * - 多段图集播放管线（still/hit 片段）
+ * - 通用 elf_animation 出场/捕捉复用管线
  * - 物理位移 + still 并行演出
  * - 缺图回退链（battle atlas → external still → shape）
  */
@@ -29,6 +32,105 @@ function warnAnimatorOnce(token, message) {
     }
     BATTLE_ANIMATOR_WARNED.add(token);
     console.warn(message);
+}
+
+const DEFAULT_ENTRY_OFFSET_Y = 80;
+const DEFAULT_FADE_DURATION_MS = 220;
+const DEFAULT_FADE_EASE = 'Sine.Out';
+
+/**
+ * 获取 BattleAnimator 依赖（优先 AppContext，回退 window）
+ * @param {string} name - 依赖名称
+ * @returns {*|null}
+ */
+function getBattleAnimatorDependency(name) {
+    if (typeof AppContext !== 'undefined' && typeof AppContext.get === 'function') {
+        const dep = AppContext.get(name, null);
+        if (dep) {
+            return dep;
+        }
+    }
+    if (typeof window !== 'undefined') {
+        return window[name] || null;
+    }
+    return null;
+}
+
+/**
+ * 获取通用 elf_animation 管线对象
+ * @returns {Object|null}
+ */
+function getElfAnimationPipeline() {
+    const pipeline = getBattleAnimatorDependency('BattleElfAnimationPipeline');
+    if (pipeline && typeof pipeline.playSequence === 'function') {
+        return pipeline;
+    }
+
+    warnAnimatorOnce('missing-elf-animation-pipeline', '[BattleAnimator] BattleElfAnimationPipeline 缺失，回退显隐动画');
+    return null;
+}
+
+/**
+ * 读取出场/捕捉共用动画常量（缺失时回退默认值）
+ * @returns {{ offsetY: number, fadeDuration: number, fadeEase: string }}
+ */
+function getElfAnimationConstants() {
+    const pipeline = getElfAnimationPipeline();
+    return {
+        offsetY: pipeline && Number.isFinite(pipeline.ENTRY_ANIM_OFFSET_Y)
+            ? pipeline.ENTRY_ANIM_OFFSET_Y
+            : DEFAULT_ENTRY_OFFSET_Y,
+        fadeDuration: pipeline && Number.isFinite(pipeline.FADE_DURATION_MS)
+            ? pipeline.FADE_DURATION_MS
+            : DEFAULT_FADE_DURATION_MS,
+        fadeEase: pipeline && typeof pipeline.FADE_EASE === 'string' && pipeline.FADE_EASE.length > 0
+            ? pipeline.FADE_EASE
+            : DEFAULT_FADE_EASE
+    };
+}
+
+/**
+ * 播放目标容器透明度补间
+ * @param {Phaser.Scene} scene
+ * @param {Phaser.GameObjects.Container} sprite
+ * @param {number} targetAlpha
+ * @param {number} duration
+ * @param {string} ease
+ * @returns {Promise<void>}
+ */
+function tweenBattleSpriteAlpha(scene, sprite, targetAlpha, duration, ease) {
+    if (!sprite || !sprite.scene) {
+        return Promise.resolve();
+    }
+
+    return new Promise((resolve) => {
+        scene.tweens.add({
+            targets: sprite,
+            alpha: targetAlpha,
+            duration,
+            ease,
+            onComplete: () => resolve()
+        });
+    });
+}
+
+/**
+ * 播放一次通用 elf_animation（缺失时返回 played=false）
+ * @param {Phaser.Scene} scene
+ * @param {Object} options
+ * @returns {Promise<{played:boolean, keyFrameTriggered:boolean, reason:string|null}>}
+ */
+function playSharedElfAnimation(scene, options) {
+    const pipeline = getElfAnimationPipeline();
+    if (!pipeline) {
+        return Promise.resolve({
+            played: false,
+            keyFrameTriggered: false,
+            reason: 'pipeline_missing'
+        });
+    }
+
+    return pipeline.playSequence(scene, options);
 }
 
 /**
@@ -539,120 +641,6 @@ function drawFilteredSceneBackground(scene, backgroundKey) {
     scene.add.rectangle(scene.W / 2, scene.H / 2, scene.W, scene.H, 0x5b3a1b, 0.14).setDepth(-18);
 }
 
-/**
- * 播放胶囊摇晃动画（左右摆动指定次数）
- * @param {Phaser.Scene} scene
- * @param {Phaser.GameObjects.Graphics} capsule - 胶囊图形
- * @param {number} times - 摇晃次数
- * @param {Function} onComplete - 完成后回调
- */
-function playCapsuleShake(scene, capsule, times, onComplete) {
-    let shakeCount = 0;
-    const doShake = () => {
-        if (shakeCount >= times) {
-            onComplete();
-            return;
-        }
-        shakeCount++;
-
-        scene.tweens.add({
-            targets: capsule,
-            angle: 15,
-            duration: 150,
-            yoyo: true,
-            ease: 'Sine.easeInOut',
-            onComplete: () => {
-                scene.tweens.add({
-                    targets: capsule,
-                    angle: -15,
-                    duration: 150,
-                    yoyo: true,
-                    ease: 'Sine.easeInOut',
-                    onComplete: () => {
-                        scene.time.delayedCall(300, doShake);
-                    }
-                });
-            }
-        });
-    };
-    doShake();
-}
-
-/**
- * 播放捕捉成功特效（星星散射 + GET! 文字上浮）
- * @param {Phaser.Scene} scene
- * @param {number} x - 特效中心 X
- * @param {number} y - 特效中心 Y
- * @param {Function} onComplete - 完成后回调
- */
-function playSuccessEffect(scene, x, y, onComplete) {
-    for (let i = 0; i < 8; i++) {
-        const angle = (i / 8) * Math.PI * 2;
-        const star = scene.add.text(x, y, '✨', { fontSize: '24px' }).setOrigin(0.5);
-
-        scene.tweens.add({
-            targets: star,
-            x: x + Math.cos(angle) * 60,
-            y: y + Math.sin(angle) * 60,
-            alpha: 0,
-            duration: 600,
-            ease: 'Power2',
-            onComplete: () => star.destroy()
-        });
-    }
-
-    const successText = scene.add.text(x, y - 40, 'GET!', {
-        fontSize: '32px',
-        fontFamily: 'Arial',
-        color: '#ffdd44',
-        fontStyle: 'bold',
-        stroke: '#000000',
-        strokeThickness: 4
-    }).setOrigin(0.5).setDepth(60);
-
-    scene.tweens.add({
-        targets: successText,
-        y: y - 80,
-        alpha: 0,
-        duration: 1000,
-        ease: 'Power2',
-        onComplete: () => {
-            successText.destroy();
-            onComplete();
-        }
-    });
-}
-
-/**
- * 播放捕捉失败特效（胶囊变形 → 敌方精灵弹出复原）
- * @param {Phaser.Scene} scene
- * @param {Phaser.GameObjects.Graphics} capsule - 胶囊图形
- * @param {Function} onComplete - 完成后回调
- */
-function playFailEffect(scene, capsule, onComplete) {
-    scene.tweens.add({
-        targets: capsule,
-        scaleX: 1.5,
-        scaleY: 0.5,
-        duration: 150,
-        yoyo: true,
-        onComplete: () => {
-            scene.enemySprite.setPosition(capsule.x, capsule.y);
-            scene.tweens.add({
-                targets: scene.enemySprite,
-                x: scene.W - 200,
-                y: 230,
-                scaleX: 1,
-                scaleY: 1,
-                alpha: 1,
-                duration: 400,
-                ease: 'Back.easeOut',
-                onComplete
-            });
-        }
-    });
-}
-
 const BattleAnimator = {
     /**
      * 创建战斗背景
@@ -681,6 +669,13 @@ const BattleAnimator = {
     createMainBattleArea() {
         this.playerSprite = this.createCharacterSprite(200, 230, this.playerElf, true);
         this.enemySprite = this.createCharacterSprite(this.W - 200, 230, this.enemyElf, false);
+
+        if (this.playerSprite) {
+            this.playerSprite.setAlpha(0);
+        }
+        if (this.enemySprite) {
+            this.enemySprite.setAlpha(0);
+        }
     },
 
     /**
@@ -769,23 +764,83 @@ const BattleAnimator = {
     },
 
     /**
+     * 播放双方出场动画：
+     * - 复用 elf_animation 全局序列并行播放
+     * - 到关键帧时触发双方精灵淡入
+     * - 若动画不可用则回退为双方直接淡入
+     * @returns {Promise<void>}
+     */
+    playBattleEntryAnimation() {
+        return withAnimationLock(this, async () => {
+            const constants = getElfAnimationConstants();
+            const targets = [this.playerSprite, this.enemySprite].filter((sprite) => sprite && sprite.scene);
+
+            if (targets.length === 0) {
+                return;
+            }
+
+            targets.forEach((sprite) => sprite.setAlpha(0));
+
+            const fadeTasks = [];
+            const beginFadeIn = (sprite) => {
+                if (!sprite || !sprite.scene || sprite._entryFadeQueued === true) {
+                    return;
+                }
+                sprite._entryFadeQueued = true;
+                fadeTasks.push(tweenBattleSpriteAlpha(this, sprite, 1, constants.fadeDuration, constants.fadeEase));
+            };
+
+            const animTasks = targets.map(async (sprite) => {
+                const animResult = await playSharedElfAnimation(this, {
+                    x: sprite.x,
+                    y: sprite.y - constants.offsetY,
+                    depth: 57,
+                    onKeyFrame: () => beginFadeIn(sprite)
+                });
+
+                if (!animResult.played || !animResult.keyFrameTriggered) {
+                    beginFadeIn(sprite);
+                }
+            });
+
+            await Promise.all(animTasks);
+            await Promise.all(fadeTasks);
+
+            targets.forEach((sprite) => {
+                if (sprite && sprite.scene) {
+                    sprite.setAlpha(1);
+                }
+                delete sprite._entryFadeQueued;
+            });
+        });
+    },
+
+    /**
      * 播放完整回合动画序列
-     * 流程：捕捉演出 → 遍历 skill_cast 事件并逐技能播放 → 飘字分批派发 → 刷新 HUD
+     * 流程：捕捉演出（可选）→ 遍历 skill_cast 事件并逐技能播放 → 飘字分批派发 → 刷新 HUD
      * 飘字策略：每个技能动画后立即派发该技能窗口内的 hp_change，避免延迟到回合末
      * @param {Object} result - 回合结果对象（protocolVersion=2）
-     * @param {Object} [options={}] - { onUnlock: Function }
-     * @returns {Promise<{ catchResult, floatTextsQueued }>}
+     * @param {Object} [options={}] - { onUnlock, eventStartIndex, includeCatchAnimation }
+     * @returns {Promise<{ catchResult, catchAnimationState, floatTextsQueued }>}
      */
     async playTurnAnimations(result, options = {}) {
         const events = Array.isArray(result && result.events) ? result.events : [];
-        const catchEvent = events.find((event) => event.type === 'catch_result');
+        const eventStartIndex = Number.isInteger(options.eventStartIndex) && options.eventStartIndex >= 0
+            ? options.eventStartIndex
+            : 0;
+        const includeCatchAnimation = options.includeCatchAnimation !== false;
+        const scopedEvents = events.slice(eventStartIndex);
+        const catchEvent = includeCatchAnimation
+            ? scopedEvents.find((event) => event && event.type === BattleManager.EVENT.CATCH_RESULT)
+            : null;
 
         return withAnimationLock(
             this,
             async () => {
                 const catchResult = catchEvent
                     ? (catchEvent.result || null)
-                    : ((result && result.catchResult) || null);
+                    : null;
+                let catchAnimationState = null;
                 let floatTextsQueued = false;
 
                 const isSkillCastEvent = (event) => event && (event.type === 'skill_cast' || event.type === 'skillCast');
@@ -830,11 +885,11 @@ const BattleAnimator = {
                     queueFloatTexts(hpEvents);
                 };
 
-                if (catchResult) {
-                    await this.playCatchAnimation(catchResult);
+                if (catchResult && includeCatchAnimation) {
+                    catchAnimationState = await this.playCatchAnimation(catchResult);
                 }
 
-                for (let eventIndex = 0; eventIndex < events.length; eventIndex++) {
+                for (let eventIndex = eventStartIndex; eventIndex < events.length; eventIndex++) {
                     const event = events[eventIndex];
                     if (isSkillCastEvent(event)) {
                         await playSkillCastAnimation(this, event);
@@ -856,7 +911,7 @@ const BattleAnimator = {
                 }
 
                 const remainingHpEvents = [];
-                for (let index = 0; index < events.length; index++) {
+                for (let index = eventStartIndex; index < events.length; index++) {
                     if (consumedHpIndexes.has(index)) {
                         continue;
                     }
@@ -874,6 +929,7 @@ const BattleAnimator = {
 
                 return {
                     catchResult,
+                    catchAnimationState,
                     floatTextsQueued
                 };
             },
@@ -883,74 +939,76 @@ const BattleAnimator = {
 
     /**
      * 播放捕捉演出动画
-     * 流程：胶囊飞出 → 敌方精灵缩小 → 胶囊落地 → 摇晃 → 成功/失败特效
-     * @param {Object} catchResult - 捕捉结果数据（{ shakes, success }）
+     * 流程：
+     * - 复用 elf_animation 全局序列（敌方位置上方）
+     * - 在关键帧触发敌方精灵淡出
+     * - 动画不可用时回退为敌方直接淡出
+     * @returns {Promise<{ played: boolean, reason: string|null, enemyHidden: boolean }>}
+     */
+    playCatchAnimation() {
+        return withAnimationLock(this, async () => {
+            if (!this.enemySprite || !this.enemySprite.scene) {
+                return {
+                    played: false,
+                    reason: 'enemy_sprite_missing',
+                    enemyHidden: false
+                };
+            }
+
+            const constants = getElfAnimationConstants();
+            const enemySprite = this.enemySprite;
+            let hidePromise = null;
+
+            const triggerEnemyFadeOut = () => {
+                if (hidePromise || !enemySprite || !enemySprite.scene) {
+                    return;
+                }
+                hidePromise = tweenBattleSpriteAlpha(this, enemySprite, 0, constants.fadeDuration, constants.fadeEase);
+            };
+
+            const animationResult = await playSharedElfAnimation(this, {
+                x: enemySprite.x,
+                y: enemySprite.y - constants.offsetY,
+                depth: 58,
+                onKeyFrame: triggerEnemyFadeOut
+            });
+
+            if (!animationResult.played || !animationResult.keyFrameTriggered) {
+                triggerEnemyFadeOut();
+            }
+
+            if (hidePromise) {
+                await hidePromise;
+            }
+
+            return {
+                played: !!animationResult.played,
+                reason: animationResult.reason || null,
+                enemyHidden: !!enemySprite.scene && enemySprite.alpha <= 0.01
+            };
+        });
+    },
+
+    /**
+     * 捕捉失败后让敌方精灵淡入回场（淡入完成后再继续敌方行动）。
+     * @param {Object|null} catchAnimationState - 捕捉动画返回状态
      * @returns {Promise<void>}
      */
-    playCatchAnimation(catchResult) {
-        return new Promise((resolve) => {
-            const shakes = catchResult.shakes;
-            const success = catchResult.success;
+    playCatchFailureEnemyReturnAnimation(catchAnimationState = null) {
+        return withAnimationLock(this, async () => {
+            if (!this.enemySprite || !this.enemySprite.scene) {
+                return;
+            }
 
-            const capsule = this.add.graphics();
-            const capsuleX = this.playerSprite.x + 50;
-            const capsuleY = this.playerSprite.y - 50;
-            const targetX = this.enemySprite.x;
-            const targetY = this.enemySprite.y - 30;
+            const shouldRecover = !catchAnimationState
+                || catchAnimationState.enemyHidden === true
+                || this.enemySprite.alpha < 0.99;
+            if (!shouldRecover) {
+                return;
+            }
 
-            capsule.fillStyle(0xee4444, 1);
-            capsule.fillCircle(0, -8, 15);
-            capsule.fillStyle(0xffffff, 1);
-            capsule.fillCircle(0, 8, 15);
-            capsule.fillStyle(0x222222, 1);
-            capsule.fillRect(-18, -3, 36, 6);
-            capsule.fillStyle(0xffffff, 1);
-            capsule.fillCircle(0, 0, 6);
-            capsule.setPosition(capsuleX, capsuleY);
-            capsule.setDepth(50);
-
-            this.tweens.add({
-                targets: capsule,
-                x: targetX,
-                y: targetY,
-                duration: 500,
-                ease: 'Quad.easeOut',
-                onComplete: () => {
-                    this.tweens.add({
-                        targets: this.enemySprite,
-                        scaleX: 0,
-                        scaleY: 0,
-                        alpha: 0,
-                        duration: 300,
-                        ease: 'Back.easeIn',
-                        onComplete: () => {
-                            this.tweens.add({
-                                targets: capsule,
-                                y: targetY + 50,
-                                duration: 200,
-                                ease: 'Bounce.easeOut',
-                                onComplete: () => {
-                                    playCapsuleShake(this, capsule, shakes, () => {
-                                        if (success) {
-                                            playSuccessEffect(this, capsule.x, capsule.y, () => {
-                                                capsule.destroy();
-                                                resolve();
-                                            });
-                                        } else {
-                                            playFailEffect(this, capsule, () => {
-                                                capsule.destroy();
-                                                this.enemySprite.setScale(1);
-                                                this.enemySprite.setAlpha(1);
-                                                resolve();
-                                            });
-                                        }
-                                    });
-                                }
-                            });
-                        }
-                    });
-                }
-            });
+            const constants = getElfAnimationConstants();
+            await tweenBattleSpriteAlpha(this, this.enemySprite, 1, constants.fadeDuration, constants.fadeEase);
         });
     }
 };

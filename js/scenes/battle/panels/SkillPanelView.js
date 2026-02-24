@@ -272,10 +272,26 @@ const BattleSkillPanelView = {
 
     /** 显示/切换技能面板（如果道具面板打开则关闭道具面板以恢复技能面板可见） */
     showSkillPanel() {
-        if (this.isItemPanelOpen) {
-            this.closeItemPanel();
+        if (this.forceSwitchMode === true) {
             return;
         }
+
+        let changed = false;
+        if (this.isItemPanelOpen) {
+            this.closeItemPanel();
+            changed = true;
+        }
+
+        if (this.elfSwitchContainer) {
+            const closed = this.closeElfSwitchPanel();
+            changed = changed || closed === true;
+        }
+
+        if (changed) {
+            this.refreshActionButtons();
+            return;
+        }
+
         this.refreshActionButtons();
     },
 

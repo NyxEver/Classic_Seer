@@ -26,6 +26,7 @@ const BattleTurnProtocol = {
                 escaped: false,
                 captured: false,
                 actionRejected: false,
+                deferAfterAnimation: false,
                 reason: null
             }
         };
@@ -63,6 +64,7 @@ const BattleTurnProtocol = {
         result.escaped = outcome.escaped === true;
         result.captured = outcome.captured === true;
         result.actionRejected = outcome.actionRejected === true;
+        result.deferAfterAnimation = outcome.deferAfterAnimation === true;
 
         const catchEvent = this.getLastEvent(result, BattleManager.EVENT.CATCH_RESULT);
         result.catchAttempt = !!catchEvent;

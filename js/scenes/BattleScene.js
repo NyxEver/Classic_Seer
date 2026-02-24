@@ -66,12 +66,18 @@ class BattleScene extends Phaser.Scene {
 
         this.playBattleBgm();
 
-        this.showLogs(() => {
-            if (!this.battleEnded) {
-                this.enableMenu();
-                this.startTurnTimer();
-            }
-        });
+        this.playBattleEntryAnimation()
+            .catch((error) => {
+                console.warn('[BattleScene] 开场动画执行失败，已回退:', error);
+            })
+            .finally(() => {
+                this.showLogs(() => {
+                    if (!this.battleEnded && this.forceSwitchMode !== true) {
+                        this.enableMenu();
+                        this.startTurnTimer();
+                    }
+                });
+            });
     }
 
     doSkill(skillId) {
@@ -122,17 +128,77 @@ class BattleScene extends Phaser.Scene {
         }
 
         let animationResult = null;
+        let floatTextsQueuedByAnimator = false;
+        let catchAnimationState = null;
+        let catchResult = result.catchResult || null;
+
         try {
-            animationResult = await this.playTurnAnimations(result);
+            animationResult = await this.playTurnAnimations(result, {
+                eventStartIndex: 0,
+                includeCatchAnimation: true
+            });
+            if (animationResult) {
+                floatTextsQueuedByAnimator = animationResult.floatTextsQueued === true;
+                catchAnimationState = animationResult.catchAnimationState || null;
+                catchResult = animationResult.catchResult || catchResult;
+            }
         } catch (error) {
             console.error('[BattleScene] playTurnAnimations 失败:', error);
         }
 
-        const catchResult = animationResult && animationResult.catchResult
-            ? animationResult.catchResult
-            : (result.catchResult || null);
+        if (catchResult && catchResult.pending === true
+            && this.battleManager
+            && typeof this.battleManager.resolveDeferredCatch === 'function') {
+            try {
+                catchResult = await this.battleManager.resolveDeferredCatch(result);
+            } catch (error) {
+                console.error('[BattleScene] resolveDeferredCatch 失败:', error);
+                catchResult = {
+                    pending: false,
+                    success: false,
+                    reason: 'catch_resolve_error'
+                };
+                result.catchResult = catchResult;
+            }
 
-        const floatTextsQueuedByAnimator = animationResult && animationResult.floatTextsQueued === true;
+            if (typeof this.refreshStatusIcons === 'function') {
+                this.refreshStatusIcons();
+            }
+
+            if (catchResult && !catchResult.success
+                && this.battleManager
+                && typeof this.battleManager.resolveDeferredCatchFailure === 'function') {
+                try {
+                    await this.playCatchFailureEnemyReturnAnimation(catchAnimationState);
+                } catch (error) {
+                    console.warn('[BattleScene] 捕捉失败回场动画异常，已继续流程:', error);
+                }
+
+                const followUpStartIndex = Array.isArray(result.events) ? result.events.length : 0;
+
+                try {
+                    await this.battleManager.resolveDeferredCatchFailure(result);
+                    if (typeof this.refreshStatusIcons === 'function') {
+                        this.refreshStatusIcons();
+                    }
+                } catch (error) {
+                    console.error('[BattleScene] resolveDeferredCatchFailure 失败:', error);
+                }
+
+                try {
+                    const followUpAnimationResult = await this.playTurnAnimations(result, {
+                        eventStartIndex: followUpStartIndex,
+                        includeCatchAnimation: false
+                    });
+                    if (followUpAnimationResult && followUpAnimationResult.floatTextsQueued === true) {
+                        floatTextsQueuedByAnimator = true;
+                    }
+                } catch (error) {
+                    console.error('[BattleScene] 捕捉失败后续动画失败:', error);
+                }
+            }
+        }
+
         if (!floatTextsQueuedByAnimator && typeof this.showTurnFloatTexts === 'function') {
             this.showTurnFloatTexts(result);
         }
@@ -265,8 +331,10 @@ const BATTLE_SCENE_FACADE_METHODS = {
         'createBackground',
         'createMainBattleArea',
         'createCharacterSprite',
+        'playBattleEntryAnimation',
         'playTurnAnimations',
-        'playCatchAnimation'
+        'playCatchAnimation',
+        'playCatchFailureEnemyReturnAnimation'
     ],
     BattlePostFlow: [
         'finalizeBattleOnce',

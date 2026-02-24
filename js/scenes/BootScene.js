@@ -47,6 +47,9 @@ class BootScene extends Phaser.Scene {
             console.log(`[BootScene] 预加载 ${loadedCount} 组战斗精灵动画图集`);
         }
 
+        // 预加载通用 elf_animation-* 图集（开场/捕捉共用）
+        this.preloadElfAnimationAtlases();
+
         // 加载场景外静态精灵图（背包等）
         if (typeof AssetMappings !== 'undefined' && typeof AssetMappings.getAllExternalStillAssets === 'function') {
             const stillAssets = AssetMappings.getAllExternalStillAssets();
@@ -178,6 +181,105 @@ class BootScene extends Phaser.Scene {
             }
             console.log(`[BootScene] 预加载 ${loadedCount} 个 BGM`);
         }
+    }
+
+    /**
+     * 预加载通用 elf_animation-* 图集，并记录可用性状态。
+     *
+     * 规则：
+     * - 清单为空 -> 本局不可用（战斗内走显隐兜底）
+     * - 任一资源加载失败 -> 本局不可用
+     * - 该状态写入 window.__seerElfAnimationPreloadState，供 BattleElfAnimationPipeline 判定
+     */
+    preloadElfAnimationAtlases() {
+        const emptyState = {
+            manifestSize: 0,
+            expectedKeys: [],
+            loadedKeys: [],
+            failedKeys: [],
+            allLoaded: false,
+            completed: false,
+            reason: 'manifest_empty'
+        };
+
+        if (typeof AssetMappings === 'undefined' || typeof AssetMappings.getAllElfAnimationAtlases !== 'function') {
+            window.__seerElfAnimationPreloadState = {
+                ...emptyState,
+                reason: 'asset_mappings_unavailable'
+            };
+            console.warn('[BootScene] AssetMappings.getAllElfAnimationAtlases 不可用，elf_animation 动画将走兜底显隐');
+            return;
+        }
+
+        const atlases = AssetMappings.getAllElfAnimationAtlases();
+        const expectedKeys = new Set();
+        const loadedKeys = new Set();
+        const failedKeys = new Set();
+
+        const preloadState = {
+            manifestSize: Array.isArray(atlases) ? atlases.length : 0,
+            expectedKeys: [],
+            loadedKeys: [],
+            failedKeys: [],
+            allLoaded: false,
+            completed: false,
+            reason: null
+        };
+        window.__seerElfAnimationPreloadState = preloadState;
+
+        if (!Array.isArray(atlases) || atlases.length === 0) {
+            preloadState.reason = 'manifest_empty';
+            console.warn('[BootScene] elf_animation 清单为空，战斗将使用显隐兜底动画');
+            return;
+        }
+
+        let queuedCount = 0;
+        for (const atlas of atlases) {
+            if (!atlas || !atlas.key || !atlas.texturePath || !atlas.atlasPath) {
+                continue;
+            }
+            this.load.atlas(atlas.key, atlas.texturePath, atlas.atlasPath);
+            expectedKeys.add(atlas.key);
+            queuedCount++;
+        }
+
+        preloadState.manifestSize = queuedCount;
+        preloadState.expectedKeys = Array.from(expectedKeys);
+
+        if (queuedCount === 0) {
+            preloadState.reason = 'manifest_empty_after_filter';
+            console.warn('[BootScene] elf_animation 清单过滤后为空，战斗将使用显隐兜底动画');
+            return;
+        }
+
+        this.load.on('filecomplete', (key) => {
+            if (expectedKeys.has(key)) {
+                loadedKeys.add(key);
+            }
+        });
+
+        this.load.on('loaderror', (file) => {
+            if (file && expectedKeys.has(file.key)) {
+                failedKeys.add(file.key);
+            }
+        });
+
+        this.load.once('complete', () => {
+            preloadState.loadedKeys = Array.from(loadedKeys);
+            preloadState.failedKeys = Array.from(failedKeys);
+            preloadState.completed = true;
+            preloadState.allLoaded = failedKeys.size === 0 && loadedKeys.size === expectedKeys.size;
+            preloadState.reason = preloadState.allLoaded ? null : 'preload_incomplete';
+
+            if (preloadState.allLoaded) {
+                console.log(`[BootScene] elf_animation 图集预加载完成: ${loadedKeys.size}/${expectedKeys.size}`);
+                return;
+            }
+
+            console.warn(`[BootScene] elf_animation 图集预加载不完整，战斗将使用显隐兜底。成功 ${loadedKeys.size}/${expectedKeys.size}，失败 ${failedKeys.size}`);
+        });
+
+        console.log(`[BootScene] 预加载 ${queuedCount} 组 elf_animation 图集`);
     }
 
     preloadStep1ShipAssets() {
