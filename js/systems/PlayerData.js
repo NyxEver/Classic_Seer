@@ -155,7 +155,7 @@ const PlayerData = {
         const baseHp = elfData.baseStats.hp;
         const ivHp = this.normalizeIvValue(iv);
         const evHp = ev.hp;
-        return Math.floor((baseHp * 2 + ivHp + Math.floor(evHp / 4)) * level / 100 + 10 + level);
+        return Math.floor((baseHp * 2 + ivHp + evHp / 4) * level / 100 + level + 10);
     },
 
     /**

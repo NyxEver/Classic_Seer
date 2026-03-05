@@ -8,8 +8,12 @@ const ElfStats = {
 
     /**
      * 属性计算核心方法
-     * 公式：floor((基础值 * 2 + 个体值 + floor(努力值 / 4)) * 等级 / 100 + 10 + 等级)
-     * HP 有额外加 10，其他属性加 5
+     * 新公式：
+     * - HP:  floor((base*2 + iv + ev/4) * lv/100 + lv + 10)
+     * - 其他: floor(((base*2 + iv + ev/4) * lv/100 + 5) * natureModifier)
+     * 
+     * 取整规则：整个计算过程保留小数，仅在最后一步 Math.floor()
+     * HP 不受性格影响
      * @param {Elf} elf
      * @param {string} stat
      * @param {boolean} isHp
@@ -23,9 +27,13 @@ const ElfStats = {
             : (ivSource && Number.isFinite(ivSource[stat]) ? ivSource[stat] : 15);
         const ev = elf.ev[stat];
 
-        return Math.floor(
-            (base * 2 + iv + Math.floor(ev / 4)) * elf.level / 100 + (isHp ? 10 : 5) + elf.level
-        );
+        if (isHp) {
+            return Math.floor((base * 2 + iv + ev / 4) * elf.level / 100 + elf.level + 10);
+        } else {
+            const natureName = elf.nature || '认真';
+            const modifier = NatureData.getModifier(natureName, stat);
+            return Math.floor(((base * 2 + iv + ev / 4) * elf.level / 100 + 5) * modifier);
+        }
     },
 
     /**
