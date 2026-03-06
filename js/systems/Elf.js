@@ -32,10 +32,11 @@ class Elf {
             this.exp = 0;
         }
         this.currentHp = instanceData.currentHp;
-        this.skills = instanceData.skills || [];
+        this. skills = instanceData.skills || [];
         this.skillPP = instanceData.skillPP || {};
         this.iv = instanceData.iv;
         this.ev = instanceData.ev;
+        this.nature = instanceData.nature || '认真';
         this.pendingSkills = instanceData.pendingSkills || [];  // 待学习的技能（技能槽已满时）
 
         // 保持对原始实例数据的引用，用于同步更新
@@ -313,6 +314,7 @@ class Elf {
         this._instanceData.skillPP = this.skillPP;
         this._instanceData.iv = this.iv;
         this._instanceData.ev = this.ev;
+        this._instanceData.nature = this.nature;
         this._instanceData.status = this.status;
         this._instanceData.pendingSkills = this.pendingSkills;  // 同步待学习技能
         this._instanceData.elfId = this.id;  // 同步精灵 ID（进化后会变）
@@ -414,6 +416,9 @@ class Elf {
             skillPP: skillPP,
             iv: iv,
             ev: ev,
+            nature: (typeof NatureData !== 'undefined' && NatureData && typeof NatureData.getRandomNature === 'function')
+                ? NatureData.getRandomNature()
+                : '认真',
             status: (typeof StatusEffect !== 'undefined' && StatusEffect && typeof StatusEffect.createEmptyState === 'function')
                 ? StatusEffect.createEmptyState()
                 : { weakening: {}, control: null }

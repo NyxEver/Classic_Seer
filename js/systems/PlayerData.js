@@ -121,6 +121,9 @@ const PlayerData = {
 
         const iv = this.generateRandomIV();
         const ev = this.createInitialEV();
+        const nature = (typeof NatureData !== 'undefined' && NatureData && typeof NatureData.getRandomNature === 'function')
+            ? NatureData.getRandomNature()
+            : '认真';
 
         // 计算初始 HP（用于 currentHp）
         const maxHp = this.calculateMaxHp(elfData, level, iv, ev);
@@ -136,6 +139,7 @@ const PlayerData = {
             skillPP: skillPP,
             iv: iv,
             ev: ev,
+            nature: nature,
             status: (typeof StatusEffect !== 'undefined' && StatusEffect && typeof StatusEffect.createEmptyState === 'function')
                 ? StatusEffect.createEmptyState()
                 : { weakening: {}, control: null }
@@ -241,6 +245,10 @@ const PlayerData = {
 
                 if (!elfData.ev || typeof elfData.ev !== 'object') {
                     elfData.ev = this.createInitialEV();
+                }
+
+                if (typeof elfData.nature !== 'string' || !elfData.nature) {
+                    elfData.nature = '认真';
                 }
 
                 if (!Array.isArray(elfData.skills)) {

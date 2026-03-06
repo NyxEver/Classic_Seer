@@ -130,6 +130,11 @@ const CatchSystem = {
             skillPP: elf.skillPP ? { ...elf.skillPP } : {},
             iv: normalizeIv(elf.iv),
             ev: elf.ev ? { ...elf.ev } : playerData.createInitialEV(),
+            nature: elf.nature || (
+                typeof NatureData !== 'undefined' && NatureData && typeof NatureData.getRandomNature === 'function'
+                ? NatureData.getRandomNature()
+                : '认真'
+            ),
             status: (typeof StatusEffect !== 'undefined' && StatusEffect && typeof StatusEffect.cloneState === 'function')
                 ? StatusEffect.cloneState(elf.status)
                 : { weakening: {}, control: null }
