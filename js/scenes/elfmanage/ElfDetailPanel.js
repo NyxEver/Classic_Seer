@@ -67,6 +67,7 @@ const ElfDetailPanel = {
         const tx = x + 195;
         let ty = y + 8;
         const expNeed = elf.getExpToNextLevel();
+        const remainingExp = expNeed > 0 ? expNeed - elf.exp : 0;
         const lineNo = scene.add.text(tx, ty, `编号: ${baseData.id.toString().padStart(3, '0')}`, {
             fontSize: '14px', color: '#d6ecff'
         });
@@ -95,8 +96,8 @@ const ElfDetailPanel = {
 
         const restRows = [
             `等级: Lv.${elfData.level}`,
-            `升级所需经验值: ${expNeed > 0 ? expNeed : '已满级'}`,
-            '性格: ',
+            `升级所需经验值: ${expNeed > 0 ? remainingExp : '已满级'}`,
+            `性格: ${elfData.nature || '认真'}`,
             `获得时间: ${ElfDetailPanel.formatObtainedTime(elfData)}`
         ];
         restRows.forEach((text) => {
@@ -118,12 +119,12 @@ const ElfDetailPanel = {
      */
     renderStats(scene, elf, x, y, w) {
         const stats = [
-            { name: '攻击', value: elf.getAtk() },
-            { name: '防御', value: elf.getDef() },
-            { name: '特攻', value: elf.getSpAtk() },
-            { name: '特防', value: elf.getSpDef() },
-            { name: '速度', value: elf.getSpd() },
-            { name: '体力', value: elf.getMaxHp() }
+            { name: '攻击', value: elf.getAtk(), ev: elf.ev.atk },
+            { name: '防御', value: elf.getDef(), ev: elf.ev.def },
+            { name: '特攻', value: elf.getSpAtk(), ev: elf.ev.spAtk },
+            { name: '特防', value: elf.getSpDef(), ev: elf.ev.spDef },
+            { name: '速度', value: elf.getSpd(), ev: elf.ev.spd },
+            { name: '体力', value: elf.getMaxHp(), ev: elf.ev.hp }
         ];
         const colW = Math.floor(w / 2);
         const rowH = 34;
@@ -137,12 +138,17 @@ const ElfDetailPanel = {
             const label = scene.add.text(sx + 18, sy + 3, `${item.name}:`, {
                 fontSize: '14px', color: '#aac8e8'
             });
-            const value = scene.add.text(sx + colW - 14, sy + 3, `${item.value}`, {
+            const value = scene.add.text(sx + colW - 60, sy + 3, `${item.value}`, {
                 fontSize: '14px', color: '#ffffff'
+            }).setOrigin(1, 0);
+            const evValue = (item.ev || 0);
+            const evText = scene.add.text(sx + colW - 14, sy + 3, `(${evValue})`, {
+                fontSize: '14px', color: '#ffd700'
             }).setOrigin(1, 0);
             scene.rightContent.add(dot);
             scene.rightContent.add(label);
             scene.rightContent.add(value);
+            scene.rightContent.add(evText);
         });
     },
 

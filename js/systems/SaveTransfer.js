@@ -13,7 +13,7 @@ const SaveTransfer = {
     getGameVersion() {
         const raw = typeof window !== 'undefined' ? window.GAME_VERSION : null;
         const version = typeof raw === 'string' ? raw.trim() : '';
-        return version || '0.1.0';
+        return version || '0.1.2';
     },
 
     /**

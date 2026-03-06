@@ -75,7 +75,7 @@ const StorageDetailPanel = {
             `名字 ${elf.getDisplayName()}`,
             `个体 ${ivValue}/31`,
             `等级 Lv.${elf.level}`,
-            '性格 未设定'
+            `性格 ${elfData.nature || '认真'}`
         ];
 
         rows.forEach((text, index) => {
@@ -91,30 +91,42 @@ const StorageDetailPanel = {
         const colLeftX = leftX;
         const colRightX = state.x + Math.floor(state.width / 2) + 4;
         const leftStats = [
-            ['攻击', elf.getAtk()],
-            ['特攻', elf.getSpAtk()],
-            ['速度', elf.getSpd()]
+            ['攻击', elf.getAtk(), elf.ev.atk],
+            ['特攻', elf.getSpAtk(), elf.ev.spAtk],
+            ['速度', elf.getSpd(), elf.ev.spd]
         ];
         const rightStats = [
-            ['防御', elf.getDef()],
-            ['特防', elf.getSpDef()],
-            ['体力', elf.getMaxHp()]
+            ['防御', elf.getDef(), elf.ev.def],
+            ['特防', elf.getSpDef(), elf.ev.spDef],
+            ['体力', elf.getMaxHp(), elf.ev.hp]
         ];
 
         leftStats.forEach((item, index) => {
+            const evValue = (item[2] || 0);
             const line = scene.add.text(colLeftX, statsY + index * 28, `${item[0]} ${item[1]}`, {
                 fontSize: '14px',
                 color: '#d8e8f7'
             });
             state.root.add(line);
+            const evText = scene.add.text(colLeftX + line.width + 8, statsY + index * 28, `(${evValue})`, {
+                fontSize: '14px',
+                color: '#ffd700'
+            });
+            state.root.add(evText);
         });
 
         rightStats.forEach((item, index) => {
+            const evValue = (item[2] || 0);
             const line = scene.add.text(colRightX, statsY + index * 28, `${item[0]} ${item[1]}`, {
                 fontSize: '14px',
                 color: '#d8e8f7'
             });
             state.root.add(line);
+            const evText = scene.add.text(colRightX + line.width + 8, statsY + index * 28, `(${evValue})`, {
+                fontSize: '14px',
+                color: '#ffd700'
+            });
+            state.root.add(evText);
         });
     }
 };
